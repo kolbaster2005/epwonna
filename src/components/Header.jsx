@@ -6,6 +6,7 @@ import { avatarOptions, avatarSrcById } from '../data/avatars.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { IconNoAvatar } from './Icons.jsx'
 import AuthModal from './AuthModal.jsx'
+import logo from '../assets/logo.png'
 
 // "Моё обучение" is a dropdown now, same pattern as EP-экзамены/Вступительные
 // в вузы — Мои сочинения and Словарь used to be separate top-level things
@@ -77,10 +78,7 @@ export default function Header({ onBurgerClick }) {
       <div className="header-inner">
         <Link to="/" className="logo">
           <div className="logo-mark">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M4 5.5C4 4.67 4.67 4 5.5 4H11V20H5.5C4.67 20 4 19.33 4 18.5V5.5Z" fill="white" fillOpacity=".95" />
-              <path d="M20 5.5C20 4.67 19.33 4 18.5 4H13V20H18.5C19.33 20 20 19.33 20 18.5V5.5Z" fill="white" fillOpacity=".65" />
-            </svg>
+            <img src={logo} alt="" />
           </div>
           <div className="logo-text">
             <b>EP <span>WONNA</span></b>

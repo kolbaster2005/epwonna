@@ -9,6 +9,7 @@
   grid-template-columns: 1fr;
   gap: $space-6;
   padding: $space-5 0 $space-10;
+  min-width: 0;
 
   @include mq(lg) {
     grid-template-columns: 300px 1fr;
@@ -271,6 +272,13 @@
     box-shadow: 0 0 0 3px rgba(48, 89, 232, 0.15);
   }
 
+  &.draft {
+    background: $color-bg;
+    border-color: $color-ink-soft;
+    border-style: dashed;
+    color: $color-ink;
+  }
+
   &.correct {
     background: $color-green-light;
     border-color: $color-green;
@@ -308,6 +316,7 @@
   border: 1px solid $color-border;
   border-radius: $radius-lg;
   padding: $space-6;
+  min-width: 0;
 
   @include mq(sm) {
     padding: 34px;
@@ -369,6 +378,66 @@
     height: auto;
     display: block;
     border-radius: $radius-sm;
+  }
+}
+
+.question-image-trigger {
+  @include button-reset;
+  display: block;
+  width: 100%;
+  cursor: zoom-in;
+  position: relative;
+
+  img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: $radius-sm;
+    transition: filter 0.15s ease;
+  }
+
+  &:hover img {
+    filter: brightness(0.94);
+  }
+}
+
+.image-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(10, 16, 30, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-6;
+  cursor: zoom-out;
+}
+
+.image-lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: $radius-md;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  cursor: default;
+}
+
+.image-lightbox-close {
+  @include button-reset;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.22);
   }
 }
 
@@ -530,6 +599,16 @@ input:checked + .option-mark.radio::after {
   color: $color-gray;
 }
 
+.test-answer-hint {
+  margin-top: $space-5;
+  padding: 10px 14px;
+  background: $color-amber-light;
+  color: $color-amber-dark;
+  border-radius: $radius-md;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
 .test-feedback {
   margin-top: $space-5;
   padding: 12px 16px;
@@ -552,7 +631,96 @@ input:checked + .option-mark.radio::after {
   &.ungraded {
     background: $color-blue-light;
     color: $color-blue-dark;
+
+    p {
+      margin: 0 0 10px;
+    }
   }
+}
+
+.self-grade-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  &.part {
+    margin-top: 10px;
+  }
+}
+
+.self-grade-points {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.self-grade-points-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.self-grade-points-btn {
+  @include button-reset;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: $radius-sm;
+  border: 1.5px solid $color-blue;
+  background: #fff;
+  color: $color-blue-dark;
+  font-weight: 700;
+  font-size: 14px;
+
+  &:hover {
+    background: $color-blue-light;
+  }
+}
+
+.self-grade-prompt {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: $color-ink-soft;
+}
+
+.self-grade-btn {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: $radius-pill;
+  font-size: 12.5px;
+  font-weight: 700;
+  border: 1.5px solid transparent;
+
+  &.correct {
+    background: #fff;
+    border-color: $color-green-dark;
+    color: $color-green-dark;
+
+    &:hover {
+      background: $color-green-light;
+    }
+  }
+
+  &.incorrect {
+    background: #fff;
+    border-color: #b0332c;
+    color: #b0332c;
+
+    &:hover {
+      background: #fde9e9;
+    }
+  }
+}
+
+.self-grade-note {
+  margin-top: 8px;
+  font-size: 12px;
+  color: $color-gray;
+  font-style: italic;
 }
 
 .test-actions {
@@ -1381,6 +1549,8 @@ input:checked + .option-mark.radio::after {
   }
   &.answered {
     background: $color-bg;
+    border-color: $color-ink-soft;
+    border-style: dashed;
     color: $color-ink;
   }
   &.example {
@@ -1413,6 +1583,28 @@ input:checked + .option-mark.radio::after {
   font-size: 13px;
   color: $color-ink;
   margin-bottom: $space-3;
+}
+
+.multi-part-hint {
+  margin: -6px 0 10px;
+  font-size: 12px;
+  font-style: italic;
+  color: $color-gray;
+}
+
+.multi-part-sample-answer {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: $color-blue-light;
+  border-radius: $radius-md;
+  font-size: 13px;
+  line-height: 1.6;
+  color: $color-ink;
+}
+
+.multi-part-sample-answer-label {
+  font-weight: 700;
+  color: $color-blue-dark;
 }
 
 .multi-part-verdict {

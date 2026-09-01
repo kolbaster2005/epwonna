@@ -70,6 +70,7 @@ function rowToQuestion(row) {
     // array (see rowToTest below) — not embedded text. TestPage looks
     // this up to show the shared reading passage in its own panel.
     passageId: row.passage_id ?? undefined,
+    selfGradeMaxPoints: row.self_grade_max_points ?? undefined,
   }
   switch (row.type) {
     case 'numeric':
@@ -109,6 +110,7 @@ function questionToRow(testId, position, q) {
     image: q.image ?? null,
     explanation: q.explanation ?? null,
     passage_id: q.passageId ?? null,
+    self_grade_max_points: q.selfGradeMaxPoints ?? null,
   }
   switch (q.type) {
     case 'numeric':
@@ -145,6 +147,7 @@ function rowToTest(row) {
     fullDescription: row.full_description,
     isOfficial: row.is_official,
     isModel: row.is_model ?? false,
+    isPinned: row.is_pinned ?? false,
     topic: row.topic ?? undefined,
     format: row.format ?? undefined,
     year: row.year ?? undefined,
@@ -173,6 +176,7 @@ function testToRow(examKey, test) {
     full_description: test.fullDescription,
     is_official: test.isOfficial,
     is_model: test.isModel ?? false,
+    is_pinned: test.isPinned ?? false,
     topic: test.topic ?? null,
     format: test.format ?? null,
     year: test.year ?? null,
@@ -192,7 +196,9 @@ export async function listTests(examKey) {
       .from(TABLE)
       .select('*, questions(*)')
       .eq('exam_key', examKey)
+      .order('is_pinned', { ascending: false })
       .order('year', { ascending: false })
+      .order('id', { ascending: true })
       .order('position', { foreignTable: 'questions', ascending: true })
 
     if (error) throw error
@@ -268,6 +274,22 @@ export async function updateTest(examKey, testId, patch) {
     return getTest(examKey, testId)
   } catch (err) {
     console.error('[testsService.updateTest]', err)
+    throw toError(err)
+  }
+}
+
+// Deliberately a raw partial update, not routed through updateTest/
+// testToRow — those build a full row from a full test-shaped object, so
+// passing just { isPinned } through them would blank out topic/format/
+// year/pdf fields/oral_task/passages (they fall back to `?? null` when
+// absent from the patch). This one only ever touches is_pinned.
+export async function setPinned(testId, isPinned) {
+  try {
+    const { error } = await supabase.from(TABLE).update({ is_pinned: isPinned }).eq('id', testId)
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.error('[testsService.setPinned]', err)
     throw toError(err)
   }
 }

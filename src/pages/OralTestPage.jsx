@@ -12,10 +12,6 @@ function formatTime(totalSeconds) {
   return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
 }
 
-function introDismissKey(examKey) {
-  return `ep-wonna-oral-intro-dismissed-${examKey}`
-}
-
 // Renders whatever the stage/option gives the person to work with — a
 // quote, a text excerpt, a real photo/chart, or (if no real image has
 // been added yet) a placeholder card.
@@ -82,22 +78,11 @@ export default function OralTestPage({ examKey }) {
     }
   }, [examKey, testId])
 
-  // Shown once before the first stage, unless the person has dismissed it
-  // for this exam before (remembered in localStorage — this is a UI
-  // preference, not exam data, so it doesn't need a DB round-trip).
-  const [showIntro, setShowIntro] = useState(true)
-  useEffect(() => {
-    if (!test?.oralTask?.examInfo) {
-      setShowIntro(false)
-      return
-    }
-    setShowIntro(localStorage.getItem(introDismissKey(examKey)) !== '1')
-  }, [test, examKey])
-
-  function dismissIntro(remember) {
-    if (remember) localStorage.setItem(introDismissKey(examKey), '1')
-    setShowIntro(false)
-  }
+  // Shown once at the start of every attempt (not remembered across
+  // visits — showing it every time was a deliberate simplification, so
+  // there's no risk of someone missing it because a past visit
+  // dismissed it for good).
+  const [introSeen, setIntroSeen] = useState(false)
 
   const stages = test?.oralTask?.stages || []
   const [stageIndex, setStageIndex] = useState(0)
@@ -113,12 +98,24 @@ export default function OralTestPage({ examKey }) {
   // Reset per-stage state whenever we move to a new stage.
   useEffect(() => {
     if (!stage) return
-    setChosenId(null)
     setPaused(false)
-    if (stage.kind === 'choice') {
+    const singleOption = stage.kind === 'choice' && stage.options?.length === 1 ? stage.options[0] : null
+    if (singleOption) {
+      // Nothing to actually choose between — go straight to prep/present
+      // with that one card, same as if the person had picked it.
+      setChosenId(singleOption.id)
+      if (stage.prepMinutes > 0) {
+        setSecondsLeft(stage.prepMinutes * 60)
+        setPhase('prep')
+      } else {
+        setPhase('present')
+      }
+    } else if (stage.kind === 'choice') {
+      setChosenId(null)
       setPhase('intro')
       setSecondsLeft(0)
     } else {
+      setChosenId(null)
       setSecondsLeft((stage.prepMinutes || 0) * 60)
       setPhase(stage.prepMinutes > 0 ? 'prep' : 'present')
     }
@@ -206,7 +203,7 @@ export default function OralTestPage({ examKey }) {
     )
   }
 
-  if (showIntro) {
+  if (!introSeen) {
     return (
       <div className="oral-page">
         <button className="test-nav-back" onClick={() => navigate(`/${examKey}/probnik/${test.id}`)}>
@@ -220,12 +217,9 @@ export default function OralTestPage({ examKey }) {
               ознакомиться со всеми возможными типами заданий.
             </p>
           )}
-          <div className="oral-intro-text">{test.oralTask.examInfo}</div>
+          <div className="oral-intro-text">{exam.oralExamInfo}</div>
           <div className="oral-intro-actions">
-            <button className="btn btn-outline" onClick={() => dismissIntro(true)}>
-              Больше не показывать
-            </button>
-            <button className="btn btn-primary" onClick={() => dismissIntro(false)}>
+            <button className="btn btn-primary" onClick={() => setIntroSeen(true)}>
               Далее →
             </button>
           </div>
@@ -259,7 +253,7 @@ export default function OralTestPage({ examKey }) {
 
       {phase !== 'intro' && (
         <div className="oral-workspace">
-          {stage.kind === 'choice' && (
+          {stage.kind === 'choice' && stage.options?.length > 1 && (
             <button type="button" className="oral-back-to-choice" onClick={backToChoice}>
               ← Выбрать другую тему
             </button>

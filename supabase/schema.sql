@@ -127,6 +127,11 @@ create table if not exists public.tests (
   -- instead of the real exam's 2). Shown with its own badge on the exam
   -- page instead of "Официальный/Неофициальный".
   is_model boolean not null default false,
+  -- Pinned tests always sort first on the exam page and in the admin
+  -- list, regardless of year/id — for whichever probnik should stay at
+  -- the top (e.g. the newest official one, or the one you want people
+  -- to try first).
+  is_pinned boolean not null default false,
   topic text,
   format text check (format in ('written', 'oral')),
   year int,
@@ -150,6 +155,7 @@ create table if not exists public.tests (
 -- Safe to re-run on a project whose `tests` table predates passages.
 alter table public.tests add column if not exists passages jsonb;
 alter table public.tests add column if not exists is_model boolean not null default false;
+alter table public.tests add column if not exists is_pinned boolean not null default false;
 
 create index if not exists tests_exam_key_idx on public.tests (exam_key);
 
@@ -225,8 +231,16 @@ create table if not exists public.questions (
   tf_table jsonb,               -- { rows: [{ id, statement, correct, words: [4], isExample? }] } — tf_table only
   essay_choice jsonb,           -- { options: [{ id, title, image?, text?, instructions: [...] }] } — essay_choice only
   parts jsonb,                -- [{ id, label, type, ... }] — multi_part only
+  -- For whole-question types that can't be auto-graded (free_text,
+  -- essay_choice, or a qa_table that's entirely freeText rows): if set,
+  -- self-grading becomes "how many of N points did you earn?" instead
+  -- of a plain correct/incorrect toggle — see getVerdictWithSelfGrade
+  -- in grading.js. Null = binary self-grade (the old behavior).
+  self_grade_max_points integer,
   created_at timestamptz not null default now()
 );
+
+alter table public.questions add column if not exists self_grade_max_points integer;
 
 -- Safe to re-run on a project whose `questions` table predates
 -- multi_part / parts / short_answer / passage_id / cloze / qa_table / tf_table.
@@ -339,8 +353,17 @@ create table if not exists public.test_attempts (
   ungraded_count integer not null default 0,
   total_questions integer not null default 0,
   duration_seconds integer not null default 0,
+  -- { answers: {...}, selfGrades: {...} } — same shapes TestPage.jsx
+  -- already keeps in memory, snapshotted at submission time so a past
+  -- attempt can be reviewed later (which answers were given, which were
+  -- right/wrong) without needing the test's questions to stay unchanged
+  -- forever. Nullable — attempts saved before this column existed just
+  -- won't have a reviewable snapshot.
+  answers_snapshot jsonb,
   completed_at timestamptz not null default now()
 );
+
+alter table public.test_attempts add column if not exists answers_snapshot jsonb;
 
 alter table public.test_attempts enable row level security;
 
@@ -351,7 +374,48 @@ create policy "test_attempts: own" on public.test_attempts
 create index if not exists test_attempts_user_id_idx on public.test_attempts (user_id);
 
 -- ---------------------------------------------------------------------
--- 7. Make yourself an admin (run this AFTER you've signed up once
+-- 7. topics — was hardcoded per-exam in src/data/examData.js (see the
+--    "Stand-in for the `topics` table" comment there); now a real,
+--    admin-editable table. `id` is a short slug used as the value
+--    stored on tests.topic (e.g. 'algebra') — sort_order controls the
+--    order topics appear in the dropdown, lowest first.
+-- ---------------------------------------------------------------------
+create table if not exists public.topics (
+  id text not null,
+  exam_key text not null check (exam_key in ('epm', 'epd', 'epe')),
+  label text not null,
+  sort_order integer not null default 0,
+  primary key (exam_key, id)
+);
+
+alter table public.topics enable row level security;
+
+drop policy if exists "topics: public read" on public.topics;
+create policy "topics: public read" on public.topics
+  for select using (true);
+
+drop policy if exists "topics: admin write" on public.topics;
+create policy "topics: admin write" on public.topics
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- Seed with the same topics that used to be hardcoded, so existing
+-- tests (whose `topic` column already stores one of these ids) keep
+-- working without needing any data migration.
+insert into public.topics (id, exam_key, label, sort_order) values
+  ('algebra', 'epm', 'Алгебра', 1),
+  ('geometry', 'epm', 'Геометрия', 2),
+  ('functions', 'epm', 'Функции', 3),
+  ('stats', 'epm', 'Статистика и векторы', 4),
+  ('nutrition', 'epd', 'Питание', 1),
+  ('environment', 'epd', 'Окружающий мир', 2),
+  ('economy', 'epd', 'Экономика', 3),
+  ('nutrition', 'epe', 'Питание', 1),
+  ('environment', 'epe', 'Окружающий мир', 2),
+  ('economy', 'epe', 'Экономика', 3)
+on conflict (exam_key, id) do nothing;
+
+-- ---------------------------------------------------------------------
+-- 8. Make yourself an admin (run this AFTER you've signed up once
 --    through the app, so a row already exists in profiles):
 --
 --   update public.profiles set role = 'admin' where email = 'you@example.com';

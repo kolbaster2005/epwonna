@@ -122,18 +122,26 @@
   grid-template-areas: 'badge title score' '. date date';
   align-items: center;
   gap: 4px 10px;
-  padding: 10px 0;
+  padding: 10px 6px;
+  margin: 0 -6px;
+  border-radius: $radius-sm;
   border-bottom: 1px solid $color-border;
   font-size: 13px;
+  text-decoration: none;
+  transition: background 0.15s ease;
 
-  &:last-child {
-    border-bottom: none;
+  &:hover {
+    background: $color-bg;
   }
 
   @include mq(sm) {
     grid-template-columns: auto 1fr auto auto;
     grid-template-areas: 'badge title score date';
   }
+}
+
+.recent-list li:last-child .recent-item {
+  border-bottom: none;
 }
 
 .recent-badge {
@@ -165,6 +173,29 @@
 }
 
 // ---- Widget: score trend chart --------------------------------------------
+.progress-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: $space-3;
+}
+
+.progress-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: $color-ink-soft;
+}
+
+.progress-chart-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .progress-chart {
   width: 100%;
   height: auto;
@@ -250,4 +281,26 @@
   line-height: 1.7;
   color: $color-ink;
   white-space: pre-line;
+}
+
+// ---- Attempt review (past probnik — read-only) -----------------------
+.attempt-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+}
+
+.attempt-review-item {
+  background: #fff;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-6;
+}
+
+.attempt-review-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
 }

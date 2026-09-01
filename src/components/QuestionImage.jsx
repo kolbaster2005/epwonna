@@ -5,6 +5,9 @@
 // once Supabase Storage is wired up — is rendered as a plain <img>, so
 // all three cases share one prop.
 
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+
 import epmAbschluss2Q5 from '../assets/questions/epm-abschluss-2-q5.jpg'
 import epmAbschluss2Q7 from '../assets/questions/epm-abschluss-2-q7.jpg'
 import epdSchreiben2 from '../assets/questions/epd-musterpruefung-1-schreiben2.jpg'
@@ -98,6 +101,43 @@ const IMAGES = {
   'density-triangle': DensityTriangle,
 }
 
+// Click a photo to see it at full size, in a fullscreen overlay — most
+// useful for exam scans/diagrams that are hard to read at the width a
+// question card gives them. Not used for the generated SVG diagrams
+// above (TriangleAbc/DensityTriangle) — those are already crisp vectors
+// at any size, nothing to zoom into.
+function ZoomableImage({ src, alt }) {
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return undefined
+    function handleKey(e) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [open])
+
+  return (
+    <>
+      <button type="button" className="question-image-trigger" onClick={() => setOpen(true)}>
+        <img src={src} alt={alt} />
+      </button>
+
+      {open &&
+        createPortal(
+          <div className="image-lightbox-overlay" onClick={() => setOpen(false)}>
+            <button type="button" className="image-lightbox-close" onClick={() => setOpen(false)} aria-label="Закрыть">
+              ✕
+            </button>
+            <img src={src} alt={alt} className="image-lightbox-img" onClick={(e) => e.stopPropagation()} />
+          </div>,
+          document.body
+        )}
+    </>
+  )
+}
+
 export default function QuestionImage({ name }) {
   if (!name) return null
 
@@ -105,7 +145,7 @@ export default function QuestionImage({ name }) {
   if (realPhoto) {
     return (
       <div className="question-image">
-        <img src={realPhoto} alt="Иллюстрация к вопросу" />
+        <ZoomableImage src={realPhoto} alt="Иллюстрация к вопросу" />
       </div>
     )
   }
@@ -121,7 +161,7 @@ export default function QuestionImage({ name }) {
 
   return (
     <div className="question-image">
-      <img src={name} alt="Иллюстрация к вопросу" />
+      <ZoomableImage src={name} alt="Иллюстрация к вопросу" />
     </div>
   )
 }

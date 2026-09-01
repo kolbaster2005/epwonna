@@ -303,6 +303,109 @@ export function isAutoGraded(question) {
   return question.type !== 'free_text' && question.type !== 'essay_choice'
 }
 
+// Looser than hasAnswer — true as soon as *something* has been entered,
+// even if the question isn't complete yet. Used to tell "genuinely
+// untouched" apart from "started but not finished" (sidebar draft dots,
+// and the "you've left something blank" hint near a disabled "Ответить"
+// button) — hasAnswer alone can't distinguish those two, since it's an
+// all-or-nothing completeness check.
+function hasAnyAnswerForPart(part, value) {
+  if (part.isExample) return true
+  if (part.type === 'table') {
+    if (!value) return false
+    return tableCells(part.table).some(({ r, c }) => (value[`r${r}c${c}`] ?? '').toString().trim() !== '')
+  }
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+export function hasAnyAnswer(question, value) {
+  switch (question.type) {
+    case 'numeric':
+    case 'heading_match':
+    case 'short_answer':
+    case 'free_text':
+      return typeof value === 'string' && value.trim().length > 0
+    case 'true_false':
+      return !!value && question.statements.some((s) => value[s.id] === 'true' || value[s.id] === 'false')
+    case 'multi_part':
+      return !!value && question.parts.some((p) => hasAnyAnswerForPart(p, value[p.id]))
+    case 'cloze': {
+      const ids = clozeBlankIds(question.cloze.template)
+      return !!value && ids.some((id) => (value[id] ?? '').toString().trim() !== '')
+    }
+    case 'qa_table': {
+      const rows = qaTableGradableRows(question.qaTable)
+      return !!value && rows.some((r) => (value[r.id] ?? '').toString().trim() !== '')
+    }
+    case 'tf_table': {
+      const rows = tfTableGradableRows(question.tfTable)
+      return (
+        !!value &&
+        rows.some((r) => {
+          const rv = value[r.id]
+          return !!rv?.choice || (r.words || []).some((_, i) => (rv?.words?.[i] ?? '').toString().trim() !== '')
+        })
+      )
+    }
+    case 'essay_choice':
+      return !!value?.choice || (typeof value?.text === 'string' && value.text.trim().length > 0)
+    case 'multiple_choice':
+    default:
+      return Array.isArray(value) && value.length > 0
+  }
+}
+
+// ---------------------------------------------------------------------
+// Self-grading: some question types (free_text, essay_choice) and some
+// multi_part parts (free_text) can't be auto-checked at all — a sketch,
+// a proof, a piece of free writing. Rather than leave those forever
+// "ungraded", the person can mark their own answer right/wrong after
+// checking it themselves against the answer key. This is layered on
+// top of getVerdict/getVerdictForPart, not mixed into them — auto
+// grading stays pure, self-grades are an explicit overlay supplied by
+// the caller (TestPage.jsx's `selfGrades` state).
+//
+// selfGrades shape: { [questionId]: 'correct' | 'incorrect' | { [partId]: 'correct' | 'incorrect' } }
+// — a plain string for whole-question self-grading (free_text,
+// essay_choice, or a qa_table that's entirely freeText rows), or an
+// object keyed by partId for multi_part questions (each free_text part
+// self-graded independently, then folded into the question's overall
+// verdict same as any other part).
+// ---------------------------------------------------------------------
+
+export function getVerdictForPartWithSelfGrade(part, value, selfGrade) {
+  const v = getVerdictForPart(part, value)
+  if (v === 'ungraded' && (selfGrade === 'correct' || selfGrade === 'incorrect')) return selfGrade
+  return v
+}
+
+export function getVerdictWithSelfGrade(question, value, selfGrade) {
+  if (question.type === 'multi_part') {
+    if (!hasAnswer(question, value)) return null
+    const partGrades = selfGrade && typeof selfGrade === 'object' ? selfGrade : {}
+    const verdicts = question.parts.map((p) => getVerdictForPartWithSelfGrade(p, value[p.id], partGrades[p.id]))
+    const graded = verdicts.filter((v) => v !== 'ungraded')
+    if (graded.length === 0) return 'ungraded'
+    if (graded.every((v) => v === 'correct')) return 'correct'
+    if (graded.every((v) => v === 'incorrect')) return 'incorrect'
+    return 'partial'
+  }
+  const base = getVerdict(question, value)
+  if (base === 'ungraded') {
+    // Points-based self-grade (0..question.selfGradeMaxPoints) — e.g. a
+    // qa_table reformulation exercise worth 3 points where the person
+    // judges their own answer against the key and picks how many of
+    // the 3 they think they earned.
+    if (typeof selfGrade === 'number' && question.selfGradeMaxPoints > 0) {
+      if (selfGrade <= 0) return 'incorrect'
+      if (selfGrade >= question.selfGradeMaxPoints) return 'correct'
+      return 'partial'
+    }
+    if (selfGrade === 'correct' || selfGrade === 'incorrect') return selfGrade
+  }
+  return base
+}
+
 export function getVerdict(question, value) {
   if (!hasAnswer(question, value)) return null
 

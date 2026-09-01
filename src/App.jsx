@@ -11,10 +11,13 @@ import About from './pages/About.jsx'
 import UniversityPage from './pages/UniversityPage.jsx'
 import MyLearning from './pages/MyLearning.jsx'
 import MyEssays from './pages/MyEssays.jsx'
+import AttemptReview from './pages/AttemptReview.jsx'
 import Dictionary from './pages/Dictionary.jsx'
+import NotFound from './pages/NotFound.jsx'
 import AdminHome from './pages/admin/AdminHome.jsx'
 import AdminExamTests from './pages/admin/AdminExamTests.jsx'
 import AdminTestEditor from './pages/admin/AdminTestEditor.jsx'
+import AdminTopics from './pages/admin/AdminTopics.jsx'
 import RequireAdmin from './components/RequireAdmin.jsx'
 import SelectionPopup from './components/SelectionPopup.jsx'
 import { useEffect, useState } from 'react'
@@ -64,6 +67,7 @@ export default function App() {
 
           <Route path="/my-learning" element={<MyLearning />} />
           <Route path="/my-learning/essays" element={<MyEssays />} />
+          <Route path="/my-learning/attempt/:attemptId" element={<AttemptReview />} />
           <Route path="/dictionary" element={<Dictionary />} />
           <Route path="/about" element={<About />} />
 
@@ -72,16 +76,19 @@ export default function App() {
               non-admins from seeing the panel at all. */}
           <Route path="/admin" element={<RequireAdmin><AdminHome /></RequireAdmin>} />
           <Route path="/admin/epm" element={<RequireAdmin><AdminExamTests key="epm" examKey="epm" /></RequireAdmin>} />
+          <Route path="/admin/epm/topics" element={<RequireAdmin><AdminTopics key="epm-topics" examKey="epm" /></RequireAdmin>} />
           <Route path="/admin/epm/new" element={<RequireAdmin><AdminTestEditor key="epm-new" examKey="epm" /></RequireAdmin>} />
           <Route path="/admin/epm/:testId" element={<RequireAdmin><AdminTestEditor key="epm" examKey="epm" /></RequireAdmin>} />
           <Route path="/admin/epd" element={<RequireAdmin><AdminExamTests key="epd" examKey="epd" /></RequireAdmin>} />
+          <Route path="/admin/epd/topics" element={<RequireAdmin><AdminTopics key="epd-topics" examKey="epd" /></RequireAdmin>} />
           <Route path="/admin/epd/new" element={<RequireAdmin><AdminTestEditor key="epd-new" examKey="epd" /></RequireAdmin>} />
           <Route path="/admin/epd/:testId" element={<RequireAdmin><AdminTestEditor key="epd" examKey="epd" /></RequireAdmin>} />
           <Route path="/admin/epe" element={<RequireAdmin><AdminExamTests key="epe" examKey="epe" /></RequireAdmin>} />
+          <Route path="/admin/epe/topics" element={<RequireAdmin><AdminTopics key="epe-topics" examKey="epe" /></RequireAdmin>} />
           <Route path="/admin/epe/new" element={<RequireAdmin><AdminTestEditor key="epe-new" examKey="epe" /></RequireAdmin>} />
           <Route path="/admin/epe/:testId" element={<RequireAdmin><AdminTestEditor key="epe" examKey="epe" /></RequireAdmin>} />
 
-          <Route path="*" element={<Home />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 

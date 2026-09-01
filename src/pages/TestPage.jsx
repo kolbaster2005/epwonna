@@ -6,9 +6,9 @@ import { saveEssaySubmission } from '../services/essaysService.js'
 import { saveAttempt } from '../services/attemptsService.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import QuestionImage from '../components/QuestionImage.jsx'
-import QuestionAnswerInput from '../components/QuestionAnswerInput.jsx'
+import QuestionAnswerInput, { PAGINATE_THRESHOLD } from '../components/QuestionAnswerInput.jsx'
 import FloatingPassageWindow from '../components/FloatingPassageWindow.jsx'
-import { getVerdict, hasAnswer, isAutoGraded, defaultValue } from '../utils/grading.js'
+import { getVerdictWithSelfGrade, hasAnswer, hasAnyAnswer, isAutoGraded, defaultValue } from '../utils/grading.js'
 import { pluralizeRu } from '../utils/pluralize.js'
 
 function formatTime(totalSeconds) {
@@ -90,6 +90,14 @@ export default function TestPage({ examKey }) {
   const totalSeconds = (test?.durationMinutes || exam.timeLimitMinutes || 45) * 60
 
   const [index, setIndex] = useState(0)
+  // Which part of a *paginated* multi_part question is currently shown
+  // (see PAGINATE_THRESHOLD) — lifted up here so the "Далее" button can
+  // step through parts before moving to the next question, instead of
+  // only the in-question pager dots being able to change it.
+  const [partIndex, setPartIndex] = useState(0)
+  useEffect(() => {
+    setPartIndex(0)
+  }, [index])
   const [answers, setAnswers] = useState({}) // { [questionId]: <shape depends on question.type> }
   // Which questions have been submitted via "Ответить". Until a question's
   // id is in this set, no correctness info is shown anywhere for it — not
@@ -97,6 +105,12 @@ export default function TestPage({ examKey }) {
   // the spec: the person must not be able to tell right from wrong before
   // pressing "Ответить".
   const [checkedIds, setCheckedIds] = useState(() => new Set())
+  // { [questionId]: 'correct'|'incorrect' | { [partId]: 'correct'|'incorrect' } }
+  // — self-reported verdicts for question types/parts that can't be
+  // auto-graded (see getVerdictWithSelfGrade in grading.js). Only
+  // meaningful once a question is checked; cleared per question isn't
+  // needed since it's keyed by id and just sits unused otherwise.
+  const [selfGrades, setSelfGrades] = useState({})
   const [secondsLeft, setSecondsLeft] = useState(totalSeconds)
   const [paused, setPaused] = useState(false)
   const [finished, setFinished] = useState(false)
@@ -155,6 +169,7 @@ export default function TestPage({ examKey }) {
               ungradedCount,
               totalQuestions: questions.length,
               durationSeconds: totalSeconds,
+              answersSnapshot: { answers, selfGrades },
             })
           }
           setFinished(true)
@@ -198,7 +213,7 @@ export default function TestPage({ examKey }) {
   const question = questions[index]
   const value = answers[question.id] ?? defaultValue(question.type)
   const isChecked = checkedIds.has(question.id)
-  const verdict = isChecked ? getVerdict(question, value) : null
+  const verdict = isChecked ? getVerdictWithSelfGrade(question, value, selfGrades[question.id]) : null
   const groups = groupByCategory(questions)
   // The shared reading/listening passage this question belongs to, if
   // any — looked up by id, never embedded in the question itself, so it
@@ -208,7 +223,34 @@ export default function TestPage({ examKey }) {
 
   function verdictFor(q) {
     if (!checkedIds.has(q.id)) return 'unanswered'
-    return getVerdict(q, answers[q.id] ?? defaultValue(q.type))
+    return getVerdictWithSelfGrade(q, answers[q.id] ?? defaultValue(q.type), selfGrades[q.id])
+  }
+
+  // For the sidebar dots specifically — same as verdictFor, but a
+  // question with something typed in that just hasn't been submitted
+  // via "Ответить" yet shows as 'draft' instead of blending in with
+  // truly untouched ones.
+  function sidebarStatus(q) {
+    if (checkedIds.has(q.id)) return verdictFor(q)
+    const v = answers[q.id] ?? defaultValue(q.type)
+    return hasAnyAnswer(q, v) ? 'draft' : 'unanswered'
+  }
+
+  // Whole-question self-grading (free_text, essay_choice, an
+  // all-freeText qa_table) — selfGrades[questionId] is directly the
+  // grade string here.
+  function setSelfGrade(questionId, grade) {
+    setSelfGrades((prev) => ({ ...prev, [questionId]: grade }))
+  }
+
+  // Per-part self-grading within a multi_part question — merges into
+  // whatever's already there for the other parts of the same question.
+  function setSelfGradePart(questionId, partId, grade) {
+    setSelfGrades((prev) => {
+      const existing = prev[questionId]
+      const partGrades = existing && typeof existing === 'object' ? existing : {}
+      return { ...prev, [questionId]: { ...partGrades, [partId]: grade } }
+    })
   }
 
   const correctCount = questions.filter((q) => verdictFor(q) === 'correct').length
@@ -223,11 +265,12 @@ export default function TestPage({ examKey }) {
   }
 
   // Locks (and grades) the question currently on screen, but only if
-  // every field on it has something in it — never locks a half-filled
-  // question just because the person navigated away from it. This is
-  // the only way a question becomes checked now; there's no separate
-  // "Ответить" button anymore, answers just save as you type and lock
-  // in once you've finished the question and moved on.
+  // every field on it has something in it. This now only ever runs from
+  // an explicit "Ответить" click (or automatically at handleFinish/when
+  // the timer runs out, so nothing left half-done silently loses
+  // credit) — plain navigation (Назад/Далее/sidebar) never triggers
+  // this anymore, so browsing around never reveals correctness without
+  // the person asking for it.
   function lockCurrentIfComplete() {
     if (hasAnswer(question, value) && !checkedIds.has(question.id)) {
       setCheckedIds((prev) => new Set(prev).add(question.id))
@@ -249,7 +292,6 @@ export default function TestPage({ examKey }) {
   }
 
   function goTo(i) {
-    lockCurrentIfComplete()
     setIndex(Math.min(Math.max(i, 0), questions.length - 1))
   }
 
@@ -277,6 +319,7 @@ export default function TestPage({ examKey }) {
         ungradedCount,
         totalQuestions: questions.length,
         durationSeconds: totalSeconds - secondsLeft,
+        answersSnapshot: { answers, selfGrades },
       })
     }
     setFinished(true)
@@ -313,6 +356,36 @@ export default function TestPage({ examKey }) {
     )
   }
 
+  const isPaginatedMultiPart = question.type === 'multi_part' && question.parts.length > PAGINATE_THRESHOLD
+  const isLastPart = isPaginatedMultiPart && partIndex >= question.parts.length - 1
+  // Only one action button shown at a time (see the render below) — its
+  // label and behavior depend on where the person is:
+  //   unchecked, paginated & not on the last part → "Далее" steps to
+  //     the next part
+  //   unchecked, otherwise → "Ответить" submits/grades this question
+  //   checked, not the last question → "Далее" moves to the next one
+  //   checked, last question → "Завершить тест"
+  const showStepPart = !isChecked && isPaginatedMultiPart && !isLastPart
+
+  function stepPart() {
+    setPartIndex((p) => p + 1)
+  }
+
+  function handlePrev() {
+    if (isPaginatedMultiPart && partIndex > 0) {
+      setPartIndex((p) => p - 1)
+      return
+    }
+    goTo(index - 1)
+  }
+
+  // The only place a question gets checked/graded now — either this
+  // button directly, or handleFinish/the timer running out (both still
+  // call lockCurrentIfComplete for whatever's on screen at that moment).
+  function handleAnswer() {
+    lockCurrentIfComplete()
+  }
+
   const isLast = index === questions.length - 1
   const progressPct = Math.round((answeredCount / questions.length) * 100)
 
@@ -327,16 +400,76 @@ export default function TestPage({ examKey }) {
 
       <div className="test-microlabel test-options-label">{MICROLABEL_BY_TYPE[question.type] || MICROLABEL_BY_TYPE.multiple_choice}</div>
 
-      <QuestionAnswerInput question={question} value={value} onChange={setValue} checked={isChecked} verdict={verdict} />
+      <QuestionAnswerInput
+        question={question}
+        value={value}
+        onChange={setValue}
+        checked={isChecked}
+        verdict={verdict}
+        selfGrade={selfGrades[question.id]}
+        onSelfGradePart={(partId, grade) => setSelfGradePart(question.id, partId, grade)}
+        partIndex={partIndex}
+        onPartIndexChange={setPartIndex}
+      />
 
       {!isChecked && question.type !== 'essay_choice' && (
-        <p className="test-autosave-hint">Ответ сохранится сам, когда вы перейдёте к следующему вопросу.</p>
+        <p className="test-autosave-hint">Ваш ввод сохраняется сам по себе — но результат вы увидите только после «Ответить».</p>
       )}
 
-      {verdict === 'correct' && <div className="test-feedback correct">Верно! Так держать.</div>}
-      {verdict === 'partial' && <div className="test-feedback partial">Частично верно — упущенные или лишние места отмечены оранжевым.</div>}
-      {verdict === 'incorrect' && <div className="test-feedback incorrect">Неверно. {isAutoGraded(question) ? 'Правильный ответ показан выше.' : ''}</div>}
-      {verdict === 'ungraded' && <div className="test-feedback ungraded">Ответ сохранён. Это задание не проверяется автоматически.</div>}
+      {(() => {
+        const selfGradeValue = selfGrades[question.id]
+        const hasNumericSelfGrade = typeof selfGradeValue === 'number'
+        const pointsNote = hasNumericSelfGrade ? `Вы поставили себе ${selfGradeValue} из ${question.selfGradeMaxPoints} баллов.` : null
+        return (
+          <>
+            {verdict === 'correct' && <div className="test-feedback correct">{pointsNote || 'Верно! Так держать.'}</div>}
+            {verdict === 'partial' && (
+              <div className="test-feedback partial">
+                {pointsNote || 'Частично верно — упущенные или лишние места отмечены оранжевым.'}
+              </div>
+            )}
+            {verdict === 'incorrect' && (
+              <div className="test-feedback incorrect">
+                {pointsNote || <>Неверно. {isAutoGraded(question) ? 'Правильный ответ показан выше.' : ''}</>}
+              </div>
+            )}
+            {verdict === 'ungraded' && (
+              <div className="test-feedback ungraded">
+                <p>Это задание не проверяется автоматически. Сверьтесь с ключом и отметьте сами:</p>
+                {question.selfGradeMaxPoints > 0 ? (
+                  <div className="self-grade-points">
+                    <span className="self-grade-prompt">Сколько баллов из {question.selfGradeMaxPoints} вы бы себе поставили?</span>
+                    <div className="self-grade-points-row">
+                      {Array.from({ length: question.selfGradeMaxPoints + 1 }, (_, points) => (
+                        <button
+                          key={points}
+                          type="button"
+                          className="self-grade-points-btn"
+                          onClick={() => setSelfGrade(question.id, points)}
+                        >
+                          {points}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="self-grade-buttons">
+                    <button type="button" className="self-grade-btn correct" onClick={() => setSelfGrade(question.id, 'correct')}>
+                      ✓ Верно
+                    </button>
+                    <button type="button" className="self-grade-btn incorrect" onClick={() => setSelfGrade(question.id, 'incorrect')}>
+                      ✕ Неверно
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {(verdict === 'correct' || verdict === 'incorrect') && typeof selfGradeValue === 'string' && (
+              <p className="self-grade-note">Отмечено вами как «{selfGradeValue === 'correct' ? 'верно' : 'неверно'}».</p>
+            )}
+          </>
+        )
+      })()}
     </>
   )
 
@@ -389,7 +522,7 @@ export default function TestPage({ examKey }) {
                   <div className="question-group-label">{group.name}</div>
                   <div className="question-grid">
                     {group.items.map(({ question: q, index: i }) => {
-                      const classes = ['q-num', verdictFor(q)]
+                      const classes = ['q-num', sidebarStatus(q)]
                       if (i === index) classes.push('current')
                       return (
                         <button key={q.id} className={classes.join(' ')} onClick={() => goTo(i)}>
@@ -447,11 +580,26 @@ export default function TestPage({ examKey }) {
             questionCore
           )}
 
+          {!isChecked && !showStepPart && !hasAnswer(question, value) && hasAnyAnswer(question, value) && (
+            <p className="test-answer-hint">
+              Похоже, вы заполнили не всё — проверьте, не пропустили ли какой-то пункт или строку, чтобы кнопка «Ответить» стала активной.
+            </p>
+          )}
+
           <div className="test-actions">
-            <button className="btn btn-outline" disabled={index === 0} onClick={() => goTo(index - 1)}>
+            <button className="btn btn-outline" disabled={index === 0 && (!isPaginatedMultiPart || partIndex === 0)} onClick={handlePrev}>
               ← Назад
             </button>
-            {isLast ? (
+
+            {showStepPart ? (
+              <button className="btn btn-primary" onClick={stepPart}>
+                Далее →
+              </button>
+            ) : !isChecked ? (
+              <button className="btn btn-primary" disabled={!hasAnswer(question, value)} onClick={handleAnswer}>
+                Ответить
+              </button>
+            ) : isLast ? (
               <button className="btn btn-primary" onClick={handleFinish}>
                 Завершить тест
               </button>

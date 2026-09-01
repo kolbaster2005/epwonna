@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import QuestionImage from './QuestionImage.jsx'
-import { getVerdictForPart, parseCloze, clozeBlankIds, getVerdictForBlank, getVerdictForRow, getVerdictForTfRow } from '../utils/grading.js'
+import { getVerdictForPartWithSelfGrade, parseCloze, clozeBlankIds, getVerdictForBlank, getVerdictForRow, getVerdictForTfRow } from '../utils/grading.js'
 
 // Renders "__word__" as an underline — used in qa_table prompts to mark
 // which word in the sentence the question is actually about (matching
@@ -640,8 +640,9 @@ function SingleChoicePartInput({ part, value, onChange, checked }) {
 // they got right.
 // One part's label + input — shared between the stacked layout (few
 // parts) and the paginated layout (many parts, see MultiPartInput below).
-function MultiPartItem({ part, value, onChange, checked }) {
-  const partVerdict = checked ? getVerdictForPart(part, value) : null
+function MultiPartItem({ part, value, onChange, checked, selfGrade, onSelfGrade }) {
+  const partVerdict = checked ? getVerdictForPartWithSelfGrade(part, value, selfGrade) : null
+  const showSelfGrade = checked && !part.isExample && part.type === 'free_text' && partVerdict === 'ungraded'
   return (
     <div className="multi-part-item">
       <div className="multi-part-label">
@@ -651,23 +652,45 @@ function MultiPartItem({ part, value, onChange, checked }) {
           <span className={`multi-part-verdict ${partVerdict}`}>{PART_VERDICT_LABEL[partVerdict]}</span>
         )}
       </div>
+      {part.hint && <p className="multi-part-hint">{part.hint}</p>}
       {part.type === 'table' ? (
         <TableInput table={part.table} value={value} onChange={onChange} checked={checked} />
       ) : part.type === 'free_text' ? (
-        <textarea
-          className="multi-part-freetext"
-          rows={4}
-          value={value || ''}
-          disabled={checked}
-          placeholder="Введите ваш ответ…"
-          onChange={(e) => onChange(e.target.value)}
-        />
+        <>
+          <textarea
+            className="multi-part-freetext"
+            rows={4}
+            value={value || ''}
+            disabled={checked}
+            placeholder="Введите ваш ответ…"
+            onChange={(e) => onChange(e.target.value)}
+          />
+          {checked && part.sampleAnswer && (
+            <div className="multi-part-sample-answer">
+              <span className="multi-part-sample-answer-label">Примерный ответ:</span> {part.sampleAnswer}
+            </div>
+          )}
+        </>
       ) : part.type === 'short_answer' ? (
         <ShortAnswerInput question={part} value={value} onChange={onChange} checked={checked} verdict={partVerdict} />
       ) : part.type === 'single_choice' ? (
         <SingleChoicePartInput part={part} value={value} onChange={onChange} checked={checked} />
       ) : (
         <NumericInput question={part} value={value} onChange={onChange} checked={checked} verdict={partVerdict} />
+      )}
+      {showSelfGrade && (
+        <div className="self-grade-buttons part">
+          <span className="self-grade-prompt">Проверьте сами:</span>
+          <button type="button" className="self-grade-btn correct" onClick={() => onSelfGrade?.('correct')}>
+            ✓ Верно
+          </button>
+          <button type="button" className="self-grade-btn incorrect" onClick={() => onSelfGrade?.('incorrect')}>
+            ✕ Неверно
+          </button>
+        </div>
+      )}
+      {checked && part.type === 'free_text' && typeof selfGrade === 'string' && (
+        <p className="self-grade-note">Отмечено вами как «{selfGrade === 'correct' ? 'верно' : 'неверно'}».</p>
       )}
     </div>
   )
@@ -678,18 +701,26 @@ function MultiPartItem({ part, value, onChange, checked }) {
 // e.g. an 11-item Single-Choice-Aufgabe becomes one huge scrolling wall,
 // hard to read against the reading passage next to it. Past a threshold,
 // show one part at a time with a compact number-navigator instead.
-const PAGINATE_THRESHOLD = 3
+export const PAGINATE_THRESHOLD = 3
 
-function MultiPartInput({ question, value, onChange, checked }) {
+function MultiPartInput({ question, value, onChange, checked, selfGrade, onSelfGradePart, partIndex, onPartIndexChange }) {
   const val = value || {}
   const parts = question.parts
-  const [current, setCurrent] = useState(0)
+  const partGrades = selfGrade && typeof selfGrade === 'object' ? selfGrade : {}
+  const [internalCurrent, setInternalCurrent] = useState(0)
+  // Controlled by TestPage.jsx when provided — so the top-level "Далее"
+  // button can step through parts before moving to the next question
+  // (see TestPage.jsx's handleNext). Falls back to owning its own state
+  // if used anywhere without that wiring.
+  const current = partIndex ?? internalCurrent
+  const setCurrent = onPartIndexChange ?? setInternalCurrent
 
   // Reset to the first part whenever the question itself changes — this
   // component instance can persist across a sidebar navigation (React
   // doesn't remount it just because the props changed).
   useEffect(() => {
     setCurrent(0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question.id])
 
   if (parts.length <= PAGINATE_THRESHOLD) {
@@ -702,6 +733,8 @@ function MultiPartInput({ question, value, onChange, checked }) {
             value={val[part.id]}
             onChange={(v) => onChange({ ...val, [part.id]: v })}
             checked={checked}
+            selfGrade={partGrades[part.id]}
+            onSelfGrade={onSelfGradePart ? (grade) => onSelfGradePart(part.id, grade) : undefined}
           />
         ))}
       </div>
@@ -713,7 +746,7 @@ function MultiPartInput({ question, value, onChange, checked }) {
     <div className="multi-part paginated">
       <div className="multi-part-pager">
         {parts.map((p, i) => {
-          const v = checked ? getVerdictForPart(p, val[p.id]) : null
+          const v = checked ? getVerdictForPartWithSelfGrade(p, val[p.id], partGrades[p.id]) : null
           const classes = ['multi-part-pager-num']
           if (i === current) classes.push('current')
           if (p.isExample) classes.push('example')
@@ -732,6 +765,8 @@ function MultiPartInput({ question, value, onChange, checked }) {
         value={val[part.id]}
         onChange={(v) => onChange({ ...val, [part.id]: v })}
         checked={checked}
+        selfGrade={partGrades[part.id]}
+        onSelfGrade={onSelfGradePart ? (grade) => onSelfGradePart(part.id, grade) : undefined}
       />
     </div>
   )
@@ -744,7 +779,7 @@ function hasPartValue(v) {
   return false
 }
 
-export default function QuestionAnswerInput({ question, value, onChange, checked, verdict }) {
+export default function QuestionAnswerInput({ question, value, onChange, checked, verdict, selfGrade, onSelfGradePart, partIndex, onPartIndexChange }) {
   switch (question.type) {
     case 'numeric':
       return <NumericInput question={question} value={value} onChange={onChange} checked={checked} verdict={verdict} />
@@ -765,7 +800,18 @@ export default function QuestionAnswerInput({ question, value, onChange, checked
     case 'essay_choice':
       return <EssayChoiceInput question={question} value={value} onChange={onChange} checked={checked} />
     case 'multi_part':
-      return <MultiPartInput question={question} value={value} onChange={onChange} checked={checked} />
+      return (
+        <MultiPartInput
+          question={question}
+          value={value}
+          onChange={onChange}
+          checked={checked}
+          selfGrade={selfGrade}
+          onSelfGradePart={onSelfGradePart}
+          partIndex={partIndex}
+          onPartIndexChange={onPartIndexChange}
+        />
+      )
     case 'multiple_choice':
     default:
       return <MultipleChoiceInput question={question} value={value} onChange={onChange} checked={checked} />

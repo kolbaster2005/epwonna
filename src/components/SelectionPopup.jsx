@@ -1,18 +1,37 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { translateText } from '../services/dictionaryService.js'
 import { IconTranslate, IconBookmarkPlus, IconHighlighter } from './Icons.jsx'
 import AddWordModal from './AddWordModal.jsx'
 
+// Only on the actual test-taking pages (written /test/... and oral
+// /oral/...) — not on the exam listing, test-detail intro, or anywhere
+// else on the site. Matches both /epm/test/:id and /epd/oral/:id.
+const TEST_PAGE_PATTERN = /\/(test|oral)\//
+
 export default function SelectionPopup() {
   const { user } = useAuth()
+  const location = useLocation()
+  const isTestPage = TEST_PAGE_PATTERN.test(location.pathname)
   const [selection, setSelection] = useState(null) // { text, range, x, y }
   const [translation, setTranslation] = useState(null)
   const [translating, setTranslating] = useState(false)
   const [modalWord, setModalWord] = useState(null) // string|null — opens AddWordModal when set
 
+  // Leaving a test page (or landing on one) — drop any leftover popup
+  // state rather than carrying it across, e.g. a stale selection
+  // flashing on the next test page visited.
   useEffect(() => {
+    setSelection(null)
+    setTranslation(null)
+    setModalWord(null)
+  }, [isTestPage])
+
+  useEffect(() => {
+    if (!isTestPage) return undefined
+
     function handleMouseUp(e) {
       // Ignore clicks landing inside the popup itself or the modal —
       // those are handled by their own onClick handlers, not by
@@ -34,7 +53,7 @@ export default function SelectionPopup() {
 
     document.addEventListener('mouseup', handleMouseUp)
     return () => document.removeEventListener('mouseup', handleMouseUp)
-  }, [])
+  }, [isTestPage])
 
   function closePopup() {
     setSelection(null)
@@ -75,6 +94,8 @@ export default function SelectionPopup() {
     window.getSelection()?.removeAllRanges()
     closePopup()
   }
+
+  if (!isTestPage) return null
 
   return (
     <>

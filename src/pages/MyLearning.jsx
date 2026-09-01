@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { exams, examList } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { listAttempts, summarizeAttempts } from '../services/attemptsService.js'
@@ -11,38 +12,57 @@ function formatShortDate(iso) {
 }
 
 // Simple hand-rolled line chart — no charting library is installed in
-// this project, and one number series like this doesn't need one.
-function ProgressChart({ data }) {
+// this project. One line per subject, each in that subject's own brand
+// color, each scaled independently along the x-axis by its own attempt
+// sequence (not a shared calendar timeline — with three subjects
+// potentially having attempts on completely different dates, aligning
+// them to one real timeline would leave most lines mostly empty space).
+function ProgressChart({ series }) {
   const w = 560
   const h = 200
   const padding = 32
-  const stepX = data.length > 1 ? (w - padding * 2) / (data.length - 1) : 0
-  const points = data.map((d, i) => ({
-    ...d,
-    x: padding + i * stepX,
-    y: h - padding - (d.scorePercent / 100) * (h - padding * 2),
-  }))
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' ')
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="progress-chart" role="img" aria-label="Динамика результатов по последним пробникам">
-      {[0, 25, 50, 75, 100].map((v) => {
-        const y = h - padding - (v / 100) * (h - padding * 2)
-        return (
-          <g key={v}>
-            <line x1={padding} y1={y} x2={w - padding} y2={y} stroke="#E6EAF2" strokeWidth="1" />
-            <text x={4} y={y + 3} fontSize="10" fill="#7A8699">{v}%</text>
-          </g>
-        )
-      })}
-      <path d={linePath} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      {points.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r="4.5" fill="var(--primary)" stroke="#fff" strokeWidth="1.5" />
-          <text x={p.x} y={h - 8} fontSize="10" textAnchor="middle" fill="#7A8699">{formatShortDate(p.date)}</text>
-        </g>
-      ))}
-    </svg>
+    <div>
+      <div className="progress-chart-legend">
+        {series.map((s) => (
+          <span className="progress-chart-legend-item" key={s.examKey}>
+            <span className="progress-chart-legend-dot" style={{ background: s.color }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+
+      <svg viewBox={`0 0 ${w} ${h}`} className="progress-chart" role="img" aria-label="Динамика результатов по предметам">
+        {[0, 25, 50, 75, 100].map((v) => {
+          const y = h - padding - (v / 100) * (h - padding * 2)
+          return (
+            <g key={v}>
+              <line x1={padding} y1={y} x2={w - padding} y2={y} stroke="#E6EAF2" strokeWidth="1" />
+              <text x={4} y={y + 3} fontSize="10" fill="#7A8699">{v}%</text>
+            </g>
+          )
+        })}
+
+        {series.map((s) => {
+          const stepX = s.points.length > 1 ? (w - padding * 2) / (s.points.length - 1) : 0
+          const points = s.points.map((p, i) => ({
+            ...p,
+            x: padding + i * stepX,
+            y: h - padding - (p.scorePercent / 100) * (h - padding * 2),
+          }))
+          const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' ')
+          return (
+            <g key={s.examKey}>
+              <path d={linePath} fill="none" style={{ stroke: s.color }} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              {points.map((p, i) => (
+                <circle key={i} cx={p.x} cy={p.y} r="4" style={{ fill: s.color }} stroke="#fff" strokeWidth="1.5" />
+              ))}
+            </g>
+          )
+        })}
+      </svg>
+    </div>
   )
 }
 
@@ -83,11 +103,23 @@ export default function MyLearning() {
   }, [user])
 
   const recentAttempts = attempts.slice(0, 5)
-  const chartData = [...attempts]
-    .reverse()
-    .filter((a) => a.scorePercent != null)
-    .slice(-10)
-    .map((a) => ({ date: a.completedAt, scorePercent: a.scorePercent }))
+
+  // One series per subject — own color, own chronological order, only
+  // included once there are at least 2 scored attempts (nothing to draw
+  // a line between otherwise).
+  const chartSeries = examList
+    .map((e) => ({
+      examKey: e.key,
+      label: e.label,
+      color: e.color,
+      points: attempts
+        .filter((a) => a.examKey === e.key && a.scorePercent != null)
+        .slice()
+        .reverse()
+        .slice(-10)
+        .map((a) => ({ date: a.completedAt, scorePercent: a.scorePercent })),
+    }))
+    .filter((s) => s.points.length >= 2)
 
   return (
     <div className="mylearning-page">
@@ -144,11 +176,13 @@ export default function MyLearning() {
                 {recentAttempts.map((a) => {
                   const exam = exams[a.examKey]
                   return (
-                    <li className="recent-item" key={a.id}>
-                      <span className="recent-badge" style={{ background: exam.color }}>{exam.label}</span>
-                      <span className="recent-title">{a.testTitle}</span>
-                      <span className="recent-score">{a.scorePercent != null ? `${a.scorePercent}%` : '—'}</span>
-                      <span className="recent-date">{formatShortDate(a.completedAt)}</span>
+                    <li key={a.id}>
+                      <Link className="recent-item" to={`/my-learning/attempt/${a.id}`}>
+                        <span className="recent-badge" style={{ background: exam.color }}>{exam.label}</span>
+                        <span className="recent-title">{a.testTitle}</span>
+                        <span className="recent-score">{a.scorePercent != null ? `${a.scorePercent}%` : '—'}</span>
+                        <span className="recent-date">{formatShortDate(a.completedAt)}</span>
+                      </Link>
                     </li>
                   )
                 })}
@@ -158,10 +192,10 @@ export default function MyLearning() {
 
           <section className="widget-card wide">
             <h2>Динамика результатов</h2>
-            {chartData.length < 2 ? (
-              <p className="admin-note">Пройдите хотя бы два пробника, чтобы увидеть динамику результатов.</p>
+            {chartSeries.length === 0 ? (
+              <p className="admin-note">Пройдите хотя бы два пробника по одному предмету, чтобы увидеть динамику результатов.</p>
             ) : (
-              <ProgressChart data={chartData} />
+              <ProgressChart series={chartSeries} />
             )}
           </section>
         </div>
