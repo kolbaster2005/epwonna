@@ -3,38 +3,22 @@ import { exams } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useDialog } from '../contexts/DialogContext.jsx'
 import { listEssaySubmissions, deleteEssaySubmission } from '../services/essaysService.js'
-import { checkEssayWithAI, getLatestEssayReviewsByEssays, getTodayEssayCheckUsage } from '../services/essayAiService.js'
-import EssayAiReview from '../components/EssayAiReview.jsx'
 import { IconTrash } from '../components/Icons.jsx'
 
 function formatShortDate(iso) {
   return new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
 }
 
+// Read-only list of saved essay_choice submissions — just the text as
+// written and saved. AI-checking (see EssayAiReview.jsx) intentionally
+// lives only in TestPage.jsx, not here — per product decision this page
+// stays a plain archive of what was written, nothing more.
 export default function MyEssays() {
   const { user } = useAuth()
   const { confirm, alertMessage } = useDialog()
   const [essays, setEssays] = useState([])
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState(null)
-  // `${questionId}:${testId}` -> review row (see essayAiService.js).
-  // Loaded once alongside the essays themselves so opening an essay
-  // doesn't need its own round-trip if it was already checked before.
-  // Composite key because the same task can appear more than once in
-  // this list — solved separately in two different probniks — and each
-  // occurrence needs its own review, not a shared one.
-  const [reviews, setReviews] = useState(new Map())
-  // essay.id -> true while a check is in flight, so only that one
-  // essay's button shows "Проверяем…" instead of all of them at once
-  // (essay.id, not questionId, for the same reused-task reason as above).
-  const [checkingIds, setCheckingIds] = useState(new Set())
-  // essay.id -> error message from the last failed check attempt.
-  const [checkErrors, setCheckErrors] = useState(new Map())
-
-  // Дневной лимит общий на пользователя (не на конкретное сочинение) —
-  // одно состояние на всю страницу, обновляется после любой проверки,
-  // с какой бы карточки её ни запустили.
-  const [essayUsage, setEssayUsage] = useState(null)
 
   useEffect(() => {
     if (!user) {
@@ -44,43 +28,16 @@ export default function MyEssays() {
     }
     let cancelled = false
     setLoading(true)
-    listEssaySubmissions(user.id).then(async (list) => {
-      if (cancelled) return
-      setEssays(list)
-      setLoading(false)
-      const reviewMap = await getLatestEssayReviewsByEssays(list)
-      if (!cancelled) setReviews(reviewMap)
-    })
-    getTodayEssayCheckUsage(user.id).then((u) => {
-      if (!cancelled) setEssayUsage(u)
+    listEssaySubmissions(user.id).then((list) => {
+      if (!cancelled) {
+        setEssays(list)
+        setLoading(false)
+      }
     })
     return () => {
       cancelled = true
     }
   }, [user])
-
-  async function handleCheckWithAI(essay) {
-    setCheckingIds((prev) => new Set(prev).add(essay.id))
-    setCheckErrors((prev) => {
-      const next = new Map(prev)
-      next.delete(essay.id)
-      return next
-    })
-    try {
-      const review = await checkEssayWithAI(essay.questionId, essay.testId)
-      setReviews((prev) => new Map(prev).set(`${essay.questionId}:${essay.testId}`, review))
-      if (review.usage) setEssayUsage(review.usage)
-    } catch (err) {
-      setCheckErrors((prev) => new Map(prev).set(essay.id, err.message || 'Не удалось выполнить проверку.'))
-      if (err.usage) setEssayUsage(err.usage)
-    } finally {
-      setCheckingIds((prev) => {
-        const next = new Set(prev)
-        next.delete(essay.id)
-        return next
-      })
-    }
-  }
 
   async function handleDelete(essay) {
     if (!(await confirm('Удалить это сочинение? Действие необратимо.'))) return
@@ -141,18 +98,7 @@ export default function MyEssays() {
                           <IconTrash size={15} />
                         </button>
                       </div>
-                      {isOpen && (
-                        <div className="essay-item-body">
-                          {e.text}
-                          <EssayAiReview
-                            review={reviews.get(`${e.questionId}:${e.testId}`)}
-                            checking={checkingIds.has(e.id)}
-                            error={checkErrors.get(e.id)}
-                            onCheck={() => handleCheckWithAI(e)}
-                            usage={essayUsage}
-                          />
-                        </div>
-                      )}
+                      {isOpen && <div className="essay-item-body">{e.text}</div>}
                     </li>
                   )
                 })}

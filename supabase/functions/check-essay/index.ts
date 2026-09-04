@@ -35,6 +35,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 // на момент написания (сентябрь 2026). Актуальный список моделей:
 // https://ai.google.dev/gemini-api/docs/models
 const GEMINI_MODEL = 'gemini-3.5-flash'
+// Резервная модель — если основная перегружена (503) даже после
+// повторов, пробуем её. У разных моделей на бесплатном тарифе Gemini
+// независимая ёмкость на серверах Google, так что одна может быть
+// перегружена, пока другая свободна.
+const GEMINI_FALLBACK_MODEL = 'gemini-3.5-flash-lite'
 const MIN_WORDS = 30
 // Бесплатный тариф Gemini ограничен по запросам в день на весь
 // проект — лимит на пользователя защищает и от того, что один человек
@@ -270,26 +275,67 @@ Deno.serve(async (req: Request) => {
       wordCountValue: words,
     })
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.3,
-            responseMimeType: 'application/json',
-          },
-        }),
+    // Gemini иногда отвечает 503 "model is currently experiencing high
+    // demand" — это временная перегрузка на стороне Google (сентябрь
+    // 2026: бесплатный тариф Gemini сильно урезан, такие перегрузки
+    // сейчас частое явление у всех, не только у нас). Пробуем ещё пару
+    // раз с паузой, а если основная модель всё равно недоступна —
+    // пробуем резервную: у разных моделей независимая ёмкость на
+    // серверах Google, одна может быть перегружена, пока другая свободна.
+    async function callGeminiModel(model: string) {
+      const maxAttempts = 2
+      let lastErrText = ''
+      let lastStatus = 0
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.3, responseMimeType: 'application/json' },
+            }),
+          }
+        )
+        if (res.ok) return { ok: true as const, res }
+        lastStatus = res.status
+        lastErrText = await res.text()
+        // 503 (перегружена) и 429 (лимит запросов) — временные, имеет
+        // смысл повторить. Остальные статусы (неверный ключ, неверная
+        // модель и т.п.) повторять бессмысленно — они не изменятся.
+        if (res.status !== 503 && res.status !== 429) break
+        if (attempt < maxAttempts) {
+          console.error(`Gemini ${model} ${res.status}, retry ${attempt}/${maxAttempts - 1}:`, lastErrText)
+          await new Promise((r) => setTimeout(r, attempt * 1200))
+        }
       }
-    )
-
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text()
-      console.error('Gemini error:', geminiRes.status, errText)
-      return jsonResponse({ error: 'Не удалось получить ответ от ИИ. Попробуйте позже.', debug: errText.slice(0, 500) }, 502)
+      return { ok: false as const, status: lastStatus, errText: lastErrText }
     }
+
+    let geminiResult = await callGeminiModel(GEMINI_MODEL)
+    let modelUsed = GEMINI_MODEL
+    if (!geminiResult.ok && (geminiResult.status === 503 || geminiResult.status === 429)) {
+      console.error(`${GEMINI_MODEL} unavailable, falling back to ${GEMINI_FALLBACK_MODEL}`)
+      geminiResult = await callGeminiModel(GEMINI_FALLBACK_MODEL)
+      modelUsed = GEMINI_FALLBACK_MODEL
+    }
+
+    if (!geminiResult.ok) {
+      console.error('Gemini error after retries + fallback:', geminiResult.status, geminiResult.errText)
+      const isOverloaded = geminiResult.status === 503 || geminiResult.status === 429
+      return jsonResponse(
+        {
+          error: isOverloaded
+            ? 'Сервис ИИ сейчас перегружен — такое бывает при высокой нагрузке у Google. Подождите минуту и попробуйте ещё раз.'
+            : 'Не удалось получить ответ от ИИ. Попробуйте позже.',
+          debug: geminiResult.errText.slice(0, 500),
+        },
+        502
+      )
+    }
+
+    const geminiRes = geminiResult.res
 
     const geminiData = await geminiRes.json()
     const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
@@ -317,7 +363,7 @@ Deno.serve(async (req: Request) => {
         test_id: testId,
         submitted_text: submission.text,
         feedback,
-        model: GEMINI_MODEL,
+        model: modelUsed,
       })
       .select()
       .single()
@@ -327,7 +373,7 @@ Deno.serve(async (req: Request) => {
     if (insErr) {
       console.error('Insert error:', insErr)
       // ИИ уже ответил — отдаём результат клиенту, даже если сохранить не удалось.
-      return jsonResponse({ feedback, model: GEMINI_MODEL, saved: false, usage })
+      return jsonResponse({ feedback, model: modelUsed, saved: false, usage })
     }
 
     return jsonResponse({ ...saved, usage })
