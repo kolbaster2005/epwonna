@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { examList } from '../data/examData.js'
 import { universities } from '../data/universities.js'
-import { IconTelegram } from './Icons.jsx'
+import { IconTelegram, IconMail } from './Icons.jsx'
 import logo from '../assets/logo.png'
 
 export default function Footer() {
@@ -17,6 +17,14 @@ export default function Footer() {
               <b style={{ fontFamily: "'Manrope',sans-serif", fontWeight: 800, fontSize: 16 }}>EP WONNA</b>
             </div>
             <p>Бесплатная платформа для подготовки к австрийским EPх экзаменам.</p>
+            <div className="social-row">
+              <a href="https://t.me/epwonna" target="_blank" rel="noreferrer" aria-label="Telegram">
+                <IconTelegram size={16} />
+              </a>
+              <a href="mailto:epwonna@gmail.com" aria-label="Написать на почту">
+                <IconMail size={16} />
+              </a>
+            </div>
           </div>
 
           <div>
@@ -50,18 +58,9 @@ export default function Footer() {
             <h4>Важно</h4>
             <ul>
               <li><Link to="/about">О проекте</Link></li>
-              <li><a href="#">Пользовательское соглашение</a></li>
+              <li><Link to="/terms">Пользовательское соглашение</Link></li>
               <li><a href="#">Политика конфиденциальности</a></li>
             </ul>
-          </div>
-
-          <div>
-            <h4>Мы в социальных сетях</h4>
-            <div className="social-row">
-              <a href="https://t.me/epwonna" target="_blank" rel="noreferrer" aria-label="Telegram">
-                <IconTelegram size={16} />
-              </a>
-            </div>
           </div>
         </div>
 

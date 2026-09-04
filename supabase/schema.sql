@@ -323,7 +323,7 @@ create table if not exists public.essay_submissions (
   text text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (user_id, question_id)
+  unique (user_id, question_id, test_id)
 );
 
 alter table public.essay_submissions enable row level security;
@@ -345,6 +345,10 @@ create table if not exists public.essay_ai_reviews (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
   question_id text not null references public.questions (id) on delete cascade,
+  -- Задание может быть привязано к нескольким пробникам через
+  -- test_tasks (переиспользование банка) — без test_id проверка одного
+  -- и того же задания в разных пробниках была бы одной на всех.
+  test_id text references public.tests (id) on delete cascade,
   submitted_text text not null,
   -- { overall: {band, comment}, criteria: [{ name, band, comment }], model }
   feedback jsonb not null,
@@ -358,8 +362,8 @@ drop policy if exists "essay_ai_reviews: own" on public.essay_ai_reviews;
 create policy "essay_ai_reviews: own" on public.essay_ai_reviews
   for select using (auth.uid() = user_id);
 
-create index if not exists essay_ai_reviews_question_user_idx
-  on public.essay_ai_reviews (question_id, user_id, created_at desc);
+create index if not exists essay_ai_reviews_question_user_test_idx
+  on public.essay_ai_reviews (question_id, user_id, test_id, created_at desc);
 
 -- ---------------------------------------------------------------------
 -- 5. dictionary_words — the person's personal vocabulary list. Words get

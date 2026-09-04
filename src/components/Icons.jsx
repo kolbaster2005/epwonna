@@ -259,6 +259,15 @@ export function IconTelegram(props) {
   )
 }
 
+export function IconMail(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3 6.5c0-.8.7-1.5 1.5-1.5h15c.8 0 1.5.7 1.5 1.5v11c0 .8-.7 1.5-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z" {...stroke(props)} />
+      <path d="m4 7 8 6 8-6" {...stroke(props)} />
+    </svg>
+  )
+}
+
 export function IconPin(props) {
   return (
     <svg {...base(props)}>

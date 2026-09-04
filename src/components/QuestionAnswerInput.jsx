@@ -610,6 +610,9 @@ function EssayChoiceInput({ question, value, onChange, checked }) {
         </ol>
       )}
 
+      <div className="essay-choice-wordcount">
+        {val.text.trim() ? val.text.trim().split(/\s+/).filter(Boolean).length : 0} слов
+      </div>
       <textarea
         className="essay-choice-textarea"
         rows={14}

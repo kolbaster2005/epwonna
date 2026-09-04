@@ -4,7 +4,7 @@ import { exams } from '../data/examData.js'
 import { getTest } from '../services/testsService.js'
 import { listContentByIds } from '../services/contentService.js'
 import { saveEssaySubmission } from '../services/essaysService.js'
-import { checkEssayWithAI, getLatestEssayReview } from '../services/essayAiService.js'
+import { checkEssayWithAI, getLatestEssayReview, getTodayEssayCheckUsage } from '../services/essayAiService.js'
 import EssayAiReview from '../components/EssayAiReview.jsx'
 import { saveAttempt } from '../services/attemptsService.js'
 import { upsertTaskAttempt } from '../services/taskAttemptsService.js'
@@ -117,15 +117,24 @@ export default function TestPage({ examKey }) {
   const [essayReview, setEssayReview] = useState(null)
   const [essayChecking, setEssayChecking] = useState(false)
   const [essayCheckError, setEssayCheckError] = useState(null)
+  // Дневной лимит общий на пользователя, не на конкретный вопрос —
+  // подгружается при каждом заходе на essay_choice (недорого, это
+  // просто count), а не сбрасывается при смене вопроса, как essayReview.
+  const [essayUsage, setEssayUsage] = useState(null)
 
   useEffect(() => {
     setEssayReview(null)
     setEssayCheckError(null)
     if (currentQuestionForView?.type !== 'essay_choice') return undefined
     let cancelled = false
-    getLatestEssayReview(currentQuestionForView.id).then((review) => {
+    getLatestEssayReview(currentQuestionForView.id, test.id).then((review) => {
       if (!cancelled) setEssayReview(review)
     })
+    if (user) {
+      getTodayEssayCheckUsage(user.id).then((u) => {
+        if (!cancelled) setEssayUsage(u)
+      })
+    }
     return () => {
       cancelled = true
     }
@@ -156,10 +165,12 @@ export default function TestPage({ examKey }) {
           text: value.text,
         })
       }
-      const review = await checkEssayWithAI(question.id)
+      const review = await checkEssayWithAI(question.id, test.id)
       setEssayReview(review)
+      if (review.usage) setEssayUsage(review.usage)
     } catch (err) {
       setEssayCheckError(err.message || 'Не удалось выполнить проверку.')
+      if (err.usage) setEssayUsage(err.usage)
     } finally {
       setEssayChecking(false)
     }
@@ -682,14 +693,21 @@ export default function TestPage({ examKey }) {
 
             <div className="test-actions-right">
               {question.type === 'essay_choice' && !showStepPart && (
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={handleCheckEssayWithAI}
-                  disabled={essayChecking || !hasAnswer(question, value)}
-                >
-                  {essayChecking ? 'Проверяем…' : essayReview ? 'Проверить заново' : '✨ Проверить с ИИ'}
-                </button>
+                <div className="test-essay-check-group">
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={handleCheckEssayWithAI}
+                    disabled={essayChecking || !hasAnswer(question, value)}
+                  >
+                    {essayChecking ? 'Проверяем…' : essayReview ? 'Проверить заново' : '✨ Проверить с ИИ'}
+                  </button>
+                  {essayUsage && (
+                    <span className="test-essay-check-usage">
+                      Проверок сегодня: {essayUsage.used} из {essayUsage.limit}
+                    </span>
+                  )}
+                </div>
               )}
 
               {showStepPart ? (

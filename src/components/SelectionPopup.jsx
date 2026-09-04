@@ -22,6 +22,10 @@ export default function SelectionPopup() {
   const [translation, setTranslation] = useState(null)
   const [translating, setTranslating] = useState(false)
   const [modalWord, setModalWord] = useState(null) // string|null — opens AddWordModal when set
+  // Shown inline instead of opening AddWordModal when a logged-out
+  // person clicks "Добавить в словарь" — the button itself stays
+  // visible either way, so they can see the feature exists.
+  const [authHint, setAuthHint] = useState(false)
 
   // Leaving a test page (or landing on one) — drop any leftover popup
   // state rather than carrying it across, e.g. a stale selection
@@ -30,6 +34,7 @@ export default function SelectionPopup() {
     setSelection(null)
     setTranslation(null)
     setModalWord(null)
+    setAuthHint(false)
   }, [isTestPage])
 
   useEffect(() => {
@@ -40,11 +45,17 @@ export default function SelectionPopup() {
       // those are handled by their own onClick handlers, not by
       // recomputing the selection here.
       if (e.target.closest?.('.selection-popup') || e.target.closest?.('.modal-overlay')) return
-      // Only the question + answer options block (written tests) or the
-      // workspace with materials/prompt/leitfragen (oral tests) — not
-      // the sidebar, timer, header, or the floating/side reading-
-      // passage panel.
-      if (!e.target.closest?.('.test-question-block') && !e.target.closest?.('.oral-workspace')) {
+      // Question + answer options block (written tests), the workspace
+      // with materials/prompt/leitfragen (oral tests), the reading
+      // passage itself — whether docked inline (the "📖 Текст" tab) or
+      // popped out into the floating window — but not the sidebar,
+      // timer, or header.
+      if (
+        !e.target.closest?.('.test-question-block') &&
+        !e.target.closest?.('.oral-workspace') &&
+        !e.target.closest?.('.test-passage-full') &&
+        !e.target.closest?.('.floating-passage')
+      ) {
         setSelection(null)
         setTranslation(null)
         return
@@ -61,6 +72,7 @@ export default function SelectionPopup() {
       const rect = range.getBoundingClientRect()
       setSelection({ text, range, x: rect.left + rect.width / 2, y: rect.top })
       setTranslation(null)
+      setAuthHint(false)
     }
 
     document.addEventListener('mouseup', handleMouseUp)
@@ -70,6 +82,7 @@ export default function SelectionPopup() {
   function closePopup() {
     setSelection(null)
     setTranslation(null)
+    setAuthHint(false)
   }
 
   async function handleTranslate() {
@@ -86,6 +99,10 @@ export default function SelectionPopup() {
   }
 
   function handleAddToDictionary() {
+    if (!user) {
+      setAuthHint(true)
+      return
+    }
     setModalWord(selection.text)
     window.getSelection()?.removeAllRanges()
     closePopup()
@@ -122,16 +139,15 @@ export default function SelectionPopup() {
               <button type="button" onClick={handleTranslate} disabled={translating}>
                 <IconTranslate size={15} /> {translating ? 'Перевожу…' : 'Перевести'}
               </button>
-              {user && (
-                <button type="button" onClick={handleAddToDictionary}>
-                  <IconBookmarkPlus size={15} /> Добавить в словарь
-                </button>
-              )}
+              <button type="button" onClick={handleAddToDictionary}>
+                <IconBookmarkPlus size={15} /> Добавить в словарь
+              </button>
               <button type="button" className="selection-popup-highlight" onClick={handleHighlight}>
                 <IconHighlighter size={15} /> Выделить
               </button>
             </div>
             {translation && <div className="selection-popup-result">{translation}</div>}
+            {authHint && <div className="selection-popup-result">Чтобы добавлять слова в словарь, нужно авторизоваться.</div>}
           </div>,
           document.body
         )}

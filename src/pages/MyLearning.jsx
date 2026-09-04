@@ -222,26 +222,28 @@ export default function MyLearning() {
                 {topicProgress.map(({ examKey, rows }) => (
                   <div className="topic-progress-exam" key={examKey}>
                     {topicProgress.length > 1 && <h3 className="topic-progress-exam-label">{exams[examKey].label}</h3>}
-                    <table className="topic-progress-table">
-                      <thead>
-                        <tr>
-                          <th>Тема</th>
-                          <th>Чтение</th>
-                          <th>Грамматика</th>
-                          <th>Письмо</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(rows).map(([topicId, r]) => (
-                          <tr key={topicId}>
-                            <td>{r.label}</td>
-                            <td>{r.reading.total > 0 ? `${r.reading.solved} из ${r.reading.total}` : '—'}</td>
-                            <td>{r.grammar.total > 0 ? `${r.grammar.solved} из ${r.grammar.total}` : '—'}</td>
-                            <td>{r.writing.total > 0 ? `${r.writing.solved} из ${r.writing.total}` : '—'}</td>
+                    <div className="topic-progress-table-scroll">
+                      <table className="topic-progress-table">
+                        <thead>
+                          <tr>
+                            <th>Тема</th>
+                            <th>Чтение</th>
+                            <th>Грамматика</th>
+                            <th>Письмо</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {Object.entries(rows).map(([topicId, r]) => (
+                            <tr key={topicId}>
+                              <td>{r.label}</td>
+                              <td>{r.reading.total > 0 ? `${r.reading.solved} из ${r.reading.total}` : '—'}</td>
+                              <td>{r.grammar.total > 0 ? `${r.grammar.solved} из ${r.grammar.total}` : '—'}</td>
+                              <td>{r.writing.total > 0 ? `${r.writing.solved} из ${r.writing.total}` : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -2,8 +2,15 @@
 //
 // Проверяет сочинение (essay_choice) через Gemini и сохраняет результат
 // в essay_ai_reviews. Вызывается с фронтенда как:
-//   POST /functions/v1/check-essay   { questionId: string }
+//   POST /functions/v1/check-essay   { questionId: string, testId: string }
 //   Authorization: Bearer <user JWT>  (supabase-js добавляет сам)
+//
+// testId обязателен: одно и то же задание может быть привязано к
+// нескольким разным пробникам через test_tasks (банк переиспользуется),
+// поэтому сочинение и его проверка ищутся и сохраняются по паре
+// (questionId, testId) — иначе решив задание в одном пробнике, человек
+// видел бы тот же текст и ту же проверку в любом другом пробнике с тем
+// же заданием.
 //
 // Ничего секретного клиенту не передаётся и не запрашивается — функция
 // сама читает вопрос и сочинение пользователя из БД (используя его же
@@ -29,6 +36,12 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 // https://ai.google.dev/gemini-api/docs/models
 const GEMINI_MODEL = 'gemini-3.5-flash'
 const MIN_WORDS = 30
+// Бесплатный тариф Gemini ограничен по запросам в день на весь
+// проект — лимит на пользователя защищает и от того, что один человек
+// исчерпает квоту для всех, и стимулирует заходить каждый день, а не
+// потратить всё за раз. Легко поменять в одном месте, когда будет
+// понятно по реальному трафику, что 2 — мало или много.
+const DAILY_LIMIT = 2
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -148,14 +161,16 @@ Deno.serve(async (req: Request) => {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) return jsonResponse({ error: 'Не авторизован.' }, 401)
 
-    let body: { questionId?: string }
+    let body: { questionId?: string; testId?: string }
     try {
       body = await req.json()
     } catch {
       return jsonResponse({ error: 'Некорректный запрос.' }, 400)
     }
     const questionId = body.questionId
+    const testId = body.testId
     if (!questionId) return jsonResponse({ error: 'questionId обязателен.' }, 400)
+    if (!testId) return jsonResponse({ error: 'testId обязателен.' }, 400)
 
     // Клиент, работающий от имени пользователя — уважает RLS, поэтому
     // essay_submissions отдаст только его собственную запись.
@@ -168,6 +183,31 @@ Deno.serve(async (req: Request) => {
       error: userErr,
     } = await userClient.auth.getUser()
     if (userErr || !user) return jsonResponse({ error: 'Не авторизован.' }, 401)
+
+    // Дневной лимит — считаем, сколько проверок этот пользователь уже
+    // получил с начала текущих суток (UTC), и отказываем до истечения
+    // лимита. Простая реализация: essay_ai_reviews уже хранит и
+    // user_id, и created_at — отдельная таблица-счётчик не нужна.
+    const startOfDayUtc = new Date()
+    startOfDayUtc.setUTCHours(0, 0, 0, 0)
+    const { count: todayCount, error: countErr } = await userClient
+      .from('essay_ai_reviews')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', startOfDayUtc.toISOString())
+    if (countErr) {
+      console.error('Daily limit count error:', countErr)
+      // Не блокируем проверку из-за сбоя самого подсчёта лимита —
+      // лучше пропустить проверку, чем ложно отказать всем.
+    } else if ((todayCount ?? 0) >= DAILY_LIMIT) {
+      return jsonResponse(
+        {
+          error: `Дневной лимит проверок (${DAILY_LIMIT} в день) исчерпан. Новые проверки будут доступны завтра.`,
+          usage: { used: todayCount, limit: DAILY_LIMIT },
+        },
+        429
+      )
+    }
 
     const { data: question, error: qErr } = await userClient
       .from('questions')
@@ -190,6 +230,7 @@ Deno.serve(async (req: Request) => {
       .select('text, choice_id, choice_title, exam_key')
       .eq('question_id', questionId)
       .eq('user_id', user.id)
+      .eq('test_id', testId)
       .single()
     if (sErr || !submission || !submission.text?.trim()) {
       console.error('Submission lookup error:', sErr)
@@ -273,6 +314,7 @@ Deno.serve(async (req: Request) => {
       .insert({
         user_id: user.id,
         question_id: questionId,
+        test_id: testId,
         submitted_text: submission.text,
         feedback,
         model: GEMINI_MODEL,
@@ -280,13 +322,15 @@ Deno.serve(async (req: Request) => {
       .select()
       .single()
 
+    const usage = { used: (todayCount ?? 0) + 1, limit: DAILY_LIMIT }
+
     if (insErr) {
       console.error('Insert error:', insErr)
       // ИИ уже ответил — отдаём результат клиенту, даже если сохранить не удалось.
-      return jsonResponse({ feedback, model: GEMINI_MODEL, saved: false })
+      return jsonResponse({ feedback, model: GEMINI_MODEL, saved: false, usage })
     }
 
-    return jsonResponse(saved)
+    return jsonResponse({ ...saved, usage })
   } catch (err) {
     console.error('check-essay unhandled error:', err)
     return jsonResponse({ error: 'Внутренняя ошибка сервера.' }, 500)

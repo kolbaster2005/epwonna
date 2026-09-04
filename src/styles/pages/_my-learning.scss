@@ -18,11 +18,11 @@
 
 .mylearning-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: $space-6;
 
   @include mq(lg) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -30,7 +30,17 @@
   background: #fff;
   border: 1px solid $color-border;
   border-radius: $radius-lg;
-  padding: $space-6;
+  padding: $space-4;
+  // Grid items default to min-width: auto, meaning they refuse to
+  // shrink below their content's intrinsic minimum — a table with its
+  // own min-width inside this card would otherwise widen the whole
+  // grid (and the page) instead of scrolling within
+  // .topic-progress-table-scroll as intended.
+  min-width: 0;
+
+  @include mq(sm) {
+    padding: $space-6;
+  }
 
   h2 {
     font-size: 16px;
@@ -319,8 +329,32 @@
   color: $color-ink;
 }
 
+.topic-progress-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  // Отрицательный отступ "продлевает" область скролла до полного края
+  // карточки (за пределы её собственного padding), чтобы таблица могла
+  // занять всю ширину экрана, а не только то, что осталось внутри
+  // отступов карточки — должен совпадать с padding самой .widget-card
+  // на каждом брейкпоинте (см. выше), иначе будет либо лишний зазор,
+  // либо обрезка.
+  margin: 0 (-$space-4);
+  padding: 0 $space-4;
+
+  @include mq(sm) {
+    margin: 0 (-$space-6);
+    padding: 0 $space-6;
+  }
+
+  @include mq(lg) {
+    margin: 0;
+    padding: 0;
+  }
+}
+
 .topic-progress-table {
   width: 100%;
+  min-width: 480px;
   border-collapse: collapse;
   font-size: 13px;
 

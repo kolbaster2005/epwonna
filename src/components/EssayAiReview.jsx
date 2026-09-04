@@ -4,8 +4,14 @@
 
 import { useState } from 'react'
 
-export default function EssayAiReview({ review, onCheck, checking, error, showButton = true }) {
+export default function EssayAiReview({ review, onCheck, checking, error, showButton = true, usage }) {
   const [expanded, setExpanded] = useState(false)
+
+  const usageLine = usage ? (
+    <p className="essay-ai-usage">
+      Проверок сегодня: {usage.used} из {usage.limit}
+    </p>
+  ) : null
 
   if (!review) {
     if (!showButton) {
@@ -19,6 +25,7 @@ export default function EssayAiReview({ review, onCheck, checking, error, showBu
         <button type="button" className="btn btn-outline" onClick={onCheck} disabled={checking}>
           {checking ? 'Проверяем…' : '✨ Проверить с ИИ'}
         </button>
+        {usageLine}
         {error && <p className="essay-ai-error">{error}</p>}
         <p className="essay-ai-disclaimer">
           Проверка выполняется нейросетью (Gemini) и может ошибаться — воспринимайте как черновой ориентир, а не
@@ -38,9 +45,12 @@ export default function EssayAiReview({ review, onCheck, checking, error, showBu
           <span className="essay-ai-overall-comment">{feedback?.overall?.comment}</span>
         </div>
         {showButton && (
-          <button type="button" className="btn btn-outline btn-sm" onClick={onCheck} disabled={checking}>
-            {checking ? 'Проверяем…' : 'Проверить заново'}
-          </button>
+          <div className="essay-ai-recheck">
+            <button type="button" className="btn btn-outline btn-sm" onClick={onCheck} disabled={checking}>
+              {checking ? 'Проверяем…' : 'Проверить заново'}
+            </button>
+            {usageLine}
+          </div>
         )}
       </div>
 

@@ -27,9 +27,11 @@ function rowToSubmission(row) {
 }
 
 // Called once an essay_choice question locks (TestPage.jsx's
-// lockCurrentIfComplete) — upserts on (user_id, question_id) so redoing
-// the same question overwrites the previous submission instead of
-// piling up duplicates.
+// lockCurrentIfComplete) — upserts on (user_id, question_id, test_id)
+// so redoing the same question in the SAME test overwrites the
+// previous submission, but the same underlying task reused in a
+// DIFFERENT test (task-bank reuse via test_tasks) gets its own
+// independent submission instead of overwriting/leaking across tests.
 export async function saveEssaySubmission({ userId, testId, questionId, examKey, choiceId, choiceTitle, text }) {
   try {
     const { error } = await supabase.from('essay_submissions').upsert(
@@ -43,7 +45,7 @@ export async function saveEssaySubmission({ userId, testId, questionId, examKey,
         text,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'user_id,question_id' }
+      { onConflict: 'user_id,question_id,test_id' }
     )
     if (error) throw error
     return true

@@ -214,6 +214,11 @@
     margin-bottom: 10px;
   }
 
+  strong {
+    color: $color-ink;
+    font-weight: 700;
+  }
+
   ul,
   ol {
     padding-left: 20px;

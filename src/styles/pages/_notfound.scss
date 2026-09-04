@@ -61,3 +61,14 @@
   gap: 12px;
   margin-top: $space-6;
 }
+
+.reset-password-page {
+  h1 {
+    margin-bottom: $space-4;
+  }
+}
+
+.reset-password-form {
+  width: 100%;
+  text-align: left;
+}

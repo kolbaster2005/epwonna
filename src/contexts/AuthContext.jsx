@@ -107,6 +107,34 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Отправляет письмо со ссылкой сброса пароля. redirectTo обязательно
+  // должен быть в списке разрешённых Redirect URLs в настройках
+  // Supabase (Authentication → URL Configuration) — иначе Supabase
+  // сам молча отклонит переход по ссылке.
+  async function requestPasswordReset(email) {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}reset-password`,
+      })
+      if (error) throw error
+    } catch (err) {
+      throw toError(err)
+    }
+  }
+
+  // Вызывается со страницы, на которую ведёт ссылка из письма (см.
+  // ResetPasswordPage.jsx) — к этому моменту у Supabase уже есть
+  // временная recovery-сессия (устанавливается автоматически по
+  // токену из URL), так что новый пароль просто обновляет её.
+  async function updatePassword(newPassword) {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+    } catch (err) {
+      throw toError(err)
+    }
+  }
+
   // avatarKey is one of avatarOptions' ids (src/data/avatars.js) or null
   // for "no avatar". Updates the DB and local state together so the
   // circle in the header reflects the pick immediately, without waiting
@@ -126,7 +154,19 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, profile, profileLoading, isAdmin, signUp, signIn, signOut, updateAvatar }}
+      value={{
+        user,
+        loading,
+        profile,
+        profileLoading,
+        isAdmin,
+        signUp,
+        signIn,
+        signOut,
+        updateAvatar,
+        requestPasswordReset,
+        updatePassword,
+      }}
     >
       {children}
     </AuthContext.Provider>

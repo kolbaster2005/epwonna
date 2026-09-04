@@ -14,6 +14,8 @@ import MyEssays from './pages/MyEssays.jsx'
 import AttemptReview from './pages/AttemptReview.jsx'
 import Dictionary from './pages/Dictionary.jsx'
 import ComingSoonSubject from './components/ComingSoonSubject.jsx'
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
+import TermsOfUse from './pages/TermsOfUse.jsx'
 import { comingSoonSubjects } from './data/examData.js'
 import NotFound from './pages/NotFound.jsx'
 import AdminHome from './pages/admin/AdminHome.jsx'
@@ -109,6 +111,8 @@ export default function App() {
           <Route path="/admin/epe/new" element={<RequireAdmin><AdminTestEditor key="epe-new" examKey="epe" /></RequireAdmin>} />
           <Route path="/admin/epe/:testId" element={<RequireAdmin><AdminTestEditor key="epe" examKey="epe" /></RequireAdmin>} />
 
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/terms" element={<TermsOfUse />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
