@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { exams } from '../../data/examData.js'
-import { listTests, deleteTest } from '../../services/testsService.js'
+import { listTests, deleteTest, setPinned } from '../../services/testsService.js'
+import { listTopics } from '../../services/topicsService.js'
 import { pluralizeRu } from '../../utils/pluralize.js'
+import { IconPin, IconPinFilled } from '../../components/Icons.jsx'
+import { useDialog } from '../../contexts/DialogContext.jsx'
 
 export default function AdminExamTests({ examKey }) {
   const exam = exams[examKey]
+  const { confirm, alertMessage } = useDialog()
   const [tests, setTests] = useState([])
+  const [topics, setTopics] = useState([])
   const [loading, setLoading] = useState(true)
   const [phase, setPhase] = useState(() => exam.phases?.[0]?.value ?? null)
 
@@ -19,19 +24,40 @@ export default function AdminExamTests({ examKey }) {
   }
 
   useEffect(reload, [examKey])
+  useEffect(() => {
+    listTopics(examKey).then(setTopics)
+  }, [examKey])
 
   const visibleTests = useMemo(() => {
-    if (!phase) return tests
-    return tests.filter((t) => t.format === phase)
+    const real = tests.filter((t) => !t.isTaskBank && !t.isGenerated)
+    if (!phase) return real
+    return real.filter((t) => t.format === phase)
   }, [tests, phase])
 
   async function handleDelete(test) {
-    if (!window.confirm(`Удалить пробник «${test.title}»? Это действие нельзя отменить.`)) return
+    if (!(await confirm(`Удалить пробник «${test.title}»? Это действие нельзя отменить.`))) return
     try {
       await deleteTest(examKey, test.id)
       reload()
     } catch (err) {
-      window.alert(err.message || 'Не удалось удалить пробник. Проверьте подключение к базе данных.')
+      await alertMessage(err.message || 'Не удалось удалить пробник. Проверьте подключение к базе данных.')
+    }
+  }
+
+  async function handleTogglePin(test) {
+    const next = !test.isPinned
+    // Optimistic — re-sort immediately rather than waiting on a reload,
+    // since pin state is exactly what determines list order here.
+    setTests((prev) =>
+      prev
+        .map((t) => (t.id === test.id ? { ...t, isPinned: next } : t))
+        .sort((a, b) => Number(b.isPinned) - Number(a.isPinned))
+    )
+    try {
+      await setPinned(test.id, next)
+    } catch (err) {
+      await alertMessage(err.message || 'Не удалось закрепить пробник.')
+      reload()
     }
   }
 
@@ -45,7 +71,12 @@ export default function AdminExamTests({ examKey }) {
           <h1>{exam.label} — пробники</h1>
           <p>{exam.homeTitle}</p>
         </div>
-        <Link className="btn btn-primary" to={newTestLink}>+ Добавить пробник</Link>
+        <div className="admin-header-actions">
+          <Link className="btn btn-outline" to={`/admin/${examKey}/bank`}>Банк заданий</Link>
+          <Link className="btn btn-outline" to={`/admin/${examKey}/parts`}>Части экзамена</Link>
+          <Link className="btn btn-outline" to={`/admin/${examKey}/topics`}>Темы</Link>
+          <Link className="btn btn-primary" to={newTestLink}>+ Добавить пробник</Link>
+        </div>
       </div>
 
       {exam.phases && (
@@ -84,15 +115,18 @@ export default function AdminExamTests({ examKey }) {
             <span />
           </div>
           {visibleTests.map((test) => {
-            const topic = exam.topics.find((t) => t.id === test.topic)
+            const topic = topics.find((t) => t.id === test.topic)
             const testPhase = exam.phases?.find((p) => p.value === test.format)
             return (
               <div className={'admin-table-row' + (exam.phases ? ' with-phase' : '')} key={test.id}>
-                <span className="admin-table-title">{test.title}</span>
+                <span className="admin-table-title">
+                  {test.title}
+                  {test.isPinned && <span className="admin-pill pinned">Закреплён</span>}
+                </span>
                 <span>
                   {test.format === 'oral'
                     ? `${test.oralTask?.stages.length ?? 0} ${pluralizeRu(test.oralTask?.stages.length ?? 0, ['этап', 'этапа', 'этапов'])}`
-                    : `${test.questions.length} ${pluralizeRu(test.questions.length, ['вопрос', 'вопроса', 'вопросов'])}`}
+                    : `${test.questionCount} ${pluralizeRu(test.questionCount, ['вопрос', 'вопроса', 'вопросов'])}`}
                 </span>
                 <span>{test.durationMinutes} мин</span>
                 <span className={test.isOfficial ? 'admin-pill official' : 'admin-pill'}>
@@ -102,6 +136,15 @@ export default function AdminExamTests({ examKey }) {
                 <span>{test.year}</span>
                 {exam.phases && <span>{testPhase ? testPhase.label : '—'}</span>}
                 <span className="admin-table-actions">
+                  <button
+                    type="button"
+                    className={'admin-pin-btn' + (test.isPinned ? ' active' : '')}
+                    onClick={() => handleTogglePin(test)}
+                    aria-label={test.isPinned ? 'Открепить пробник' : 'Закрепить пробник наверху списка'}
+                    title={test.isPinned ? 'Открепить' : 'Закрепить наверху'}
+                  >
+                    {test.isPinned ? <IconPinFilled size={16} /> : <IconPin size={16} />}
+                  </button>
                   <Link className="btn btn-outline" to={`/admin/${examKey}/${test.id}`}>Редактировать</Link>
                   <button className="admin-delete-btn" onClick={() => handleDelete(test)} aria-label="Удалить">✕</button>
                 </span>

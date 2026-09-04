@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import ExamIcon from '../components/ExamIcon.jsx'
-import { examList } from '../data/examData.js'
+import { examList, comingSoonSubjects } from '../data/examData.js'
 import { IconGraduationCap, IconBook } from '../components/Icons.jsx'
 import heroIllustration from '../assets/hero-illustration.png'
 
@@ -33,8 +33,9 @@ export default function Home() {
               Всё о EP экзаменах — <span className="accent">бесплатно</span> и в одном месте
             </h1>
             <p className="lead">
-              EP WONNA — это бесплатная онлайн-платформа для подготовки к экзаменам EP в Австрии. У нас ты найдёшь всё
-              необходимое: актуальные материалы, теорию, пробные экзамены и полезную информацию об экзаменах.
+              EP WONNA — это бесплатная онлайн-платформа для подготовки к австрийским EPх экзаменам. У нас ты
+              найдёшь всё необходимое: официальные пробники, материалы для подготовки, информацию об экзаменах и
+              многое другое.
             </p>
 
             {/* Desktop position — right under the lead text. Hidden below
@@ -65,6 +66,13 @@ export default function Home() {
                 <span className="hero-quicknav-cta">Перейти к материалам →</span>
               </Link>
             ))}
+            <div className="hero-quicknav-divider">Скоро на платформе</div>
+            {comingSoonSubjects.map((subject) => (
+              <Link className={`hero-quicknav-item ${subject.className}`} to={`/${subject.key}`} key={subject.key}>
+                <span className="hero-quicknav-label">{subject.label}</span>
+                <span className="hero-quicknav-cta">Подробнее →</span>
+              </Link>
+            ))}
           </div>
         </div>
       </div>
@@ -83,6 +91,30 @@ export default function Home() {
               <p className="desc">{exam.homeDesc}</p>
               <span className="goto">Перейти к материалам →</span>
               <span className="watermark">{exam.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Subjects with no real content yet — see comingSoonSubjects in
+          examData.js. Kept in its own section with its own heading so
+          it reads as clearly separate from the three real exams above,
+          not as a fourth/fifth/sixth equally-ready option. */}
+      <div className="coming-soon-section">
+        <h2 className="coming-soon-section-title">Скоро на платформе</h2>
+        <div className="directions-grid">
+          {comingSoonSubjects.map((subject) => (
+            <Link className={`dir-card ${subject.className}`} to={`/${subject.key}`} key={subject.key}>
+              <div className="dir-card-head">
+                <div className="dir-icon"><ExamIcon examKey={subject.key} /></div>
+                <div>
+                  <div className="sub">{subject.label}</div>
+                  <h3>{subject.homeTitle}</h3>
+                </div>
+              </div>
+              <p className="desc">{subject.homeDesc}</p>
+              <span className="goto">Подробнее →</span>
+              <span className="watermark">{subject.label}</span>
             </Link>
           ))}
         </div>

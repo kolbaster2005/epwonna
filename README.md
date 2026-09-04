@@ -702,22 +702,26 @@ npm run build
 
 ## Деплой на GitHub Pages
 
-1. Создайте репозиторий на GitHub и запушьте в него этот проект.
-2. **Важно:** если репозиторий не называется `<ваш-username>.github.io`
-   (то есть сайт будет по адресу `https://username.github.io/repo-name/`),
-   откройте `vite.config.js` и поменяйте:
-   ```js
-   base: '/repo-name/',
-   ```
-   Если сайт будет на корневом домене (`username.github.io` или свой домен) —
-   оставьте `base: '/'`.
-3. Установите пакет для деплоя (уже есть в devDependencies) и выполните:
+Репозиторий называется `epwonna`, значит сайт будет на
+`https://<ваш-username>.github.io/epwonna/`. `vite.config.js`
+(`base: '/epwonna/'`) и `public/404.html` (`segmentCount = 1`) уже
+настроены под этот адрес — ничего менять не нужно, если название
+репозитория не поменяется.
+
+1. Создайте репозиторий `epwonna` на GitHub и запушьте в него этот проект.
+2. Установите пакет для деплоя (уже есть в devDependencies) и выполните:
    ```bash
    npm run deploy
    ```
    Эта команда соберёт проект и запушит папку `dist` в ветку `gh-pages`.
-4. В настройках репозитория на GitHub: **Settings → Pages → Source** выберите
+3. В настройках репозитория на GitHub: **Settings → Pages → Source** выберите
    ветку `gh-pages`.
+4. Через пару минут сайт будет на `https://<ваш-username>.github.io/epwonna/`.
+
+**Если позже подключите свой домен** (упоминалось, что не сейчас, но
+на будущее): поменяйте `base: '/'` в `vite.config.js`, `segmentCount = 0`
+в `public/404.html`, добавьте файл `public/CNAME` с вашим доменом внутри,
+и настройте DNS согласно инструкции GitHub (Settings → Pages → Custom domain).
 
 ### Про клиентский роутинг на GitHub Pages
 

@@ -10,7 +10,7 @@
       This is the standard "spa-github-pages" trick.
     -->
     <script>
-      var segmentCount = 0; // set to 1 if you host under a repo subpath and want to preserve it, otherwise 0
+      var segmentCount = 0; // must match vite.config.js's base path depth — root domain = 0 segments
       var l = window.location;
       l.replace(
         l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +

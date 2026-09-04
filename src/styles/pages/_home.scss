@@ -4,7 +4,7 @@
   padding: 28px 0 26px;
 
   @include mq(sm) {
-    padding: 32px 0 34px;
+    padding: 32px 0 54px;
   }
 }
 
@@ -185,6 +185,18 @@
     background: $color-teal-light;
     color: $color-teal-dark;
   }
+  &.green {
+    background: $color-green-light;
+    color: $color-green-dark;
+  }
+  &.red {
+    background: #fce9e8;
+    color: #b0332c;
+  }
+  &.orange {
+    background: $color-amber-light;
+    color: $color-amber-dark;
+  }
 }
 
 .hero-quicknav-label {
@@ -196,6 +208,15 @@
 .hero-quicknav-cta {
   font-size: 12.5px;
   font-weight: 700;
+}
+
+.hero-quicknav-divider {
+  font-size: 12px;
+  font-weight: 700;
+  color: $color-gray;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 6px 2px 0;
 }
 
 .blob {

@@ -59,7 +59,7 @@ export default function TestDetailPage({ examKey }) {
           <h1>{test.title}</h1>
 
           {test.pdfUrl && (
-            <a className="test-pdf-link" href={test.pdfUrl} download={test.pdfFileName || 'probnik.pdf'}>
+            <a className="test-pdf-link" href={test.pdfUrl} target="_blank" rel="noreferrer">
               <IconDownload size={16} />
               Скачать пробник в PDF
             </a>

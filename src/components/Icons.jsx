@@ -246,3 +246,40 @@ export function IconPlus(props) {
     </svg>
   )
 }
+
+export function IconTelegram(props) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M21 4 3 11.2c-.9.4-.9 1.6.1 1.9l4.4 1.4 1.7 5.3c.3.9 1.4 1.1 2 .4l2.4-2.6 4.5 3.3c.8.6 2 .2 2.2-.8L23.5 5.3c.3-1-.7-1.8-1.6-1.3Z"
+        {...stroke(props)}
+      />
+      <path d="M7.5 14.5 18 7l-8.6 8.3v3.9" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconPin(props) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M14.5 3.5 20.5 9.5c.5.5.3 1.4-.4 1.6l-2.9.9-3.4 3.4.9 3.4c.2.7-.6 1.3-1.2.9l-3.6-2.6-4 4-1-1 4-4-2.6-3.6c-.4-.6.2-1.4.9-1.2l3.4.9 3.4-3.4.9-2.9c.2-.7 1.1-.9 1.6-.4Z"
+        {...stroke(props)}
+      />
+    </svg>
+  )
+}
+
+export function IconPinFilled(props) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M14.5 3.5 20.5 9.5c.5.5.3 1.4-.4 1.6l-2.9.9-3.4 3.4.9 3.4c.2.7-.6 1.3-1.2.9l-3.6-2.6-4 4-1-1 4-4-2.6-3.6c-.4-.6.2-1.4.9-1.2l3.4.9 3.4-3.4.9-2.9c.2-.7 1.1-.9 1.6-.4Z"
+        fill={props.color || 'currentColor'}
+        stroke={props.color || 'currentColor'}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}

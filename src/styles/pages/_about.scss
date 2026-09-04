@@ -44,18 +44,26 @@
 }
 
 .uni-hero-art {
-  display: none;
-  margin-top: $space-6;
-
-  @include mq(lg) {
-    display: block;
-    margin-top: 0;
-  }
-
   img {
     width: 100%;
     height: auto;
     border-radius: $radius-lg;
     box-shadow: $shadow-card;
+  }
+}
+
+.uni-hero-art-mobile {
+  margin: $space-5 0;
+
+  @include mq(lg) {
+    display: none;
+  }
+}
+
+.uni-hero-art-desktop {
+  display: none;
+
+  @include mq(lg) {
+    display: block;
   }
 }

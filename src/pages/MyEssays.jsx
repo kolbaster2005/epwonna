@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { exams } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useDialog } from '../contexts/DialogContext.jsx'
 import { listEssaySubmissions, deleteEssaySubmission } from '../services/essaysService.js'
+import { checkEssayWithAI, getLatestEssayReviewsByQuestionIds } from '../services/essayAiService.js'
+import EssayAiReview from '../components/EssayAiReview.jsx'
 import { IconTrash } from '../components/Icons.jsx'
 
 function formatShortDate(iso) {
@@ -10,9 +13,19 @@ function formatShortDate(iso) {
 
 export default function MyEssays() {
   const { user } = useAuth()
+  const { confirm, alertMessage } = useDialog()
   const [essays, setEssays] = useState([])
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState(null)
+  // questionId -> review row (see essayAiService.js). Loaded once
+  // alongside the essays themselves so opening an essay doesn't need
+  // its own round-trip if it was already checked before.
+  const [reviews, setReviews] = useState(new Map())
+  // questionId -> true while a check is in flight, so only that one
+  // essay's button shows "Проверяем…" instead of all of them at once.
+  const [checkingIds, setCheckingIds] = useState(new Set())
+  // questionId -> error message from the last failed check attempt.
+  const [checkErrors, setCheckErrors] = useState(new Map())
 
   useEffect(() => {
     if (!user) {
@@ -22,24 +35,46 @@ export default function MyEssays() {
     }
     let cancelled = false
     setLoading(true)
-    listEssaySubmissions(user.id).then((list) => {
-      if (!cancelled) {
-        setEssays(list)
-        setLoading(false)
-      }
+    listEssaySubmissions(user.id).then(async (list) => {
+      if (cancelled) return
+      setEssays(list)
+      setLoading(false)
+      const reviewMap = await getLatestEssayReviewsByQuestionIds(list.map((e) => e.questionId))
+      if (!cancelled) setReviews(reviewMap)
     })
     return () => {
       cancelled = true
     }
   }, [user])
 
+  async function handleCheckWithAI(essay) {
+    setCheckingIds((prev) => new Set(prev).add(essay.questionId))
+    setCheckErrors((prev) => {
+      const next = new Map(prev)
+      next.delete(essay.questionId)
+      return next
+    })
+    try {
+      const review = await checkEssayWithAI(essay.questionId)
+      setReviews((prev) => new Map(prev).set(essay.questionId, review))
+    } catch (err) {
+      setCheckErrors((prev) => new Map(prev).set(essay.questionId, err.message || 'Не удалось выполнить проверку.'))
+    } finally {
+      setCheckingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(essay.questionId)
+        return next
+      })
+    }
+  }
+
   async function handleDelete(essay) {
-    if (!window.confirm('Удалить это сочинение? Действие необратимо.')) return
+    if (!(await confirm('Удалить это сочинение? Действие необратимо.'))) return
     try {
       await deleteEssaySubmission(essay.id)
       setEssays((prev) => prev.filter((e) => e.id !== essay.id))
     } catch (err) {
-      window.alert(err.message || 'Не удалось удалить сочинение.')
+      await alertMessage(err.message || 'Не удалось удалить сочинение.')
     }
   }
 
@@ -92,7 +127,17 @@ export default function MyEssays() {
                           <IconTrash size={15} />
                         </button>
                       </div>
-                      {isOpen && <div className="essay-item-body">{e.text}</div>}
+                      {isOpen && (
+                        <div className="essay-item-body">
+                          {e.text}
+                          <EssayAiReview
+                            review={reviews.get(e.questionId)}
+                            checking={checkingIds.has(e.questionId)}
+                            error={checkErrors.get(e.questionId)}
+                            onCheck={() => handleCheckWithAI(e)}
+                          />
+                        </div>
+                      )}
                     </li>
                   )
                 })}

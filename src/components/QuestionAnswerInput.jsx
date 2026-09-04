@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import QuestionImage from './QuestionImage.jsx'
-import { getVerdictForPart, parseCloze, clozeBlankIds, getVerdictForBlank, getVerdictForRow, getVerdictForTfRow } from '../utils/grading.js'
+import { getVerdictForPartWithSelfGrade, parseCloze, clozeBlankIds, getVerdictForBlank, getVerdictForRow, getVerdictForTfRow } from '../utils/grading.js'
 
 // Renders "__word__" as an underline — used in qa_table prompts to mark
 // which word in the sentence the question is actually about (matching
@@ -270,7 +270,7 @@ function ClozeInput({ question, value, onChange, checked }) {
                   className={cls}
                 />
               )}
-              <sup className="cloze-blank-num">({seg.id})</sup>
+              <sup className="cloze-blank-num">({blank?.hint || seg.id})</sup>
               {checked && blankVerdict === 'incorrect' && (
                 <span className="cloze-blank-hint">
                   {isChoice
@@ -290,8 +290,9 @@ function ClozeInput({ question, value, onChange, checked }) {
 // unterstrichene Wort?" / "Von wem stammt die Aussage?". A worked-example
 // row (row.given set) shows its answer pre-filled in italics, not an
 // input — matches how these exams always show a "Beispiel" row first.
-function QaTableInput({ question, value, onChange, checked }) {
+function QaTableInput({ question, examKey, value, onChange, checked }) {
   const val = value || {}
+  const exampleLabel = examKey === 'epe' ? 'Example:' : 'Beispiel:'
   const hasPoints = question.qaTable.rows.some((r) => r.points != null)
   return (
     <div className="qa-table-wrap">
@@ -303,11 +304,55 @@ function QaTableInput({ question, value, onChange, checked }) {
             return (
               <tr key={row.id} className={isGiven ? 'qa-table-example' : ''}>
                 <td className="qa-table-prompt">
-                  {isGiven && <span className="qa-table-example-label">Beispiel:</span>} {renderUnderline(row.prompt)}
+                  {isGiven && <span className="qa-table-example-label">{exampleLabel}</span>} {renderUnderline(row.prompt)}
                 </td>
                 <td className="qa-table-answer">
                   {isGiven ? (
                     <span className="qa-table-given">{renderUnderline(row.given)}</span>
+                  ) : row.editing ? (
+                    <>
+                      <div className="qa-table-editing-choices">
+                        <button
+                          type="button"
+                          disabled={checked}
+                          className={
+                            'qa-table-editing-choice' +
+                            (val[row.id]?.choice === 'correct' ? ' selected' : '') +
+                            (checked && val[row.id]?.choice === 'correct' ? ` ${rowVerdict}` : '')
+                          }
+                          onClick={() => onChange({ ...val, [row.id]: { choice: 'correct', word: '' } })}
+                        >
+                          Верно
+                        </button>
+                        <button
+                          type="button"
+                          disabled={checked}
+                          className={
+                            'qa-table-editing-choice' +
+                            (val[row.id]?.choice === 'incorrect' ? ' selected' : '') +
+                            (checked && val[row.id]?.choice === 'incorrect' ? ` ${rowVerdict}` : '')
+                          }
+                          onClick={() => onChange({ ...val, [row.id]: { choice: 'incorrect', word: val[row.id]?.word || '' } })}
+                        >
+                          Неверно
+                        </button>
+                        {val[row.id]?.choice === 'incorrect' && (
+                          <input
+                            type="text"
+                            className={'qa-table-input qa-table-editing-word' + (checked ? ' locked' : '')}
+                            placeholder="лишнее слово"
+                            value={val[row.id]?.word || ''}
+                            disabled={checked}
+                            onChange={(e) => onChange({ ...val, [row.id]: { choice: 'incorrect', word: e.target.value } })}
+                          />
+                        )}
+                      </div>
+                      {checked && rowVerdict === 'incorrect' && (
+                        <div className="qa-table-hint">
+                          {row.correct ? 'Верно' : `Неверно — лишнее слово: «${row.acceptedAnswers?.[0]}»`}
+                        </div>
+                      )}
+                    </>
                   ) : row.freeText ? (
                     <>
                       <textarea
@@ -319,6 +364,39 @@ function QaTableInput({ question, value, onChange, checked }) {
                         onChange={(e) => onChange({ ...val, [row.id]: e.target.value })}
                       />
                       {row.after && <div className="qa-table-after">{row.after}</div>}
+                      {checked && row.sampleAnswer && (
+                        <div className="multi-part-sample-answer">
+                          <span className="multi-part-sample-answer-label">Примерный ответ:</span> {row.sampleAnswer}
+                        </div>
+                      )}
+                    </>
+                  ) : row.options ? (
+                    <>
+                      <select
+                        className={
+                          'qa-table-select' +
+                          (checked ? ' locked' : '') +
+                          (rowVerdict === 'correct' ? ' correct' : '') +
+                          (rowVerdict === 'incorrect' ? ' wrong' : '')
+                        }
+                        value={val[row.id] || ''}
+                        disabled={checked}
+                        onChange={(e) => onChange({ ...val, [row.id]: e.target.value })}
+                      >
+                        <option value="" disabled>
+                          Выбрать…
+                        </option>
+                        {row.options.map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.id}) {opt.text}
+                          </option>
+                        ))}
+                      </select>
+                      {checked && rowVerdict === 'incorrect' && (
+                        <div className="qa-table-hint">
+                          {row.acceptedAnswers?.[0]}) {row.options.find((o) => o.id === row.acceptedAnswers?.[0])?.text}
+                        </div>
+                      )}
                     </>
                   ) : (
                     <>
@@ -333,6 +411,7 @@ function QaTableInput({ question, value, onChange, checked }) {
                         value={val[row.id] || ''}
                         disabled={checked}
                         onChange={(e) => onChange({ ...val, [row.id]: e.target.value })}
+                        placeholder="Введите ответ…"
                       />
                       {checked && rowVerdict === 'incorrect' && (
                         <div className="qa-table-hint">{row.acceptedAnswers?.[0]}</div>
@@ -354,8 +433,13 @@ function QaTableInput({ question, value, onChange, checked }) {
 // the first four words of the sentence that proves it. The point only
 // counts if both the choice and all four words match — see
 // getVerdictForTfRow in grading.js.
-function TfTableInput({ question, value, onChange, checked }) {
+function TfTableInput({ question, examKey, value, onChange, checked }) {
   const val = value || {}
+  const isEnglish = examKey === 'epe'
+  const trueLabel = isEnglish ? 'true' : 'richtig'
+  const falseLabel = isEnglish ? 'false' : 'falsch'
+  const wordsHeader = isEnglish ? 'The first 4 words of the supporting sentence' : 'Die ersten vier Wörter des Beweissatzes'
+  const exampleLabel = isEnglish ? 'Example: ' : 'Beispiel: '
 
   function setChoice(rowId, choice) {
     onChange({ ...val, [rowId]: { ...(val[rowId] || { words: ['', '', '', ''] }), choice } })
@@ -373,9 +457,9 @@ function TfTableInput({ question, value, onChange, checked }) {
         <thead>
           <tr>
             <th className="tf-evidence-statement-head" />
-            <th>richtig</th>
-            <th>falsch</th>
-            <th colSpan={4}>Die ersten vier Wörter des Beweissatzes</th>
+            <th>{trueLabel}</th>
+            <th>{falseLabel}</th>
+            <th colSpan={4}>{wordsHeader}</th>
           </tr>
           <tr>
             <th />
@@ -394,7 +478,7 @@ function TfTableInput({ question, value, onChange, checked }) {
             return (
               <tr key={row.id} className={row.isExample ? 'tf-evidence-example' : ''}>
                 <td className="tf-evidence-statement">
-                  {row.isExample && <strong>Beispiel: </strong>}
+                  {row.isExample && <strong>{exampleLabel}</strong>}
                   {row.statement}
                 </td>
                 {['true', 'false'].map((choice) => (
@@ -411,7 +495,7 @@ function TfTableInput({ question, value, onChange, checked }) {
                           (checked && rowValue.choice === choice && rowVerdict ? ` ${rowVerdict}` : '')
                         }
                         onClick={() => setChoice(row.id, choice)}
-                        aria-label={choice === 'true' ? 'richtig' : 'falsch'}
+                        aria-label={choice === 'true' ? trueLabel : falseLabel}
                       >
                         {rowValue.choice === choice ? 'X' : ''}
                       </button>
@@ -469,11 +553,24 @@ function FreeTextInput({ value, onChange, checked }) {
 function EssayChoiceInput({ question, value, onChange, checked }) {
   const val = value || { choice: null, text: '' }
   const options = question.essayChoice.options
+  const singleOption = options.length === 1 ? options[0] : null
 
-  if (!val.choice) {
+  // Nothing to actually choose between — silently record the one topic
+  // as the choice (so hasAnswer/checking work normally) and skip
+  // straight to the answer view below.
+  useEffect(() => {
+    if (singleOption && !val.choice) {
+      onChange({ ...val, choice: singleOption.id })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [singleOption?.id, val.choice])
+
+  const chosen = val.choice ? options.find((o) => o.id === val.choice) : singleOption
+
+  if (!chosen) {
     return (
       <div className="essay-choice-picker">
-        <p className="admin-note">Выберите одну из двух тем — вторая станет недоступна для этой попытки.</p>
+        <p className="admin-note">Выберите тему — остальные станут недоступны для этой попытки.</p>
         <div className="essay-choice-cards">
           {options.map((opt) => (
             <button
@@ -491,13 +588,11 @@ function EssayChoiceInput({ question, value, onChange, checked }) {
     )
   }
 
-  const chosen = options.find((o) => o.id === val.choice)
-
   return (
     <div className="essay-choice-answer">
       <div className="essay-choice-head">
         <span className="essay-choice-title">{chosen.title}</span>
-        {!checked && (
+        {!checked && options.length > 1 && (
           <button type="button" className="essay-choice-switch" onClick={() => onChange({ ...val, choice: null })}>
             Выбрать другую тему
           </button>
@@ -640,34 +735,57 @@ function SingleChoicePartInput({ part, value, onChange, checked }) {
 // they got right.
 // One part's label + input — shared between the stacked layout (few
 // parts) and the paginated layout (many parts, see MultiPartInput below).
-function MultiPartItem({ part, value, onChange, checked }) {
-  const partVerdict = checked ? getVerdictForPart(part, value) : null
+function MultiPartItem({ part, exampleLabel, value, onChange, checked, selfGrade, onSelfGrade }) {
+  const partVerdict = checked ? getVerdictForPartWithSelfGrade(part, value, selfGrade) : null
+  const showSelfGrade = checked && !part.isExample && part.type === 'free_text' && partVerdict === 'ungraded'
   return (
     <div className="multi-part-item">
       <div className="multi-part-label">
-        {part.isExample && <strong>Beispiel: </strong>}
+        {part.isExample && <strong>{exampleLabel}</strong>}
         {renderUnderline(part.label)}
         {checked && partVerdict && !part.isExample && (
           <span className={`multi-part-verdict ${partVerdict}`}>{PART_VERDICT_LABEL[partVerdict]}</span>
         )}
       </div>
+      {part.hint && <p className="multi-part-hint">{part.hint}</p>}
       {part.type === 'table' ? (
         <TableInput table={part.table} value={value} onChange={onChange} checked={checked} />
       ) : part.type === 'free_text' ? (
-        <textarea
-          className="multi-part-freetext"
-          rows={4}
-          value={value || ''}
-          disabled={checked}
-          placeholder="Введите ваш ответ…"
-          onChange={(e) => onChange(e.target.value)}
-        />
+        <>
+          <textarea
+            className="multi-part-freetext"
+            rows={4}
+            value={value || ''}
+            disabled={checked}
+            placeholder="Введите ваш ответ…"
+            onChange={(e) => onChange(e.target.value)}
+          />
+          {checked && part.sampleAnswer && (
+            <div className="multi-part-sample-answer">
+              <span className="multi-part-sample-answer-label">Примерный ответ:</span> {part.sampleAnswer}
+            </div>
+          )}
+        </>
       ) : part.type === 'short_answer' ? (
         <ShortAnswerInput question={part} value={value} onChange={onChange} checked={checked} verdict={partVerdict} />
       ) : part.type === 'single_choice' ? (
         <SingleChoicePartInput part={part} value={value} onChange={onChange} checked={checked} />
       ) : (
         <NumericInput question={part} value={value} onChange={onChange} checked={checked} verdict={partVerdict} />
+      )}
+      {showSelfGrade && (
+        <div className="self-grade-buttons part">
+          <span className="self-grade-prompt">Проверьте сами:</span>
+          <button type="button" className="self-grade-btn correct" onClick={() => onSelfGrade?.('correct')}>
+            ✓ Верно
+          </button>
+          <button type="button" className="self-grade-btn incorrect" onClick={() => onSelfGrade?.('incorrect')}>
+            ✕ Неверно
+          </button>
+        </div>
+      )}
+      {checked && part.type === 'free_text' && typeof selfGrade === 'string' && (
+        <p className="self-grade-note">Отмечено вами как «{selfGrade === 'correct' ? 'верно' : 'неверно'}».</p>
       )}
     </div>
   )
@@ -678,18 +796,27 @@ function MultiPartItem({ part, value, onChange, checked }) {
 // e.g. an 11-item Single-Choice-Aufgabe becomes one huge scrolling wall,
 // hard to read against the reading passage next to it. Past a threshold,
 // show one part at a time with a compact number-navigator instead.
-const PAGINATE_THRESHOLD = 3
+export const PAGINATE_THRESHOLD = 3
 
-function MultiPartInput({ question, value, onChange, checked }) {
+function MultiPartInput({ question, examKey, value, onChange, checked, selfGrade, onSelfGradePart, partIndex, onPartIndexChange }) {
+  const exampleLabel = examKey === 'epe' ? 'Example: ' : 'Beispiel: '
   const val = value || {}
   const parts = question.parts
-  const [current, setCurrent] = useState(0)
+  const partGrades = selfGrade && typeof selfGrade === 'object' ? selfGrade : {}
+  const [internalCurrent, setInternalCurrent] = useState(0)
+  // Controlled by TestPage.jsx when provided — so the top-level "Далее"
+  // button can step through parts before moving to the next question
+  // (see TestPage.jsx's handleNext). Falls back to owning its own state
+  // if used anywhere without that wiring.
+  const current = partIndex ?? internalCurrent
+  const setCurrent = onPartIndexChange ?? setInternalCurrent
 
   // Reset to the first part whenever the question itself changes — this
   // component instance can persist across a sidebar navigation (React
   // doesn't remount it just because the props changed).
   useEffect(() => {
     setCurrent(0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question.id])
 
   if (parts.length <= PAGINATE_THRESHOLD) {
@@ -699,9 +826,12 @@ function MultiPartInput({ question, value, onChange, checked }) {
           <MultiPartItem
             key={part.id}
             part={part}
+            exampleLabel={exampleLabel}
             value={val[part.id]}
             onChange={(v) => onChange({ ...val, [part.id]: v })}
             checked={checked}
+            selfGrade={partGrades[part.id]}
+            onSelfGrade={onSelfGradePart ? (grade) => onSelfGradePart(part.id, grade) : undefined}
           />
         ))}
       </div>
@@ -713,7 +843,7 @@ function MultiPartInput({ question, value, onChange, checked }) {
     <div className="multi-part paginated">
       <div className="multi-part-pager">
         {parts.map((p, i) => {
-          const v = checked ? getVerdictForPart(p, val[p.id]) : null
+          const v = checked ? getVerdictForPartWithSelfGrade(p, val[p.id], partGrades[p.id]) : null
           const classes = ['multi-part-pager-num']
           if (i === current) classes.push('current')
           if (p.isExample) classes.push('example')
@@ -729,9 +859,12 @@ function MultiPartInput({ question, value, onChange, checked }) {
 
       <MultiPartItem
         part={part}
+        exampleLabel={exampleLabel}
         value={val[part.id]}
         onChange={(v) => onChange({ ...val, [part.id]: v })}
         checked={checked}
+        selfGrade={partGrades[part.id]}
+        onSelfGrade={onSelfGradePart ? (grade) => onSelfGradePart(part.id, grade) : undefined}
       />
     </div>
   )
@@ -744,7 +877,7 @@ function hasPartValue(v) {
   return false
 }
 
-export default function QuestionAnswerInput({ question, value, onChange, checked, verdict }) {
+export default function QuestionAnswerInput({ question, examKey, value, onChange, checked, verdict, selfGrade, onSelfGradePart, partIndex, onPartIndexChange }) {
   switch (question.type) {
     case 'numeric':
       return <NumericInput question={question} value={value} onChange={onChange} checked={checked} verdict={verdict} />
@@ -757,15 +890,27 @@ export default function QuestionAnswerInput({ question, value, onChange, checked
     case 'cloze':
       return <ClozeInput question={question} value={value} onChange={onChange} checked={checked} />
     case 'qa_table':
-      return <QaTableInput question={question} value={value} onChange={onChange} checked={checked} />
+      return <QaTableInput question={question} examKey={examKey} value={value} onChange={onChange} checked={checked} />
     case 'tf_table':
-      return <TfTableInput question={question} value={value} onChange={onChange} checked={checked} />
+      return <TfTableInput question={question} examKey={examKey} value={value} onChange={onChange} checked={checked} />
     case 'free_text':
       return <FreeTextInput value={value} onChange={onChange} checked={checked} />
     case 'essay_choice':
       return <EssayChoiceInput question={question} value={value} onChange={onChange} checked={checked} />
     case 'multi_part':
-      return <MultiPartInput question={question} value={value} onChange={onChange} checked={checked} />
+      return (
+        <MultiPartInput
+          question={question}
+          examKey={examKey}
+          value={value}
+          onChange={onChange}
+          checked={checked}
+          selfGrade={selfGrade}
+          onSelfGradePart={onSelfGradePart}
+          partIndex={partIndex}
+          onPartIndexChange={onPartIndexChange}
+        />
+      )
     case 'multiple_choice':
     default:
       return <MultipleChoiceInput question={question} value={value} onChange={onChange} checked={checked} />

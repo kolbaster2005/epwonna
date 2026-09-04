@@ -20,6 +20,13 @@ export default function UniversityPage({ uniKey }) {
         <div>
           <span className="wip-badge">В разработке</span>
           <h1>{uni.label}</h1>
+
+          {heroImage && (
+            <div className="uni-hero-art uni-hero-art-mobile">
+              <img src={heroImage} alt={uni.fullName} />
+            </div>
+          )}
+
           <div className="about-text">
             <p>
               {uni.fullName} — {uni.shortDesc}. Скоро здесь появится подробная информация о вступительных экзаменах:
@@ -34,7 +41,7 @@ export default function UniversityPage({ uniKey }) {
         </div>
 
         {heroImage && (
-          <div className="uni-hero-art">
+          <div className="uni-hero-art uni-hero-art-desktop">
             <img src={heroImage} alt={uni.fullName} />
           </div>
         )}

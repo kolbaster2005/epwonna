@@ -57,6 +57,36 @@
       color: $color-teal;
     }
   }
+  &.green {
+    background: linear-gradient(160deg, $color-green-light, #fff 60%);
+    .dir-icon {
+      background: $color-green;
+    }
+    .sub,
+    .goto {
+      color: $color-green;
+    }
+  }
+  &.red {
+    background: linear-gradient(160deg, #fce9e8, #fff 60%);
+    .dir-icon {
+      background: #d0453f;
+    }
+    .sub,
+    .goto {
+      color: #d0453f;
+    }
+  }
+  &.orange {
+    background: linear-gradient(160deg, $color-amber-light, #fff 60%);
+    .dir-icon {
+      background: $color-amber-dark;
+    }
+    .sub,
+    .goto {
+      color: $color-amber-dark;
+    }
+  }
 }
 
 .dir-card-head {
@@ -64,6 +94,22 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.coming-soon-section {
+  margin-bottom: $space-9;
+  display: none;
+
+  @include mq(lg) {
+    display: block;
+  }
+}
+
+.coming-soon-section-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: $space-4;
+  color: $color-ink-soft;
 }
 
 .dir-icon {
@@ -174,6 +220,7 @@
 }
 
 .test-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: #fff;
@@ -229,4 +276,18 @@
 
 .test-card:hover .test-card-cta {
   filter: brightness(0.93);
+}
+
+.test-pinned-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: $color-amber-light;
+  color: $color-amber-dark;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

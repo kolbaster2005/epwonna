@@ -27,8 +27,36 @@
 // ---------------------------------------------------------------------
 
 import { supabase } from '../lib/supabaseClient.js'
+import { exams } from '../data/examData.js'
+import { listTaskTopicsFor } from './topicsService.js'
 
 const TABLE = 'tests'
+
+// "epd-schriftlich-2" should sort before "epd-schriftlich-10" — plain
+// string comparison puts "1" before "2" character-by-character, so
+// "...-10" and "...-11" land right after "...-1" and before "...-2".
+// Splits both ids into alternating text/number chunks and compares
+// number chunks as numbers, text chunks as strings.
+function naturalCompare(a, b) {
+  const split = (s) => (s.match(/\d+|\D+/g) || [])
+  const ax = split(a)
+  const bx = split(b)
+  const len = Math.max(ax.length, bx.length)
+  for (let i = 0; i < len; i++) {
+    const ap = ax[i] ?? ''
+    const bp = bx[i] ?? ''
+    const aNum = /^\d+$/.test(ap)
+    const bNum = /^\d+$/.test(bp)
+    if (aNum && bNum) {
+      const diff = Number(ap) - Number(bp)
+      if (diff) return diff
+    } else {
+      const diff = ap.localeCompare(bp)
+      if (diff) return diff
+    }
+  }
+  return 0
+}
 
 function uid(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`
@@ -70,6 +98,13 @@ function rowToQuestion(row) {
     // array (see rowToTest below) — not embedded text. TestPage looks
     // this up to show the shared reading passage in its own panel.
     passageId: row.passage_id ?? undefined,
+    selfGradeMaxPoints: row.self_grade_max_points ?? undefined,
+    taskType: row.task_type ?? undefined,
+    contentId: row.content_id ?? undefined,
+    sourceUrl: row.source_url ?? undefined,
+    taskNumber: row.task_number ?? undefined,
+    instructions: row.instructions ?? undefined,
+    examPartId: row.exam_part_id ?? undefined,
   }
   switch (row.type) {
     case 'numeric':
@@ -109,6 +144,13 @@ function questionToRow(testId, position, q) {
     image: q.image ?? null,
     explanation: q.explanation ?? null,
     passage_id: q.passageId ?? null,
+    self_grade_max_points: q.selfGradeMaxPoints ?? null,
+    task_type: q.taskType ?? null,
+    content_id: q.contentId ?? null,
+    source_url: q.sourceUrl ?? null,
+    ...(q.taskNumber != null ? { task_number: q.taskNumber } : {}),
+    instructions: q.instructions ?? null,
+    exam_part_id: q.examPartId ?? null,
   }
   switch (q.type) {
     case 'numeric':
@@ -145,6 +187,9 @@ function rowToTest(row) {
     fullDescription: row.full_description,
     isOfficial: row.is_official,
     isModel: row.is_model ?? false,
+    isPinned: row.is_pinned ?? false,
+    isTaskBank: row.is_task_bank ?? false,
+    isGenerated: row.is_generated ?? false,
     topic: row.topic ?? undefined,
     format: row.format ?? undefined,
     year: row.year ?? undefined,
@@ -173,6 +218,9 @@ function testToRow(examKey, test) {
     full_description: test.fullDescription,
     is_official: test.isOfficial,
     is_model: test.isModel ?? false,
+    is_pinned: test.isPinned ?? false,
+    is_task_bank: test.isTaskBank ?? false,
+    is_generated: test.isGenerated ?? false,
     topic: test.topic ?? null,
     format: test.format ?? null,
     year: test.year ?? null,
@@ -190,13 +238,26 @@ export async function listTests(examKey) {
   try {
     const { data, error } = await supabase
       .from(TABLE)
-      .select('*, questions(*)')
+      .select('*')
       .eq('exam_key', examKey)
+      .order('is_pinned', { ascending: false })
       .order('year', { ascending: false })
-      .order('position', { foreignTable: 'questions', ascending: true })
-
     if (error) throw error
-    return (data || []).map(rowToTest)
+    const tests = (data || []).sort((a, b) => {
+      if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1
+      if (a.year !== b.year) return (b.year ?? 0) - (a.year ?? 0)
+      return naturalCompare(a.id, b.id)
+    })
+
+    const testIds = tests.map((t) => t.id)
+    const counts = {}
+    if (testIds.length > 0) {
+      const { data: links, error: linksErr } = await supabase.from('test_tasks').select('test_id').in('test_id', testIds)
+      if (linksErr) throw linksErr
+      for (const row of links || []) counts[row.test_id] = (counts[row.test_id] || 0) + 1
+    }
+
+    return tests.map((row) => ({ ...rowToTest(row), questionCount: counts[row.id] ?? 0 }))
   } catch (err) {
     console.error('[testsService.listTests]', err)
     return []
@@ -205,16 +266,39 @@ export async function listTests(examKey) {
 
 export async function getTest(examKey, testId) {
   try {
-    const { data, error } = await supabase
+    const { data: testRow, error: testErr } = await supabase
       .from(TABLE)
-      .select('*, questions(*)')
+      .select('*')
       .eq('exam_key', examKey)
       .eq('id', testId)
-      .order('position', { foreignTable: 'questions', ascending: true })
       .maybeSingle()
+    if (testErr) throw testErr
+    if (!testRow) return null
 
-    if (error) throw error
-    return data ? rowToTest(data) : null
+    // The actual list of tasks + their order for this test now lives in
+    // test_tasks, not directly on questions.test_id — a task's test_id
+    // is just where it was originally authored ("home"), but it can
+    // legitimately also appear in other tests via test_tasks rows. See
+    // schema.sql section 10.
+    const { data: links, error: linksErr } = await supabase
+      .from('test_tasks')
+      .select('task_id, position')
+      .eq('test_id', testId)
+      .order('position', { ascending: true })
+    if (linksErr) throw linksErr
+
+    const taskIds = (links || []).map((l) => l.task_id)
+    let questionRows = []
+    if (taskIds.length > 0) {
+      const { data: qData, error: qErr } = await supabase.from('questions').select('*').in('id', taskIds)
+      if (qErr) throw qErr
+      questionRows = qData || []
+    }
+    // .in() doesn't preserve order, so re-sort to match test_tasks.position.
+    const byId = Object.fromEntries(questionRows.map((q) => [q.id, q]))
+    const orderedQuestions = taskIds.map((id) => byId[id]).filter(Boolean)
+
+    return rowToTest({ ...testRow, questions: orderedQuestions })
   } catch (err) {
     console.error('[testsService.getTest]', err)
     return null
@@ -226,13 +310,19 @@ export async function createTest(examKey, data) {
     const id = data.id || uid(examKey)
     const row = testToRow(examKey, { ...data, id })
 
-    const { error } = await supabase.from(TABLE).insert(row)
+    const { error } = await supabase.from(TABLE).upsert(row, { onConflict: 'id' })
     if (error) throw error
 
     if (data.questions?.length) {
       const qRows = data.questions.map((q, i) => questionToRow(id, i, q))
       const { error: qError } = await supabase.from('questions').insert(qRows)
       if (qError) throw qError
+
+      // test_tasks is what getTest actually reads from now — a freshly
+      // inserted question needs a link row here too, or it won't show up.
+      const linkRows = data.questions.map((q, i) => ({ test_id: id, task_id: q.id, position: i }))
+      const { error: linkError } = await supabase.from('test_tasks').upsert(linkRows, { onConflict: 'test_id,task_id' })
+      if (linkError) throw linkError
     }
 
     return getTest(examKey, id)
@@ -255,6 +345,11 @@ export async function updateTest(examKey, testId, patch) {
       // Full-replace: delete this test's questions and re-insert the
       // current array. Simpler and safer than diffing add/edit/remove,
       // and matches how the mock store always replaced the whole array.
+      // Deleting a question cascades away any test_tasks row pointing at
+      // it too (from this test AND from any other test that happened to
+      // be sharing it) — that's expected: editing a task from its home
+      // test is the one place that's allowed to actually change/remove
+      // its content everywhere it's used, not just here.
       const { error: delError } = await supabase.from('questions').delete().eq('test_id', testId)
       if (delError) throw delError
 
@@ -262,12 +357,34 @@ export async function updateTest(examKey, testId, patch) {
         const qRows = patch.questions.map((q, i) => questionToRow(testId, i, q))
         const { error: insError } = await supabase.from('questions').insert(qRows)
         if (insError) throw insError
+
+        // getTest reads the task list from test_tasks now, not directly
+        // from questions.test_id — needs a matching link row per task.
+        const linkRows = patch.questions.map((q, i) => ({ test_id: testId, task_id: q.id, position: i }))
+        const { error: linkError } = await supabase.from('test_tasks').upsert(linkRows, { onConflict: 'test_id,task_id' })
+        if (linkError) throw linkError
       }
     }
 
     return getTest(examKey, testId)
   } catch (err) {
     console.error('[testsService.updateTest]', err)
+    throw toError(err)
+  }
+}
+
+// Deliberately a raw partial update, not routed through updateTest/
+// testToRow — those build a full row from a full test-shaped object, so
+// passing just { isPinned } through them would blank out topic/format/
+// year/pdf fields/oral_task/passages (they fall back to `?? null` when
+// absent from the patch). This one only ever touches is_pinned.
+export async function setPinned(testId, isPinned) {
+  try {
+    const { error } = await supabase.from(TABLE).update({ is_pinned: isPinned }).eq('id', testId)
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.error('[testsService.setPinned]', err)
     throw toError(err)
   }
 }
@@ -281,5 +398,87 @@ export async function deleteTest(examKey, testId) {
   } catch (err) {
     console.error('[testsService.deleteTest]', err)
     throw toError(err)
+  }
+}
+
+// Finds (or creates, on first use) the one "Банк заданий" container test
+// for this exam — a test row with is_task_bank: true, never shown to
+// students, that exists purely so standalone tasks can be created/edited
+// through the already-built test editor without needing a real published
+// probnik to live inside. Fixed, predictable id so repeated calls don't
+// create duplicates even without a unique constraint on is_task_bank.
+export async function ensureTaskBankTest(examKey) {
+  const id = `${examKey}-task-bank`
+  const existing = await getTest(examKey, id)
+  if (existing) return existing
+  return createTest(examKey, {
+    id,
+    title: 'Банк заданий',
+    shortDescription: 'Служебный контейнер — не показывается как пробник ученикам.',
+    isOfficial: false,
+    isTaskBank: true,
+    format: exams[examKey]?.phases ? 'written' : undefined,
+    year: new Date().getFullYear(),
+    durationMinutes: 0,
+    questions: [],
+  })
+}
+
+// Every question for this exam, across every test (including the task
+// bank container) — for the "Банк заданий" browsing/filter page. Each
+// row also carries which test it currently lives in, since a task being
+// "in the bank container" vs. "already part of a real published probnik"
+// is meaningful context for the person browsing.
+export async function listAllQuestionsForBank(examKey) {
+  try {
+    // Two plain queries instead of one "clever" embedded-filter query
+    // (tests!inner(...) + .eq('tests.exam_key', ...)) — that syntax is
+    // finicky to get right and silently returned nothing in practice.
+    // This mirrors the same simple two-step approach getTest/listTests
+    // already use successfully.
+    const { data: examTests, error: testsErr } = await supabase.from(TABLE).select('id, title, is_task_bank').eq('exam_key', examKey)
+    if (testsErr) throw testsErr
+    const testsById = Object.fromEntries((examTests || []).map((t) => [t.id, t]))
+    const testIds = Object.keys(testsById)
+    if (testIds.length === 0) return []
+
+    const { data: rows, error: qErr } = await supabase.from('questions').select('*').in('test_id', testIds)
+    if (qErr) throw qErr
+    rows?.sort((a, b) => naturalCompare(a.id, b.id))
+
+    const topicsMap = await listTaskTopicsFor((rows || []).map((r) => r.id))
+    return (rows || []).map((row) => {
+      const test = testsById[row.test_id]
+      return {
+        ...rowToQuestion(row),
+        testId: row.test_id,
+        testTitle: test?.title ?? '',
+        isTaskBankTest: test?.is_task_bank ?? false,
+        topicIds: topicsMap[row.id] || [],
+      }
+    })
+  } catch (err) {
+    console.error('[testsService.listAllQuestionsForBank]', err)
+    return []
+  }
+}
+
+// For AdminTestEditor's "this task is also used elsewhere" warning —
+// how many DIFFERENT tests each of these task ids currently appears in
+// via test_tasks (1 = only here, not actually shared with anything).
+export async function listTaskShareCounts(taskIds) {
+  if (!taskIds?.length) return {}
+  try {
+    const { data, error } = await supabase.from('test_tasks').select('task_id, test_id').in('task_id', taskIds)
+    if (error) throw error
+    const testsByTask = {}
+    for (const row of data || []) {
+      if (!testsByTask[row.task_id]) testsByTask[row.task_id] = new Set()
+      testsByTask[row.task_id].add(row.test_id)
+    }
+    return Object.fromEntries(Object.entries(testsByTask).map(([taskId, set]) => [taskId, set.size]))
+  } catch (err) {
+    console.error('[testsService.listTaskShareCounts]', err)
+    return {}
   }
 }

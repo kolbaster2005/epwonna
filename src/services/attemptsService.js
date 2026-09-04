@@ -21,12 +21,17 @@ function rowToAttempt(row) {
     totalQuestions: row.total_questions,
     durationSeconds: row.duration_seconds,
     completedAt: row.completed_at,
+    answersSnapshot: row.answers_snapshot ?? null,
   }
 }
 
 // Called once from TestPage.jsx when a written test finishes. Fire-and-
 // forget from the caller's side — a failed save shouldn't block the
-// person from seeing their results screen.
+// person from seeing their results screen. `answersSnapshot` is
+// { answers, selfGrades } — everything AttemptReview.jsx needs to
+// re-render exactly what was answered later. Returns the new row's id
+// (so the results screen can link straight to its review page), or
+// null if the save failed.
 export async function saveAttempt({
   userId,
   testId,
@@ -39,26 +44,32 @@ export async function saveAttempt({
   ungradedCount,
   totalQuestions,
   durationSeconds,
+  answersSnapshot,
 }) {
   try {
-    const { error } = await supabase.from('test_attempts').insert({
-      user_id: userId,
-      test_id: testId,
-      exam_key: examKey,
-      test_title: testTitle,
-      score_percent: scorePercent,
-      correct_count: correctCount,
-      partial_count: partialCount,
-      incorrect_count: incorrectCount,
-      ungraded_count: ungradedCount,
-      total_questions: totalQuestions,
-      duration_seconds: durationSeconds,
-    })
+    const { data, error } = await supabase
+      .from('test_attempts')
+      .insert({
+        user_id: userId,
+        test_id: testId,
+        exam_key: examKey,
+        test_title: testTitle,
+        score_percent: scorePercent,
+        correct_count: correctCount,
+        partial_count: partialCount,
+        incorrect_count: incorrectCount,
+        ungraded_count: ungradedCount,
+        total_questions: totalQuestions,
+        duration_seconds: durationSeconds,
+        answers_snapshot: answersSnapshot ?? null,
+      })
+      .select('id')
+      .single()
     if (error) throw error
-    return true
+    return data.id
   } catch (err) {
     console.error('[attemptsService.saveAttempt]', err)
-    return false
+    return null
   }
 }
 
@@ -77,6 +88,20 @@ export async function listAttempts(userId) {
   } catch (err) {
     console.error('[attemptsService.listAttempts]', err)
     return []
+  }
+}
+
+// A single attempt, including its full answers_snapshot — for
+// AttemptReview.jsx. RLS already scopes this to the current user, no
+// need to pass userId here.
+export async function getAttempt(attemptId) {
+  try {
+    const { data, error } = await supabase.from('test_attempts').select('*').eq('id', attemptId).single()
+    if (error) throw error
+    return data ? rowToAttempt(data) : null
+  } catch (err) {
+    console.error('[attemptsService.getAttempt]', err)
+    return null
   }
 }
 

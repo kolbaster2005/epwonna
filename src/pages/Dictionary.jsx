@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useDialog } from '../contexts/DialogContext.jsx'
 import { listWords, deleteWord, wordsToAnkiText, downloadTextFile } from '../services/dictionaryService.js'
 import AddWordModal from '../components/AddWordModal.jsx'
 import { IconDownload, IconPlus, IconEdit, IconTrash, IconBook } from '../components/Icons.jsx'
@@ -24,6 +25,7 @@ function groupByCategory(words) {
 
 export default function Dictionary() {
   const { user } = useAuth()
+  const { confirm, alertMessage } = useDialog()
   const [words, setWords] = useState([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -45,12 +47,12 @@ export default function Dictionary() {
   useEffect(reload, [user])
 
   async function handleDelete(word) {
-    if (!window.confirm(`Удалить «${word.word}» из словаря?`)) return
+    if (!(await confirm(`Удалить «${word.word}» из словаря?`))) return
     try {
       await deleteWord(word.id)
       setWords((prev) => prev.filter((w) => w.id !== word.id))
     } catch (err) {
-      window.alert(err.message || 'Не удалось удалить слово.')
+      await alertMessage(err.message || 'Не удалось удалить слово.')
     }
   }
 

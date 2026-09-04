@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
 import { exams } from '../../data/examData.js'
-import { getTest, createTest, updateTest } from '../../services/testsService.js'
+import { getTest, createTest, updateTest, listTaskShareCounts } from '../../services/testsService.js'
+import { pluralizeRu } from '../../utils/pluralize.js'
+import { listTopics, listTaskTopicsFor, setTaskTopics } from '../../services/topicsService.js'
+import { useDialog } from '../../contexts/DialogContext.jsx'
+import { listExamParts } from '../../services/examPartsService.js'
 import { clozeBlankIds } from '../../utils/grading.js'
 
 function uid(prefix) {
@@ -9,7 +13,7 @@ function uid(prefix) {
 }
 
 // Sentinel for "no category set" — every question/passage falls into
-// exactly one of exam.categories, or this fallback bucket, so nothing
+// exactly one exam part, or this fallback bucket, so nothing
 // can end up permanently hidden from the section picker below.
 const UNSECTIONED = '__none__'
 function sectionKeyOf(item) {
@@ -136,14 +140,40 @@ function blankTest(exam, preferredFormat) {
     fullDescription: '',
     isOfficial: true,
     isModel: false,
-    topic: exam.topics[0]?.id ?? '',
+    isPinned: false,
+    topic: '',
     format: hasPhases(exam) ? preferredFormat || exam.phases[0].value : undefined,
     year: new Date().getFullYear(),
     durationMinutes: 60,
     questions: [],
     passages: [],
+    oralTask: null,
     pdfUrl: undefined,
     pdfFileName: undefined,
+  }
+}
+
+// A blank устная часть — one stage to start, with one option. Mirrors
+// the shape OralTestPage.jsx expects (see the comment at the top of
+// that file): stage.kind 'choice' means "pick one of `options`, then
+// prep/present it" — the only kind actually used by any real content
+// so far, and the only one this editor supports.
+function blankOralTask() {
+  return { stages: [] }
+}
+
+function blankOralOption() {
+  return { id: uid('opt'), label: '', kind: 'image', image: '', content: '', leitfragen: [''] }
+}
+
+function blankOralStage() {
+  return {
+    id: uid('stage'),
+    title: '',
+    kind: 'choice',
+    instructions: '',
+    prepMinutes: 15,
+    options: [blankOralOption()],
   }
 }
 
@@ -157,8 +187,12 @@ export default function AdminTestEditor({ examKey }) {
   const navigate = useNavigate()
   const exam = exams[examKey]
   const isNew = !testId
+  const { confirm } = useDialog()
 
   const [form, setForm] = useState(null) // null = loading (edit mode only)
+  const [topics, setTopics] = useState([])
+  const [examParts, setExamParts] = useState([])
+  const [shareCounts, setShareCounts] = useState({}) // task_id -> сколько тестов его сейчас используют
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   // null = showing the section picker (Чтение / Аудирование / ...); once
@@ -176,23 +210,64 @@ export default function AdminTestEditor({ examKey }) {
       setForm(blankTest(exam, searchParams.get('format')))
     } else {
       setForm(null)
-      getTest(examKey, testId).then((data) => setForm(data ?? blankTest(exam)))
+      getTest(examKey, testId).then(async (data) => {
+        if (!data) {
+          setForm(blankTest(exam))
+          return
+        }
+        const ids = (data.questions || []).map((q) => q.id)
+        const [topicsMap, shares] = await Promise.all([listTaskTopicsFor(ids), listTaskShareCounts(ids)])
+        setShareCounts(shares)
+        setForm({
+          ...data,
+          questions: data.questions.map((q) => ({ ...q, topicIds: topicsMap[q.id] || [] })),
+        })
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examKey, testId, isNew])
+
+  useEffect(() => {
+    listTopics(examKey).then((list) => {
+      setTopics(list)
+      setForm((f) => (f && isNew && !f.topic && list[0] ? { ...f, topic: list[0].id } : f))
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examKey])
+
+  useEffect(() => {
+    listExamParts(examKey).then(setExamParts)
+  }, [examKey])
+
+  // If the format is switched to "устная часть" (or an existing test
+  // somehow has none), make sure there's always a real oralTask object
+  // to edit against, instead of every stage-management function having
+  // to null-check it individually.
+  useEffect(() => {
+    if (form && form.format === 'oral' && !form.oralTask) {
+      setForm((f) => ({ ...f, oralTask: blankOralTask() }))
+    }
+  }, [form?.format, form?.oralTask])
 
   if (!form) {
     return <div className="tests-empty">Загрузка…</div>
   }
 
-  // Sections = exam.categories (Чтение/Аудирование/Грамматика/Письмо for
-  // EPD/EPE, Часть А/Часть Б for EPM) plus a fallback bucket for anything
-  // without a matching category (old data, or edge cases) — see
-  // UNSECTIONED above. Only meaningful for written tests; oral tests use
-  // a completely different content model (oral_task.stages).
+  // Sections used to come from the hardcoded exam.categories array —
+  // now from the real, admin-editable exam_parts table (see "Части
+  // экзамена" link above). The section *key* is still the label text
+  // itself (not exam_parts.id, which is a slug) — every existing
+  // question's `category` was already saved as that exact label, so
+  // keeping the key as the label means nothing already-entered content
+  // needs migrating for this to keep working. Falls back to the old
+  // hardcoded list while exam_parts hasn't loaded yet (or is genuinely
+  // empty), so the editor never briefly shows zero sections.
+  // Only meaningful for written tests; oral tests use a completely
+  // different content model (oral_task.stages).
+  const sectionSource = examParts.length > 0 ? examParts.map((p) => ({ value: p.label, label: p.label })) : exam.categories
   const sections =
-    exam.categories && form.format !== 'oral'
-      ? [...exam.categories.map((c) => ({ key: c.value, label: c.label })), { key: UNSECTIONED, label: 'Без раздела' }]
+    sectionSource && form.format !== 'oral'
+      ? [...sectionSource.map((c) => ({ key: c.value, label: c.label })), { key: UNSECTIONED, label: 'Без раздела' }]
       : null
 
   function questionsInSection(key) {
@@ -204,6 +279,67 @@ export default function AdminTestEditor({ examKey }) {
 
   function setField(key, value) {
     setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  // ---- Oral task (устная часть): stages[].options[] --------------------
+
+  function updateStages(updater) {
+    setForm((f) => ({ ...f, oralTask: { ...(f.oralTask || blankOralTask()), stages: updater(f.oralTask?.stages || []) } }))
+  }
+
+  function addStage() {
+    updateStages((stages) => [...stages, blankOralStage()])
+  }
+  function removeStage(stageIndex) {
+    updateStages((stages) => stages.filter((_, i) => i !== stageIndex))
+  }
+  function setStage(stageIndex, patch) {
+    updateStages((stages) => stages.map((s, i) => (i === stageIndex ? { ...s, ...patch } : s)))
+  }
+
+  function updateOptions(stageIndex, updater) {
+    updateStages((stages) => stages.map((s, i) => (i === stageIndex ? { ...s, options: updater(s.options || []) } : s)))
+  }
+  function addOralOption(stageIndex) {
+    updateOptions(stageIndex, (options) => [...options, blankOralOption()])
+  }
+  function removeOralOption(stageIndex, optIndex) {
+    updateOptions(stageIndex, (options) => options.filter((_, i) => i !== optIndex))
+  }
+  function setOption(stageIndex, optIndex, patch) {
+    updateOptions(stageIndex, (options) => options.map((o, i) => (i === optIndex ? { ...o, ...patch } : o)))
+  }
+
+  // Same data:-URI-on-the-spot approach as handleImageChange below, for
+  // an option's stimulus photo (Bildimpuls, Grafik, Karikatur, ...).
+  function handleOptionImageChange(stageIndex, optIndex, file) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setOption(stageIndex, optIndex, { image: reader.result, kind: 'image' })
+    reader.readAsDataURL(file)
+  }
+
+  function setLeitfrage(stageIndex, optIndex, lfIndex, text) {
+    updateOptions(stageIndex, (options) =>
+      options.map((o, i) => {
+        if (i !== optIndex) return o
+        const leitfragen = [...(o.leitfragen || [])]
+        leitfragen[lfIndex] = text
+        return { ...o, leitfragen }
+      })
+    )
+  }
+  function addLeitfrage(stageIndex, optIndex) {
+    updateOptions(stageIndex, (options) =>
+      options.map((o, i) => (i === optIndex ? { ...o, leitfragen: [...(o.leitfragen || []), ''] } : o))
+    )
+  }
+  function removeLeitfrage(stageIndex, optIndex, lfIndex) {
+    updateOptions(stageIndex, (options) =>
+      options.map((o, i) =>
+        i === optIndex ? { ...o, leitfragen: (o.leitfragen || []).filter((_, k) => k !== lfIndex) } : o
+      )
+    )
   }
 
   // ---- Reading/listening passages (shared across several questions via
@@ -425,13 +561,38 @@ export default function AdminTestEditor({ examKey }) {
     }))
   }
 
+  function setInstruction(qIndex, index, text) {
+    setForm((f) => ({
+      ...f,
+      questions: f.questions.map((q, i) =>
+        i !== qIndex ? q : { ...q, instructions: (q.instructions || []).map((line, j) => (j === index ? text : line)) }
+      ),
+    }))
+  }
+
+  function addInstruction(qIndex) {
+    setForm((f) => ({
+      ...f,
+      questions: f.questions.map((q, i) => (i !== qIndex ? q : { ...q, instructions: [...(q.instructions || []), ''] })),
+    }))
+  }
+
+  function removeInstruction(qIndex, index) {
+    setForm((f) => ({
+      ...f,
+      questions: f.questions.map((q, i) =>
+        i !== qIndex ? q : { ...q, instructions: (q.instructions || []).filter((_, j) => j !== index) }
+      ),
+    }))
+  }
+
   function setQuestionType(qIndex, type) {
     setForm((f) => ({
       ...f,
       questions: f.questions.map((q, i) => {
         if (i !== qIndex) return q
-        const { id, text, image, explanation, category } = q
-        return { id, text, image, explanation, category, type, ...defaultsForType(type) }
+        const { id, text, image, explanation, category, taskType, selfGradeMaxPoints, topicIds, sourceUrl, contentId, instructions } = q
+        return { id, text, image, explanation, category, taskType, selfGradeMaxPoints, topicIds, sourceUrl, contentId, instructions, type, ...defaultsForType(type) }
       }),
     }))
   }
@@ -440,8 +601,8 @@ export default function AdminTestEditor({ examKey }) {
     setForm((f) => ({ ...f, questions: [...f.questions, { ...blankQuestion(), category }] }))
   }
 
-  function removeQuestion(qIndex) {
-    if (!window.confirm('Удалить этот вопрос?')) return
+  async function removeQuestion(qIndex) {
+    if (!(await confirm('Удалить этот вопрос?'))) return
     setForm((f) => ({ ...f, questions: f.questions.filter((_, i) => i !== qIndex) }))
   }
 
@@ -697,6 +858,26 @@ export default function AdminTestEditor({ examKey }) {
     }))
   }
 
+  function addEssayOption(qIndex) {
+    setForm((f) => ({
+      ...f,
+      questions: f.questions.map((q, i) =>
+        i !== qIndex ? q : { ...q, essayChoice: { options: [...q.essayChoice.options, blankEssayOption(uid('topic'))] } }
+      ),
+    }))
+  }
+
+  function removeEssayOption(qIndex, optionIndex) {
+    setForm((f) => ({
+      ...f,
+      questions: f.questions.map((q, i) => {
+        if (i !== qIndex) return q
+        if (q.essayChoice.options.length <= 1) return q
+        return { ...q, essayChoice: { options: q.essayChoice.options.filter((_, j) => j !== optionIndex) } }
+      }),
+    }))
+  }
+
   function setEssayInstruction(qIndex, optionIndex, instrIndex, text) {
     setForm((f) => ({
       ...f,
@@ -745,16 +926,6 @@ export default function AdminTestEditor({ examKey }) {
     reader.readAsDataURL(file)
   }
 
-  function handlePdfChange(file) {
-    if (!file) return
-    // Same mock-only approach as the photo upload above: this data: URI
-    // stands in for what will be a Supabase Storage URL once wired up —
-    // the DB row should only ever hold that URL, never the file itself.
-    const reader = new FileReader()
-    reader.onload = () => setForm((f) => ({ ...f, pdfUrl: reader.result, pdfFileName: file.name }))
-    reader.readAsDataURL(file)
-  }
-
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
@@ -770,6 +941,13 @@ export default function AdminTestEditor({ examKey }) {
       } else {
         await updateTest(examKey, testId, payload)
       }
+      // task_topics is a separate table, keyed by question id — and
+      // every save above just deleted+re-inserted every question row
+      // (cascading away any task_topics that pointed at the old rows),
+      // so this has to run after, syncing against the now-current ids.
+      await Promise.all(
+        (payload.questions || []).map((q) => setTaskTopics(q.id, q.topicIds || []).catch(() => {}))
+      )
       navigate(`/admin/${examKey}`)
     } catch (err) {
       setSaveError(err.message || 'Не удалось сохранить пробник. Проверьте подключение к базе данных.')
@@ -821,13 +999,20 @@ export default function AdminTestEditor({ examKey }) {
               Модель экзамена <em>(не пробник — показывает формат/все варианты заданий, а не полноценную практику)</em>
             </label>
 
+            <label className="admin-part-example-toggle">
+              <input type="checkbox" checked={!!form.isPinned} onChange={(e) => setField('isPinned', e.target.checked)} />
+              Закрепить <em>(всегда показывать первым в списке пробников, независимо от года)</em>
+            </label>
+
             <label className="admin-field">
               <span>Тема</span>
               <select value={form.topic} onChange={(e) => setField('topic', e.target.value)}>
-                {exam.topics.map((t) => (
+                {topics.length === 0 && <option value="">— тем пока нет —</option>}
+                {topics.map((t) => (
                   <option key={t.id} value={t.id}>{t.label}</option>
                 ))}
               </select>
+              <Link className="admin-inline-link" to={`/admin/${examKey}/topics`}>Управлять списком тем →</Link>
             </label>
 
             {hasPhases(exam) && (
@@ -848,17 +1033,13 @@ export default function AdminTestEditor({ examKey }) {
           </div>
 
           <label className="admin-field">
-            <span>PDF пробника <em>(необязательно — покажется как ссылка «Скачать пробник в PDF» на странице пробника)</em></span>
-            {form.pdfUrl ? (
-              <div className="admin-image-preview">
-                <span className="admin-file-chip">📄 {form.pdfFileName || 'probnik.pdf'}</span>
-                <button type="button" className="btn btn-outline" onClick={() => setForm((f) => ({ ...f, pdfUrl: undefined, pdfFileName: undefined }))}>
-                  Убрать PDF
-                </button>
-              </div>
-            ) : (
-              <input type="file" accept="application/pdf" onChange={(e) => handlePdfChange(e.target.files?.[0])} />
-            )}
+            <span>Ссылка на PDF пробника <em>(необязательно — покажется как «Скачать пробник в PDF» на странице пробника; загрузите файл на Google Диск и вставьте сюда ссылку с доступом «по ссылке»)</em></span>
+            <input
+              type="url"
+              value={form.pdfUrl || ''}
+              onChange={(e) => setField('pdfUrl', e.target.value)}
+              placeholder="https://drive.google.com/file/d/..."
+            />
           </label>
 
           <p className="admin-note">
@@ -870,12 +1051,153 @@ export default function AdminTestEditor({ examKey }) {
 
         {form.format === 'oral' && (
           <div className="admin-questions">
-            <h2>Вопросы</h2>
+            <h2>Устная часть</h2>
             <p className="admin-note">
-              У этого пробника устный формат — вместо обычных вопросов он использует карточки/фотографии и таймер
-              подготовки («устная часть»). Редактирование содержимого устной части через админ-панель пока не
-              реализовано — контент задаётся напрямую в БД (колонка <code>oral_task</code> таблицы <code>tests</code>).
+              Вступительный текст (правила экзамена) один на весь экзамен и задаётся в коде
+              (<code>src/data/examData.js</code> → <code>oralExamInfo</code>), а не для каждого пробника отдельно —
+              ниже настраиваются только этапы и карточки этого конкретного пробника.
             </p>
+
+            {(form.oralTask?.stages || []).map((stage, stageIndex) => (
+              <div className="admin-oral-stage" key={stage.id}>
+                <div className="admin-qa-row-head">
+                  <span className="admin-part-index">Этап {stageIndex + 1}</span>
+                  <button
+                    type="button"
+                    className="admin-delete-btn"
+                    disabled={form.oralTask.stages.length <= 1}
+                    onClick={() => removeStage(stageIndex)}
+                    aria-label="Удалить этап"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="admin-field-row">
+                  <label className="admin-field">
+                    <span>Название этапа</span>
+                    <input
+                      value={stage.title}
+                      onChange={(e) => setStage(stageIndex, { title: e.target.value })}
+                      placeholder="Monologischer Teil"
+                    />
+                  </label>
+                  <label className="admin-field">
+                    <span>Подготовка, минут <em>(0 — без подготовки)</em></span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={stage.prepMinutes}
+                      onChange={(e) => setStage(stageIndex, { prepMinutes: Number(e.target.value) })}
+                    />
+                  </label>
+                </div>
+
+                <label className="admin-field">
+                  <span>Инструкция к этапу</span>
+                  <textarea
+                    rows={2}
+                    value={stage.instructions}
+                    onChange={(e) => setStage(stageIndex, { instructions: e.target.value })}
+                    placeholder="Выберите одну из карточек и подготовьте ответ."
+                  />
+                </label>
+
+                <p className="admin-note">Карточки на выбор — ученик увидит их и выберет одну.</p>
+
+                {(stage.options || []).map((opt, optIndex) => (
+                  <div className="admin-oral-option" key={opt.id}>
+                    <div className="admin-qa-row-head">
+                      <span className="admin-part-index">{opt.id}</span>
+                      <select value={opt.kind} onChange={(e) => setOption(stageIndex, optIndex, { kind: e.target.value })}>
+                        <option value="image">Картинка</option>
+                        <option value="text">Текстовый отрывок</option>
+                        <option value="quote">Цитата</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="admin-delete-btn"
+                        disabled={stage.options.length <= 1}
+                        onClick={() => removeOralOption(stageIndex, optIndex)}
+                        aria-label="Удалить карточку"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <label className="admin-field">
+                      <span>Название карточки</span>
+                      <input
+                        value={opt.label}
+                        onChange={(e) => setOption(stageIndex, optIndex, { label: e.target.value })}
+                        placeholder="1a. Grafik"
+                      />
+                    </label>
+
+                    {opt.kind === 'image' ? (
+                      <label className="admin-field">
+                        <span>Картинка</span>
+                        {opt.image ? (
+                          <div className="admin-passage-head">
+                            <span className="admin-part-label-input" style={{ flex: 1 }}>Картинка загружена</span>
+                            <button type="button" className="admin-delete-btn" onClick={() => setOption(stageIndex, optIndex, { image: '' })}>
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <input type="file" accept="image/*" onChange={(e) => handleOptionImageChange(stageIndex, optIndex, e.target.files?.[0])} />
+                        )}
+                      </label>
+                    ) : (
+                      <label className="admin-field">
+                        <span>{opt.kind === 'quote' ? 'Текст цитаты' : 'Текст отрывка'}</span>
+                        <textarea
+                          rows={opt.kind === 'quote' ? 2 : 5}
+                          value={opt.content}
+                          onChange={(e) => setOption(stageIndex, optIndex, { content: e.target.value })}
+                        />
+                      </label>
+                    )}
+
+                    <label className="admin-field">
+                      <span>Наводящие вопросы</span>
+                      <div className="admin-single-choice-editor">
+                        {(opt.leitfragen || []).map((line, lfIndex) => (
+                          <div className="admin-single-choice-option" key={lfIndex}>
+                            <span className="admin-part-index">{lfIndex + 1}</span>
+                            <input
+                              value={line}
+                              onChange={(e) => setLeitfrage(stageIndex, optIndex, lfIndex, e.target.value)}
+                              placeholder="Beschreiben Sie..."
+                            />
+                            <button
+                              type="button"
+                              className="admin-delete-btn"
+                              disabled={(opt.leitfragen || []).length <= 1}
+                              onClick={() => removeLeitfrage(stageIndex, optIndex, lfIndex)}
+                              aria-label="Удалить вопрос"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <button type="button" className="admin-add-link" onClick={() => addLeitfrage(stageIndex, optIndex)}>
+                          + Вопрос
+                        </button>
+                      </div>
+                    </label>
+                  </div>
+                ))}
+
+                <button type="button" className="admin-add-link" onClick={() => addOralOption(stageIndex)}>
+                  + Карточка на выбор
+                </button>
+              </div>
+            ))}
+
+            <button type="button" className="admin-add-link" onClick={addStage}>
+              + Этап устной части
+            </button>
           </div>
         )}
 
@@ -979,6 +1301,14 @@ export default function AdminTestEditor({ examKey }) {
                       <button type="button" className="admin-delete-btn" onClick={() => removeQuestion(qIndex)} aria-label="Удалить вопрос">✕</button>
                     </div>
 
+                    {shareCounts[q.id] > 1 && (
+                      <p className="admin-note admin-shared-task-warning">
+                        ⚠ Это задание используется ещё в {shareCounts[q.id] - 1}{' '}
+                        {pluralizeRu(shareCounts[q.id] - 1, ['другом пробнике', 'других пробниках', 'других пробниках'])} —
+                        изменения здесь затронут их все.
+                      </p>
+                    )}
+
                     <label className="admin-field">
                       <span>Текст вопроса <em>(перенос строки сохранится как абзац)</em></span>
                       <textarea required rows={4} value={q.text} onChange={(e) => setQuestion(qIndex, { text: e.target.value })} />
@@ -1015,6 +1345,71 @@ export default function AdminTestEditor({ examKey }) {
                   <option value="multi_part">Составной вопрос (несколько пунктов)</option>
                 </select>
               </label>
+
+              <label className="admin-field">
+                <span>Тип задания в терминах экзамена <em>(необязательно — например «Umformung», «Blog Comment»; НЕ то же самое, что «Тип ответа» выше — это как задание отображается, а это поле — что оно тренирует)</em></span>
+                <input
+                  value={q.taskType || ''}
+                  onChange={(e) => setQuestion(qIndex, { taskType: e.target.value })}
+                  placeholder="например, Umformung"
+                />
+              </label>
+
+              <label className="admin-field">
+                <span>Ссылка на исходник <em>(необязательно — Google Drive; появится под вопросом как «Скачать исходник», видна только авторизованным)</em></span>
+                <input
+                  value={q.sourceUrl || ''}
+                  onChange={(e) => setQuestion(qIndex, { sourceUrl: e.target.value })}
+                  placeholder="https://drive.google.com/..."
+                />
+              </label>
+
+              <div className="admin-field">
+                <span>Подпункты задания <em>(необязательно — покажутся нумерованным списком 1/2/3 ПОСЛЕ картинки вопроса, отдельно от текста выше)</em></span>
+                <div className="admin-single-choice-editor">
+                  {(q.instructions || []).map((line, i) => (
+                    <div className="admin-single-choice-option" key={i}>
+                      <span className="admin-part-index">{i + 1}</span>
+                      <input
+                        value={line}
+                        onChange={(e) => setInstruction(qIndex, i, e.target.value)}
+                        placeholder="Geben Sie kurz die zentrale Aussage wieder."
+                      />
+                      <button type="button" className="admin-delete-btn" onClick={() => removeInstruction(qIndex, i)} aria-label="Удалить пункт">
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" className="admin-add-link" onClick={() => addInstruction(qIndex)}>
+                    + Пункт
+                  </button>
+                </div>
+              </div>
+
+              {topics.length > 0 && (
+                <div className="admin-field">
+                  <span>Темы <em>(необязательно, можно несколько — используется для фильтра в «Банке заданий»)</em></span>
+                  <div className="admin-topic-checkboxes">
+                    {topics.map((t) => {
+                      const checked = (q.topicIds || []).includes(t.id)
+                      return (
+                        <label className="admin-topic-checkbox" key={t.id}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              const current = q.topicIds || []
+                              const next = e.target.checked ? [...current, t.id] : current.filter((id) => id !== t.id)
+                              setQuestion(qIndex, { topicIds: next })
+                            }}
+                          />
+                          {t.label}
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               <label className="admin-field">
                 <span>Пояснение <em>(необязательно — покажется под вопросом мелким серым текстом)</em></span>
@@ -1315,6 +1710,19 @@ export default function AdminTestEditor({ examKey }) {
                 </div>
               )}
 
+              {(q.type === 'qa_table' || q.type === 'free_text' || q.type === 'essay_choice') && (
+                <label className="admin-field">
+                  <span>Баллы за задание — для самооценки <em>(необязательно; если задать, человек после ответа сам выберет, сколько баллов из этого числа он бы себе поставил, вместо простого «верно/неверно»)</em></span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={q.selfGradeMaxPoints ?? ''}
+                    onChange={(e) => setQuestion(qIndex, { selfGradeMaxPoints: e.target.value === '' ? undefined : Number(e.target.value) })}
+                    placeholder="например, 3"
+                  />
+                </label>
+              )}
+
               {q.type === 'qa_table' && (
                 <div className="admin-qa-editor">
                   <p className="admin-note">
@@ -1388,6 +1796,18 @@ export default function AdminTestEditor({ examKey }) {
                               value={row.after || ''}
                               onChange={(e) => setQaRow(qIndex, rowIndex, { after: e.target.value })}
                               placeholder=", gefährden soziale Medien die psychische Gesundheit von Jugendlichen massiv."
+                            />
+                          </label>
+                        )}
+
+                        {rowType === 'freeText' && (
+                          <label className="admin-field">
+                            <span>Примерный ответ <em>(необязательно — показывается после «Ответить», чтобы было с чем свериться)</em></span>
+                            <textarea
+                              rows={2}
+                              value={row.sampleAnswer || ''}
+                              onChange={(e) => setQaRow(qIndex, rowIndex, { sampleAnswer: e.target.value })}
+                              placeholder="Ключ или образец ответа для самопроверки"
                             />
                           </label>
                         )}
@@ -1492,13 +1912,25 @@ export default function AdminTestEditor({ examKey }) {
                 <div className="admin-qa-editor">
                   <p className="admin-note">
                     Общий текст вопроса выше — это инструкция уровня всего задания (необязательна, можно оставить
-                    короткой). Ученик увидит обе темы на выбор ниже, а после выбора — картинку/текст и список
-                    пунктов только выбранной темы. Не проверяется автоматически — сохраняется как есть.
+                    короткой). Ниже — темы на выбор: если тема одна, ученик сразу увидит задание без экрана выбора;
+                    если тем несколько — сначала выбирает одну, а после выбора видит картинку/текст и пункты только
+                    выбранной темы. Не проверяется автоматически — сохраняется как есть.
                   </p>
 
                   {q.essayChoice.options.map((opt, optionIndex) => (
                     <div className="admin-qa-row" key={opt.id}>
-                      <div className="admin-part-index">{opt.id}</div>
+                      <div className="admin-qa-row-head">
+                        <div className="admin-part-index">{opt.id}</div>
+                        <button
+                          type="button"
+                          className="admin-delete-btn"
+                          disabled={q.essayChoice.options.length <= 1}
+                          onClick={() => removeEssayOption(qIndex, optionIndex)}
+                          aria-label="Удалить тему"
+                        >
+                          ✕
+                        </button>
+                      </div>
 
                       <label className="admin-field">
                         <span>Название темы</span>
@@ -1562,6 +1994,10 @@ export default function AdminTestEditor({ examKey }) {
                       </label>
                     </div>
                   ))}
+
+                  <button type="button" className="admin-add-link" onClick={() => addEssayOption(qIndex)}>
+                    + Тема
+                  </button>
                 </div>
               )}
 
@@ -1613,6 +2049,15 @@ export default function AdminTestEditor({ examKey }) {
                           ✕
                         </button>
                       </div>
+
+                      <label className="admin-field">
+                        <span>Подсказка по формату ответа <em>(необязательно — показывается под пунктом на странице теста)</em></span>
+                        <input
+                          value={part.hint || ''}
+                          onChange={(e) => setPart(qIndex, partIndex, { hint: e.target.value })}
+                          placeholder="Например: введите в виде дроби, например 3/4"
+                        />
+                      </label>
 
                       {part.type === 'numeric' && (
                         <div className="admin-field-row">
@@ -1704,7 +2149,18 @@ export default function AdminTestEditor({ examKey }) {
                       )}
 
                       {part.type === 'free_text' && (
-                        <p className="admin-note">Не проверяется автоматически — человек впишет ответ в текстовое поле.</p>
+                        <>
+                          <p className="admin-note">Не проверяется автоматически — человек впишет ответ и сам оценит его после проверки.</p>
+                          <label className="admin-field">
+                            <span>Примерный ответ <em>(необязательно — показывается после «Ответить», чтобы было с чем свериться)</em></span>
+                            <textarea
+                              rows={3}
+                              value={part.sampleAnswer || ''}
+                              onChange={(e) => setPart(qIndex, partIndex, { sampleAnswer: e.target.value })}
+                              placeholder="Ключевые слова или образец ответа для самопроверки"
+                            />
+                          </label>
+                        </>
                       )}
 
                       {part.type === 'short_answer' && (

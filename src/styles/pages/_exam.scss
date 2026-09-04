@@ -8,6 +8,29 @@
   }
 }
 
+.coming-soon-card {
+  padding: $space-9 $space-5;
+  text-align: center;
+  background: #fff;
+  border: 1px dashed $color-border;
+  border-radius: $radius-lg;
+  margin-bottom: $space-6;
+}
+
+.coming-soon-lead {
+  color: $color-gray;
+  font-size: 14.5px;
+  margin-bottom: $space-5;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.coming-soon-note {
+  color: $color-gray;
+  font-size: 13.5px;
+}
+
 // Wraps the "Об экзамене" tab only — the illustration lives here, not in
 // .exam-hero, precisely so it never shows up on the "Пробники" tab.
 .about-layout {
@@ -438,3 +461,8 @@
   }
 }
 
+
+// ---- Генерация пробника -------------------------------------------
+.generate-probnik-block {
+  margin: $space-4 0;
+}
