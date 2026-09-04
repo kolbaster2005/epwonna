@@ -19,6 +19,34 @@ function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Не удалось выполнить запрос.')
 }
 
+// Supabase Auth возвращает ошибки на английском (raw текст от их
+// сервера) — переводим самые частые в понятные сообщения. Если
+// сообщение незнакомое, показываем его как есть (лучше английская
+// строка, чем полное молчание о причине) вместо того чтобы прятать её
+// за общим "что-то пошло не так".
+const AUTH_ERROR_TRANSLATIONS = [
+  [/invalid login credentials/i, 'Неверный email или пароль.'],
+  [/email not confirmed/i, 'Email ещё не подтверждён — проверьте почту и перейдите по ссылке из письма.'],
+  [/user already registered/i, 'Аккаунт с таким email уже существует — попробуйте войти вместо регистрации.'],
+  [/password should be at least/i, 'Пароль должен быть не короче 6 символов.'],
+  [/unable to validate email address/i, 'Некорректный формат email.'],
+  [/for security purposes.*after (\d+) seconds/i, (m) => `Слишком много попыток подряд — подождите ${m[1]} секунд и попробуйте ещё раз.`],
+  [/email rate limit exceeded/i, 'Слишком много писем отправлено на этот адрес за короткое время — подождите немного и попробуйте снова.'],
+  [/user not found/i, 'Пользователь с таким email не найден.'],
+  [/network/i, 'Проблема с сетью — проверьте подключение к интернету и попробуйте снова.'],
+]
+
+function toAuthError(err) {
+  const base = toError(err)
+  for (const [pattern, replacement] of AUTH_ERROR_TRANSLATIONS) {
+    const match = base.message.match(pattern)
+    if (match) {
+      return new Error(typeof replacement === 'function' ? replacement(match) : replacement)
+    }
+  }
+  return base
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -84,7 +112,7 @@ export function AuthProvider({ children }) {
       if (error) throw error
       return data
     } catch (err) {
-      throw toError(err)
+      throw toAuthError(err)
     }
   }
 
@@ -94,7 +122,7 @@ export function AuthProvider({ children }) {
       if (error) throw error
       return data
     } catch (err) {
-      throw toError(err)
+      throw toAuthError(err)
     }
   }
 
@@ -103,7 +131,7 @@ export function AuthProvider({ children }) {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
     } catch (err) {
-      throw toError(err)
+      throw toAuthError(err)
     }
   }
 
@@ -118,7 +146,7 @@ export function AuthProvider({ children }) {
       })
       if (error) throw error
     } catch (err) {
-      throw toError(err)
+      throw toAuthError(err)
     }
   }
 
@@ -131,7 +159,7 @@ export function AuthProvider({ children }) {
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (error) throw error
     } catch (err) {
-      throw toError(err)
+      throw toAuthError(err)
     }
   }
 
