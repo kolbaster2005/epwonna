@@ -16,10 +16,12 @@ import Dictionary from './pages/Dictionary.jsx'
 import ComingSoonSubject from './components/ComingSoonSubject.jsx'
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 import TermsOfUse from './pages/TermsOfUse.jsx'
+import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
 import { comingSoonSubjects } from './data/examData.js'
 import NotFound from './pages/NotFound.jsx'
 import AdminHome from './pages/admin/AdminHome.jsx'
 import AdminReports from './pages/admin/AdminReports.jsx'
+import AdminStats from './pages/admin/AdminStats.jsx'
 import AdminExamTests from './pages/admin/AdminExamTests.jsx'
 import AdminTestEditor from './pages/admin/AdminTestEditor.jsx'
 import AdminTopics from './pages/admin/AdminTopics.jsx'
@@ -28,6 +30,7 @@ import AdminTaskBank from './pages/admin/AdminTaskBank.jsx'
 import RequireAdmin from './components/RequireAdmin.jsx'
 import SelectionPopup from './components/SelectionPopup.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
+import VisitTracker from './components/VisitTracker.jsx'
 import { useEffect, useState } from 'react'
 
 export default function App() {
@@ -47,6 +50,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <VisitTracker />
       <Header onBurgerClick={() => setMobileNavOpen(true)} />
       {mobileNavOpen && <MobileNav onClose={() => setMobileNavOpen(false)} />}
 
@@ -92,6 +96,7 @@ export default function App() {
               non-admins from seeing the panel at all. */}
           <Route path="/admin" element={<RequireAdmin><AdminHome /></RequireAdmin>} />
           <Route path="/admin/reports" element={<RequireAdmin><AdminReports /></RequireAdmin>} />
+          <Route path="/admin/stats" element={<RequireAdmin><AdminStats /></RequireAdmin>} />
           <Route path="/admin/epm" element={<RequireAdmin><AdminExamTests key="epm" examKey="epm" /></RequireAdmin>} />
           <Route path="/admin/epm/topics" element={<RequireAdmin><AdminTopics key="epm-topics" examKey="epm" /></RequireAdmin>} />
           <Route path="/admin/epm/parts" element={<RequireAdmin><AdminExamParts key="epm-parts" examKey="epm" /></RequireAdmin>} />
@@ -113,6 +118,7 @@ export default function App() {
 
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/terms" element={<TermsOfUse />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

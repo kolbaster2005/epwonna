@@ -13,9 +13,14 @@ export default function AdminHome() {
         <p>Выберите раздел, чтобы управлять пробниками и вопросами.</p>
       </div>
 
-      <Link className="btn btn-outline admin-reports-link" to="/admin/reports">
-        Обращения по вопросам
-      </Link>
+      <div className="admin-reports-link-row">
+        <Link className="btn btn-outline admin-reports-link" to="/admin/reports">
+          Обращения по вопросам
+        </Link>
+        <Link className="btn btn-outline admin-reports-link" to="/admin/stats">
+          Статистика посещений
+        </Link>
+      </div>
 
       <div className="admin-section-grid">
         {examList.map((exam) => (

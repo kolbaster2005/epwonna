@@ -1132,14 +1132,96 @@
 }
 
 // ---- Обращения по вопросам -----------------------------------------
-.admin-reports-link {
+.admin-reports-link-row {
+  display: flex;
+  gap: 12px;
   margin-bottom: $space-6;
+  flex-wrap: wrap;
+}
+
+.admin-reports-link {
+  margin-bottom: 0;
 }
 
 .admin-reports-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+// ---- Статистика посещений (AdminStats.jsx) -------------------------
+.admin-stats-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-5;
+  margin-bottom: $space-6;
+
+  @include mq(sm) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.admin-stats-card {
+  background: #fff;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-5;
+}
+
+.admin-stats-card-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: $color-ink;
+  font-family: $font-display;
+}
+
+.admin-stats-card-label {
+  margin-top: 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: $color-ink-soft;
+}
+
+.admin-stats-card-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: $color-gray;
+}
+
+.admin-stats-ranked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  counter-reset: rank;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid $color-border;
+    font-size: 13.5px;
+    color: $color-ink;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &::before {
+      counter-increment: rank;
+      content: counter(rank) '.';
+      color: $color-gray;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+  }
+}
+
+.admin-stats-ranked-count {
+  font-weight: 700;
+  color: $color-primary;
+  flex-shrink: 0;
 }
 
 .admin-report-row {
@@ -1190,4 +1272,16 @@
   background: $color-bg;
   padding: 2px 8px;
   border-radius: $radius-sm;
+}
+
+.admin-stats-exclude-row {
+  margin-bottom: $space-6;
+
+  .btn {
+    margin-bottom: 10px;
+  }
+
+  .admin-note {
+    max-width: 640px;
+  }
 }

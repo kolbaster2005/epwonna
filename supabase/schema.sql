@@ -822,3 +822,32 @@ create policy "question_reports: admin update" on public.question_reports
 -- doesn't check this yet (see README), so treat this as the DB-level
 -- backstop until that route guard is added.
 -- ---------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------
+-- Собственная (не сторонняя) статистика посещений — см.
+-- supabase/page_views.sql для подробных комментариев.
+-- ---------------------------------------------------------------------
+create table if not exists public.page_views (
+  id bigint generated always as identity primary key,
+  visitor_id text not null,
+  user_id uuid references auth.users (id) on delete set null,
+  path text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.page_views enable row level security;
+
+drop policy if exists "page_views: anyone can insert" on public.page_views;
+create policy "page_views: anyone can insert" on public.page_views
+  for insert with check (true);
+
+drop policy if exists "page_views: admin read" on public.page_views;
+create policy "page_views: admin read" on public.page_views
+  for select using (public.is_admin());
+
+create index if not exists page_views_created_at_idx on public.page_views (created_at desc);
+create index if not exists page_views_visitor_created_idx on public.page_views (visitor_id, created_at);
+
+drop policy if exists "test_attempts: admin read" on public.test_attempts;
+create policy "test_attempts: admin read" on public.test_attempts
+  for select using (public.is_admin());
