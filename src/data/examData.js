@@ -55,18 +55,7 @@ export const exams = {
     // these options. `options: 'topics'` means "fetch from the topics
     // table for this exam" (see topicsService.js); `options: 'years'`
     // means "compute from the years present in tests".
-    filters: [
-      {
-        field: 'isOfficial',
-        label: 'Тип пробника',
-        options: [
-          { value: 'true', label: 'Официальный' },
-          { value: 'false', label: 'Неофициальный' },
-        ],
-      },
-      { field: 'topic', label: 'Тема', options: 'topics' },
-      { field: 'year', label: 'Год', options: 'years' },
-    ],
+    filters: [],
     about: [
       {
         h: 'Краткая информация',
@@ -184,7 +173,6 @@ export const exams = {
     ],
     filters: [
       { field: 'topic', label: 'Тема', options: 'topics' },
-      { field: 'year', label: 'Год', options: 'years' },
     ],
     about: [
       {
@@ -332,8 +320,370 @@ export const exams = {
     // in the meantime.
     theory: {
       h: 'Теория',
-      content: [
-        { type: 'p', text: 'Здесь скоро появятся материалы по теории немецкого языка — правила, конспекты и ссылки на полезные ресурсы.' },
+      sub: [
+        {
+          h: 'Письменная часть',
+          sub: [
+            {
+              h: 'Памятка Umformungen',
+              downloadUrl: 'https://drive.google.com/file/d/1GIdgvsbwJUQXapDFUvgvAJeyrPwXz5Nn/view?usp=drive_link',
+              intro: 'Nominalisierungen: Umformung Nominalphrase → Verbalphrase. Важно следить за тем, чтобы менялась только грамматическая структура (Nomen → Verb, существительное → глагол), но не содержание.',
+              rules: [
+            {
+              number: '01',
+              title: 'Präposition + Nomen → Nebensatz',
+              description: 'Придаточное предложение вместо предлога + существительного.',
+              example: {
+                text: 'Trotz der Kälte joggt sie jeden Morgen.',
+                translation: 'Несмотря на холод, она каждое утро бегает.',
+              },
+              transformation: {
+                text: 'Obwohl es kalt ist, joggt sie jeden Morgen.',
+                translation: 'Хотя холодно, она каждое утро бегает.',
+              },
+              merke: ['Präposition → Konjunktion', 'Nomen → Verb (Unterordnung)'],
+              important: 'Важно: в придаточном предложении важны правильное время глагола и явное подлежащее!',
+              changes: [['trotz', 'obwohl'], ['der Kälte', 'es kalt ist']],
+            },
+            {
+              number: '02',
+              title: 'Partizip / Adjektiv → Relativsatz',
+              description: 'Определение через относительное придаточное предложение.',
+              example: {
+                text: 'Der schlafende Hund liegt vor der Tür, der geweckte Hund bellt laut.',
+                translation: 'Спящая собака лежит перед дверью, разбуженная собака громко лает.',
+              },
+              transformation: {
+                text: 'Der Hund, der schläft, liegt vor der Tür. Der Hund, der geweckt worden ist, bellt laut.',
+                translation: 'Собака, которая спит, лежит перед дверью. Собака, которую разбудили, громко лает.',
+              },
+              merke: ['Partizip I (причастие I) = одновременность действия', 'Partizip II (причастие II) = предшествующее действие, чаще всего в пассиве (страдательном залоге)!'],
+              changes: [['schlafende', 'der schläft'], ['geweckte', 'der geweckt worden ist']],
+            },
+            {
+              number: '03',
+              title: 'Präposition + Partizip + Nomen → Nebensatz',
+              description: 'Причастный оборот с предлогом превращается в придаточное предложение.',
+              example: {
+                text: 'Wegen der sinkenden Verkaufszahlen musste die Firma Mitarbeiter entlassen.',
+                translation: 'Из-за падающих показателей продаж фирме пришлось уволить сотрудников.',
+              },
+              transformation: {
+                text: 'Weil die Verkaufszahlen sinken, musste die Firma Mitarbeiter entlassen.',
+                translation: 'Так как показатели продаж падают, фирме пришлось уволить сотрудников.',
+              },
+              merke: ['Причастие → глагол', 'Предлог → союз'],
+              important: 'Важно: в придаточном предложении важны правильное время глагола и явное подлежащее!',
+              changes: [['wegen', 'weil'], ['der sinkenden Verkaufszahlen', 'die Verkaufszahlen sinken']],
+            },
+            {
+              number: '04',
+              title: 'Verb + Präposition + Nomen → Pronominaladverb + dass / Infinitiv + zu',
+              description: 'Существительное с предлогом при глаголе заменяется придаточным dass-предложением с местоименным наречием — или инфинитивным оборотом, если подлежащее одинаковое.',
+              example: {
+                text: 'Er interessiert sich für das Erlernen neuer Sprachen.',
+                translation: 'Он интересуется изучением новых языков.',
+              },
+              transformation: {
+                text: 'Er interessiert sich dafür, dass er neue Sprachen lernt.',
+                translation: 'Он интересуется тем, что изучает новые языки.',
+              },
+              merke: ['Verb + Präposition + Nomen → Pronominaladverb (da(r) + Präposition) + dass-Satz', '= Er interessiert sich dafür, neue Sprachen zu lernen. — если подлежащее одинаковое в обеих частях, можно инфинитивный оборот'],
+              changes: [['für das Erlernen', 'dafür, dass er lernt']],
+            },
+            {
+              number: '05',
+              title: 'Ergänzung (Subjekt oder Objekt) → dass-Satz / Infinitiv + zu',
+              description: 'Существительное-подлежащее или дополнение заменяется придаточным dass-предложением или инфинитивным оборотом.',
+              example: {
+                text: 'Eine Verschiebung des Termins auf nächste Woche ist notwendig.',
+                translation: 'Перенос срока на следующую неделю необходим.',
+              },
+              transformation: {
+                text: 'Es ist notwendig, dass der Termin auf nächste Woche verschoben wird.',
+                translation: 'Необходимо, чтобы срок был перенесён на следующую неделю.',
+              },
+              merke: ['Es ist notwendig, dass man den Termin auf nächste Woche verschiebt. — активный залог', 'Es ist notwendig, den Termin auf nächste Woche zu verschieben. — инфинитивный оборот'],
+              changes: [['eine Verschiebung', 'dass ... verschoben wird']],
+            },
+
+              ],
+              content: [
+{ type: 'heading', text: 'Подробнее про предлоги (к правилу №1)' },
+                {
+                  type: 'p',
+                  text: 'Памятка-решение по теме «Umformung Nominalphrasen → Verbalphrasen»: слева — предлог и примеры с существительным, справа — соответствующий союз и та же мысль, выраженная придаточным предложением.',
+                },
+                {
+                  type: 'table',
+                  headers: ['Präposition', 'Beispiele', 'Konjunktion', 'Beispiele'],
+                  rows: [
+                    [
+                      'durch + A',
+                      [
+                        '__Durch__ regelmäßiges Training verbesserte er seine Kondition.',
+                        '__Durch__ die Reduzierung des Plastikmülls schützt man die Umwelt.',
+                      ],
+                      'indem / dadurch, dass',
+                      [
+                        'Indem er regelmäßig trainierte, verbesserte er seine Kondition.',
+                        'Dadurch, dass man den Plastikmüll reduziert, schützt man die Umwelt.',
+                      ],
+                    ],
+                    [
+                      'trotz + G',
+                      [
+                        '__Trotz__ seiner Erkältung ging er zur Arbeit.',
+                        '__Trotz__ des schlechten Wetters fand das Fest statt.',
+                      ],
+                      'obwohl',
+                      [
+                        'Obwohl er erkältet war, ging er zur Arbeit.',
+                        'Obwohl das Wetter schlecht war, fand das Fest statt.',
+                      ],
+                    ],
+                    [
+                      'wegen / aufgrund + G',
+                      [
+                        '__Wegen__ des dichten Nebels fielen mehrere Flüge aus.',
+                        '__Aufgrund__ der hohen Nachfrage stiegen die Preise.',
+                      ],
+                      'weil / da',
+                      [
+                        'Weil dichter Nebel herrschte, fielen mehrere Flüge aus.',
+                        'Da die Nachfrage hoch war, stiegen die Preise.',
+                      ],
+                    ],
+                    [
+                      'ohne + A',
+                      [
+                        'Er verließ das Büro __ohne__ ein Wort.',
+                        'Sie traf die Entscheidung __ohne__ Rücksprache mit dem Team.',
+                      ],
+                      'ohne, dass / ohne + zu + Inf. (gleiches Sub.)',
+                      [
+                        'Er verließ das Büro, ohne ein Wort zu sagen.',
+                        'Sie traf die Entscheidung, ohne sich mit dem Team abzusprechen.',
+                      ],
+                    ],
+                    [
+                      'statt + G',
+                      [
+                        '__Statt__ einer Antwort schickte er nur ein Emoji.',
+                        '__Statt__ des Autos nahm sie das Fahrrad zur Arbeit.',
+                      ],
+                      'statt, dass / statt + zu + Inf. (gleiches Sub.)',
+                      [
+                        'Statt zu antworten, schickte er nur ein Emoji.',
+                        'Statt das Auto zu nehmen, fuhr sie mit dem Fahrrad zur Arbeit.',
+                      ],
+                    ],
+                    [
+                      'während + G',
+                      [
+                        '__Während__ der Reise las er drei Bücher.',
+                        '__Während__ des Vortrags schlief ein Zuhörer ein.',
+                      ],
+                      'während',
+                      [
+                        'Während er reiste, las er drei Bücher.',
+                        'Während der Vortrag lief, schlief ein Zuhörer ein.',
+                      ],
+                    ],
+                    [
+                      'nach + D (=laut) / laut + D (=nach)',
+                      [
+                        '__Nach__ (=laut) Angaben der Polizei war die Straße gesperrt.',
+                        '__Laut__ (=nach) Aussage des Zeugen fuhr der Wagen zu schnell.',
+                      ],
+                      'wie',
+                      [
+                        'Wie die Polizei angibt, war die Straße gesperrt.',
+                        'Wie der Zeuge aussagt, fuhr der Wagen zu schnell.',
+                      ],
+                    ],
+                    [
+                      'bis zu + D',
+                      [
+                        '__Bis zum__ Ende der Ausstellung kamen tausend Besucher.',
+                        '__Bis zum__ Beginn der Sitzung bleibt die Tür offen.',
+                      ],
+                      'bis',
+                      [
+                        'Bis die Ausstellung endete, kamen tausend Besucher.',
+                        'Bis die Sitzung beginnt, bleibt die Tür offen.',
+                      ],
+                    ],
+                    [
+                      'seit + D',
+                      [
+                        '__Seit__ ihrem Umzug nach Graz arbeitet sie im Homeoffice.',
+                        '__Seit__ der Einführung neuer Regeln gibt es weniger Beschwerden.',
+                      ],
+                      'seit / seitdem',
+                      [
+                        'Seit sie nach Graz umgezogen ist, arbeitet sie im Homeoffice.',
+                        'Seitdem neue Regeln eingeführt wurden, gibt es weniger Beschwerden.',
+                      ],
+                    ],
+                    [
+                      'vor + D',
+                      [
+                        '__Vor__ dem Frühstück macht sie Yoga.',
+                        '__Vor__ der Abreise packten wir die Koffer.',
+                      ],
+                      'bevor',
+                      [
+                        'Bevor sie frühstückt, macht sie Yoga.',
+                        'Bevor wir abreisten, packten wir die Koffer.',
+                      ],
+                    ],
+                    [
+                      'bei + D',
+                      [
+                        '__Bei__ starkem Regen bleibt Anna zu Hause.',
+                        '__Bei__ guter Vorbereitung besteht man die Prüfung leichter.',
+                      ],
+                      'wenn, als',
+                      [
+                        'Wenn es stark regnet, bleibt Anna zu Hause.',
+                        'Wenn man sich gut vorbereitet, besteht man die Prüfung leichter.',
+                      ],
+                    ],
+                    [
+                      'nach + D',
+                      [
+                        '__Nach__ der Ankunft am Flughafen suchten sie ein Taxi.',
+                        '__Nach__ dem Abschluss der Ausbildung begann er zu arbeiten.',
+                      ],
+                      'nachdem',
+                      [
+                        'Nachdem sie am Flughafen angekommen waren, suchten sie ein Taxi.',
+                        'Nachdem er die Ausbildung abgeschlossen hatte, begann er zu arbeiten.',
+                      ],
+                    ],
+                    [
+                      'zu + D',
+                      [
+                        '__Zur__ Beruhigung der Kunden sandte die Firma eine E-Mail.',
+                        '__Zum__ Erlernen der neuen Software nahm er an einem Kurs teil.',
+                      ],
+                      'damit / um + zu + Inf. (gleiches Sub.)',
+                      [
+                        'Damit sich die Kunden beruhigen, sandte die Firma eine E-Mail.',
+                        'Um die neue Software zu erlernen, nahm er an einem Kurs teil.',
+                      ],
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              h: 'Памятка Beschreibung und Zusammenfassung einer Grafik',
+              downloadUrl: 'https://drive.google.com/file/d/184h0z1KQq8jSPjDCiuhvCO-drMcdt32P/view?usp=sharing',
+              content: [
+                { type: 'p', text: 'Synonyme für „Grafik“: das Schaubild, das Diagramm, die Tabelle, die Statistik, die Daten (Pl.)' },
+                { type: 'heading', text: 'A. Thema und Quelle' },
+                { type: 'subheading', text: 'Das Thema der Grafik wiedergeben' },
+                {
+                  type: 'list',
+                  items: [
+                    'Die Grafik zeigt, … / Das Diagramm informiert über …',
+                    'Thema des Balkendiagramms/Liniendiagramms/Tortendiagramms ist …',
+                    'In dieser Grafik geht es um / darum, dass …',
+                    'Die vorliegende Grafik beschäftigt sich mit …',
+                    'Diese Grafik zeigt uns Daten und Fakten zum Thema X, und zwar ganz konkret zu/dazu, …',
+                    'Die Angaben erfolgen in Prozent / in ganzen Zahlen / in …',
+                  ],
+                },
+                { type: 'subheading', text: 'Die Quelle nennen' },
+                {
+                  type: 'list',
+                  items: [
+                    'Die Daten stammen aus der Zeitung …',
+                    'Die Grafik stammt von … und ist aus dem Jahr …',
+                    'Die Quelle der Grafik ist …',
+                  ],
+                },
+                { type: 'heading', text: 'B. Beschreibung – Zusammenfassung' },
+                { type: 'subheading', text: 'Reihenfolgen beschreiben' },
+                {
+                  type: 'list',
+                  items: [
+                    'Man kann feststellen, dass …',
+                    'An erster / zweiter / vorletzter / letzter Stelle steht/stehen …',
+                    'Auf dem ersten/zweiten Platz wird … genannt.',
+                    'Die meisten / wenigsten der Befragten finden, …',
+                    'Ein Großteil meint, …',
+                    'Am wichtigsten / unwichtigsten ist den Befragten …',
+                    'Rund die Hälfte ist überzeugt davon, dass …',
+                    'Über die Hälfte der befragten Personen geben an, dass …',
+                    'Beinahe ein Drittel der … / Zirka die Hälfte findet … / Ungefähr ein Viertel sagt …',
+                    '… Prozent finden/sagen/meinen, dass …',
+                    'Der Spitzenreiter ist …',
+                    'Das Schlusslicht ist …',
+                    'Im Mittelfeld liegt …',
+                  ],
+                },
+                { type: 'subheading', text: 'Entwicklungen / Veränderungen / Tendenzen beschreiben' },
+                {
+                  type: 'list',
+                  items: [
+                    'Die allgemeine Tendenz zeigt/macht deutlich, dass …',
+                    'Der Anteil/Die Zahl der … ist von … (im Jahre …) auf … (im Jahre …) gestiegen/angestiegen/angewachsen/gesunken/zurückgegangen.',
+                    'Der Anteil der … ist um fast/mehr als … % gestiegen/gesunken.',
+                    'Die Zahl der … hat sich zwischen … und … um … % erhöht/verringert.',
+                    'Die Zahl der … hat zwischen … und … um … % zugenommen/abgenommen.',
+                  ],
+                },
+                { type: 'subheading', text: 'Informationen miteinander vergleichen' },
+                {
+                  type: 'list',
+                  items: [
+                    'Im Vergleich zu … ist die Zahl der … um … % höher/niedriger.',
+                    'Im Gegensatz/Im Unterschied zu … ist der Anteil der … um … % gefallen/gestiegen.',
+                    'Verglichen mit … hat sich die Zahl um … % gesteigert/verringert.',
+                    'Anders als bei/in … kann man bei/in … feststellen, dass …',
+                    'Die Werte von … unterscheiden sich deutlich von …',
+                    'Wenn man diese Daten mit … vergleicht, dann zeigt sich/sieht man, dass …',
+                  ],
+                },
+                { type: 'heading', text: 'C. Auffälligkeiten und Interpretation der Daten' },
+                { type: 'subheading', text: 'Auffälligkeiten beschreiben' },
+                {
+                  type: 'list',
+                  items: [
+                    'Auffällig/Interessant/Überraschend ist, dass …',
+                    'Besonders bemerkenswert ist, dass …',
+                    'Es fällt auf, dass … / Mir fällt auf, dass …',
+                    'Überraschend ist die Tatsache, dass …',
+                    'Ich hätte nicht erwartet, dass …',
+                    'Erstaunlich finde ich, dass …',
+                    'Es ist auffällig, dass …',
+                    'Mich hat überrascht, dass …',
+                  ],
+                },
+                { type: 'subheading', text: 'Informationen interpretieren/bewerten, Vermutungen äußern, Gründe nennen' },
+                {
+                  type: 'list',
+                  items: [
+                    'Ich vermute/nehme an, dass …',
+                    'Wahrscheinlich/vermutlich/möglicherweise hängt … damit zusammen, dass …',
+                    'Es könnte sein, dass … / Ein Grund dafür könnte sein, dass …',
+                    'Ich könnte mir vorstellen, dass …',
+                    'Für diese Tendenz sind … verantwortlich.',
+                    'Diese Entwicklung ist auf … zurückzuführen.',
+                    'Eine mögliche Ursache dafür ist, dass …',
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          h: 'Устная часть',
+          content: [{ type: 'p', text: 'Здесь скоро появятся материалы по устной части.' }],
+        },
       ],
     },
 
@@ -384,7 +734,6 @@ export const exams = {
     ],
     filters: [
       { field: 'topic', label: 'Тема', options: 'topics' },
-      { field: 'year', label: 'Год', options: 'years' },
     ],
     about: [
       {

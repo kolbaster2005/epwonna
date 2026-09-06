@@ -319,6 +319,212 @@
   }
 }
 
+// ---- "Теория" tab (TheoryTab.jsx) — index-of-links + article view,
+// deliberately not the accordion pattern above. -----------------------
+// .theory-text intentionally has no width cap of its own — the index
+// view's links list and the article view's .about-text prose each set
+// their own appropriate width (see .theory-article-body below for why
+// article bodies specifically need to escape the usual prose cap).
+
+.theory-section {
+  margin-bottom: $space-7;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.theory-section-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: $color-ink;
+  margin-bottom: $space-4;
+
+  @include mq(sm) {
+    font-size: 19px;
+  }
+}
+
+.theory-section-intro {
+  padding-bottom: 0;
+  margin-bottom: $space-4;
+}
+
+.theory-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.theory-link {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: $color-ink;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+
+  svg {
+    flex-shrink: 0;
+    color: $color-gray;
+    transition: transform 0.15s ease;
+  }
+
+  &:hover {
+    box-shadow: $shadow-card;
+  }
+
+  &.blue:hover {
+    border-color: $color-blue;
+    color: $color-blue;
+  }
+  &.violet:hover {
+    border-color: $color-violet;
+    color: $color-violet;
+  }
+  &.teal:hover {
+    border-color: $color-teal;
+    color: $color-teal;
+  }
+
+  &:hover svg {
+    transform: translateX(3px);
+    color: currentColor;
+  }
+}
+
+.theory-back {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: $color-primary;
+  margin-bottom: $space-5;
+
+  &:hover {
+    color: $color-primary-dark;
+  }
+}
+
+.theory-article-title {
+  font-size: 21px;
+  font-weight: 800;
+  color: $color-ink;
+  margin-bottom: 6px;
+
+  @include mq(sm) {
+    font-size: 25px;
+  }
+}
+
+.theory-download-link {
+  display: inline-block;
+  margin-bottom: $space-5;
+  font-size: 13px;
+  color: $color-gray;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: $color-primary;
+  }
+}
+
+.theory-article-body {
+  padding-bottom: 0;
+  // .about-text caps width at 760px for comfortable prose reading —
+  // but a table this wide (see .about-table, min-width 980px) needs
+  // more room than that, or it scrolls even with the side art gone.
+  max-width: none;
+}
+
+// ---- Table content block (памятки/шпаргалки, e.g. Grammatik) --------
+// Wrapped in a horizontally-scrolling container rather than shrinking to
+// fit — a table this dense (prepositions + several example sentences
+// per cell) becomes unreadable if squeezed to phone width instead of
+// scrolled. Same technique as .topic-progress-table-scroll.
+.about-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: $space-4 0;
+}
+
+.about-table {
+  width: 100%;
+  min-width: 980px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th:nth-child(1),
+  th:nth-child(3) {
+    width: 190px;
+  }
+
+  th,
+  td {
+    text-align: left;
+    vertical-align: top;
+    padding: 10px 14px;
+    border: 2px solid #000;
+    overflow-wrap: break-word;
+  }
+
+  th {
+    background: #22a06b;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+
+  td p {
+    margin: 0;
+
+    & + p {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed $color-border;
+    }
+  }
+
+  td:nth-child(1),
+  td:nth-child(3) {
+    font-weight: 700;
+    color: $color-ink;
+  }
+
+  tbody tr:nth-child(4n + 1) {
+    background: #fdf2d0;
+  }
+  tbody tr:nth-child(4n + 2) {
+    background: #f7e5d7;
+  }
+  tbody tr:nth-child(4n + 3) {
+    background: #f7e5d7;
+  }
+  tbody tr:nth-child(4n) {
+    background: #e4efdb;
+  }
+
+  u {
+    text-decoration-color: currentColor;
+    text-underline-offset: 2px;
+  }
+}
+
 // Nested sub-topics (Чтение / Аудирование / Грамматика / Письмо, etc.) —
 // tinted per exam instead of white, so they read as grouped "inside" the
 // white accordion card around them rather than blending into it.
@@ -470,4 +676,303 @@
 // ---- Генерация пробника -------------------------------------------
 .generate-probnik-block {
   margin: $space-4 0;
+}
+
+// ---- Grammatik rule cards + sticky ToC (GrammatikRulesArticle.jsx) ---
+.grammatik-intro {
+  font-size: 14px;
+  line-height: 1.7;
+  color: $color-ink-soft;
+  margin-bottom: $space-6;
+  max-width: 760px;
+}
+
+.grammatik-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-6;
+  align-items: start;
+
+  @include mq(lg) {
+    grid-template-columns: 1fr 260px;
+  }
+}
+
+.grammatik-main {
+  min-width: 0;
+}
+
+.grammatik-toc {
+  display: none;
+
+  @include mq(lg) {
+    display: block;
+  }
+}
+
+.grammatik-toc-sticky {
+  position: sticky;
+  top: 90px;
+  background: #fff;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-5;
+
+  h4 {
+    font-size: 15px;
+    font-weight: 800;
+    color: $color-ink;
+    margin-bottom: $space-4;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 $space-5;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+.grammatik-toc-item {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: $radius-sm;
+  border-left: 3px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-ink-soft;
+  text-align: left;
+
+  &:hover {
+    background: $color-bg;
+  }
+
+  &.active {
+    background: $color-primary-light;
+    border-left-color: $color-primary;
+    color: $color-primary-dark;
+  }
+}
+
+.grammatik-toc-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.grammatik-tip {
+  display: flex;
+  gap: 8px;
+  padding-top: $space-4;
+  border-top: 1px solid $color-border;
+  color: $color-amber-dark;
+
+  b {
+    display: block;
+    font-size: 12.5px;
+    color: $color-ink;
+    margin-bottom: 2px;
+  }
+
+  p {
+    font-size: 12px;
+    color: $color-ink-soft;
+    line-height: 1.5;
+    margin: 0;
+  }
+}
+
+.grammatik-rule {
+  background: #fff;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-5;
+  margin-bottom: $space-5;
+  scroll-margin-top: 90px;
+}
+
+.grammatik-rule-head {
+  display: flex;
+  gap: 14px;
+  margin-bottom: $space-5;
+}
+
+.grammatik-rule-number {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: $color-primary;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grammatik-rule-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: $color-ink;
+  margin-bottom: 4px;
+
+  @include mq(sm) {
+    font-size: 17px;
+  }
+}
+
+.grammatik-rule-desc {
+  font-size: 13px;
+  color: $color-ink-soft;
+}
+
+.grammatik-rule-pair {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  @include mq(sm) {
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+  }
+}
+
+.grammatik-rule-pair-bottom {
+  align-items: start;
+
+  @include mq(sm) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.grammatik-arrow {
+  display: none;
+  color: $color-gray;
+  font-size: 18px;
+
+  @include mq(sm) {
+    display: block;
+  }
+}
+
+.grammatik-box {
+  border-radius: $radius-md;
+  padding: $space-4;
+  border: 1px solid transparent;
+}
+
+.grammatik-box-beispiel {
+  background: $color-violet-light;
+}
+
+.grammatik-box-umformung {
+  background: $color-primary-light;
+}
+
+.grammatik-box-merke,
+.grammatik-box-changes {
+  background: $color-bg;
+}
+
+.grammatik-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+  background: #fff;
+}
+
+.grammatik-pill-beispiel {
+  color: $color-violet-dark;
+  border: 1px solid $color-violet;
+}
+
+.grammatik-pill-umformung {
+  color: $color-primary-dark;
+  border: 1px solid $color-primary;
+}
+
+.grammatik-pill-merke {
+  color: $color-amber-dark;
+  border: 1px solid $color-amber;
+}
+
+.grammatik-pill-changes {
+  color: $color-blue-dark;
+  border: 1px solid $color-blue;
+}
+
+.grammatik-sentence {
+  font-size: 14px;
+  font-weight: 700;
+  color: $color-ink;
+  margin-bottom: 4px;
+}
+
+.grammatik-translation {
+  font-size: 12.5px;
+  font-style: italic;
+  color: $color-ink-soft;
+}
+
+.grammatik-box-merke ul {
+  padding-left: 18px;
+  margin-bottom: 8px;
+
+  li {
+    font-size: 13px;
+    color: $color-ink;
+    margin-bottom: 4px;
+  }
+}
+
+.grammatik-important {
+  background: $color-amber-light;
+  border-radius: $radius-sm;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: $color-ink;
+  margin-top: 8px;
+}
+
+.grammatik-changes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grammatik-change-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: $color-ink;
+
+  span:nth-child(2) {
+    color: $color-gray;
+  }
+}
+
+.grammatik-change-to {
+  color: $color-primary-dark;
+  font-weight: 700;
 }

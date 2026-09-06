@@ -268,6 +268,31 @@ export function IconMail(props) {
   )
 }
 
+export function IconLightbulb(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 18h6M10 21h4" {...stroke(props)} />
+      <path
+        d="M12 3a6.5 6.5 0 0 0-3.5 12c.6.4 1 1.1 1 1.9v.1h5v-.1c0-.8.4-1.5 1-1.9A6.5 6.5 0 0 0 12 3Z"
+        {...stroke(props)}
+      />
+    </svg>
+  )
+}
+
+export function IconStar(props) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="m12 3 2.6 5.8 6.2.6-4.7 4.2 1.4 6.2L12 16.8 6.5 19.8l1.4-6.2-4.7-4.2 6.2-.6Z"
+        {...stroke(props)}
+        strokeLinejoin="round"
+        fill={props.filled ? 'currentColor' : 'none'}
+      />
+    </svg>
+  )
+}
+
 export function IconPin(props) {
   return (
     <svg {...base(props)}>

@@ -79,34 +79,40 @@ export default function TestFilters({ filters, values, onChange, onReset, leadin
   // from $bp-sm up regardless of this state).
   const [expanded, setExpanded] = useState(false)
 
+  if (filters.length === 0 && !leading) return null
+
   return (
     <div className="test-filters">
       {leading && <div className="test-filters-leading">{leading}</div>}
 
-      <button type="button" className="test-filters-toggle" onClick={() => setExpanded((e) => !e)}>
-        <IconSliders size={16} />
-        <span>Фильтры{activeCount > 0 ? ` · ${activeCount}` : ''}</span>
-        <IconChevronRight size={13} className={'filter-chev' + (expanded ? ' open' : '')} />
-      </button>
-
-      <div className={'test-filters-body' + (expanded ? ' open' : '')}>
-        {filters.map((f) => (
-          <FilterDropdown
-            key={f.field}
-            field={f.field}
-            label={f.label}
-            options={f.options}
-            value={values[f.field] || ''}
-            onChange={(v) => onChange(f.field, v)}
-          />
-        ))}
-
-        {activeCount > 0 && (
-          <button type="button" className="filter-reset" onClick={onReset}>
-            Сбросить фильтры ✕
+      {filters.length > 0 && (
+        <>
+          <button type="button" className="test-filters-toggle" onClick={() => setExpanded((e) => !e)}>
+            <IconSliders size={16} />
+            <span>Фильтры{activeCount > 0 ? ` · ${activeCount}` : ''}</span>
+            <IconChevronRight size={13} className={'filter-chev' + (expanded ? ' open' : '')} />
           </button>
-        )}
-      </div>
+
+          <div className={'test-filters-body' + (expanded ? ' open' : '')}>
+            {filters.map((f) => (
+              <FilterDropdown
+                key={f.field}
+                field={f.field}
+                label={f.label}
+                options={f.options}
+                value={values[f.field] || ''}
+                onChange={(v) => onChange(f.field, v)}
+              />
+            ))}
+
+            {activeCount > 0 && (
+              <button type="button" className="filter-reset" onClick={onReset}>
+                Сбросить фильтры ✕
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }

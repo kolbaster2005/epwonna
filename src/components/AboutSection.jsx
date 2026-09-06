@@ -14,6 +14,11 @@ import { IconClock, IconGroup, IconInfo, IconChevronRight } from './Icons.jsx'
 //                                              ("Формат:") — and, if `url`
 //                                              is set, make that label a
 //                                              real link instead
+//   { type: 'heading', text }               — an <h4> — for splitting one
+//                                              long article/memo into
+//                                              named parts without
+//                                              creating a whole separate
+//                                              nested subsection for it
 //   { type: 'note', text }                  — a highlighted "Важно" box,
 //                                              tinted in the exam's color
 //                                              — put it inside whichever
@@ -23,6 +28,13 @@ import { IconClock, IconGroup, IconInfo, IconChevronRight } from './Icons.jsx'
 //                                              on the parent section, so
 //                                              it ends up on that card
 //                                              rather than floating above it
+//   { type: 'table', headers, rows }        — headers: string[]; each row
+//                                              is an array of cells, one
+//                                              per header; a cell is either
+//                                              a string or string[] (several
+//                                              example lines stacked in one
+//                                              cell). Inside any cell text,
+//                                              __word__ renders underlined.
 //
 // First-level subsections (depth 2, e.g. "Письменная часть"/"Устная
 // часть") render as collapsed-by-default white accordion cards — click
@@ -58,7 +70,34 @@ function ListItem({ item }) {
   )
 }
 
-function AboutContent({ content, exam }) {
+// Внутри ячеек таблицы __слово__ рендерится как подчёркнутое — простая
+// разметка для памяток вида "Durch регулярного обучения..." (подчёркнут
+// именно предлог), без необходимости городить отдельный тип узла ради
+// этого одного случая форматирования.
+function renderCellText(text) {
+  const parts = text.split(/(__.+?__)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('__') && part.endsWith('__')) {
+      return <u key={i}>{part.slice(2, -2)}</u>
+    }
+    return part
+  })
+}
+
+// Ячейка — строка (одна строка текста) или массив строк (несколько
+// строк-примеров внутри одной ячейки, как в памятках по грамматике).
+function TableCell({ value }) {
+  const lines = Array.isArray(value) ? value : [value]
+  return (
+    <td>
+      {lines.map((line, i) => (
+        <p key={i}>{renderCellText(line)}</p>
+      ))}
+    </td>
+  )
+}
+
+export function AboutContent({ content, exam }) {
   return content.map((block, i) => {
     if (block.type === 'list') {
       const Tag = block.ordered ? 'ol' : 'ul'
@@ -70,11 +109,41 @@ function AboutContent({ content, exam }) {
         </Tag>
       )
     }
+    if (block.type === 'heading') {
+      return <h4 key={i}>{block.text}</h4>
+    }
+    if (block.type === 'subheading') {
+      return <h5 key={i}>{block.text}</h5>
+    }
     if (block.type === 'note') {
       return (
         <div className={`about-note ${exam.className}`} key={i}>
           <IconInfo size={17} className="about-note-icon" />
           <span>{block.text}</span>
+        </div>
+      )
+    }
+    if (block.type === 'table') {
+      return (
+        <div className="about-table-scroll" key={i}>
+          <table className="about-table">
+            <thead>
+              <tr>
+                {block.headers.map((h, j) => (
+                  <th key={j}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row, j) => (
+                <tr key={j}>
+                  {row.map((cell, k) => (
+                    <TableCell value={cell} key={k} />
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )
     }

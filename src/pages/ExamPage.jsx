@@ -9,6 +9,7 @@ import TestFilters from '../components/TestFilters.jsx'
 import ExamIcon from '../components/ExamIcon.jsx'
 import ExamHeroArt from '../components/ExamHeroArt.jsx'
 import AboutSection from '../components/AboutSection.jsx'
+import TheoryTab from '../components/TheoryTab.jsx'
 import { IconList, IconClock, IconShield, IconPinFilled } from '../components/Icons.jsx'
 import { pluralizeRu } from '../utils/pluralize.js'
 
@@ -239,12 +240,8 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
       )}
 
       {tab === 'theory' && exam.theory && (
-        <div className="about-layout">
-          <div className="about-text">
-            <AboutSection section={exam.theory} exam={exam} />
-          </div>
-
-          <ExamHeroArt examKey={examKey} exam={exam} />
+        <div className="theory-text">
+          <TheoryTab theory={exam.theory} exam={exam} />
         </div>
       )}
 
