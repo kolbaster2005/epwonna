@@ -6,6 +6,8 @@ import { listContentByIds } from '../services/contentService.js'
 import { saveEssaySubmission } from '../services/essaysService.js'
 import { checkEssayWithAI, getLatestEssayReview, getTodayEssayCheckUsage } from '../services/essayAiService.js'
 import EssayAiReview from '../components/EssayAiReview.jsx'
+import { checkQaTableWithAI, getLatestQaTableReview, getTodayQaTableCheckUsage } from '../services/qaTableAiService.js'
+import QaTableAiReview from '../components/QaTableAiReview.jsx'
 import { saveAttempt } from '../services/attemptsService.js'
 import { upsertTaskAttempt } from '../services/taskAttemptsService.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -173,6 +175,59 @@ export default function TestPage({ examKey }) {
       if (err.usage) setEssayUsage(err.usage)
     } finally {
       setEssayChecking(false)
+    }
+  }
+
+  // AI-проверка грамматических qa_table-заданий (Umformung /
+  // Satzfortsetzungen) — та же логика, что у сочинений выше, только
+  // без предварительного сохранения: ответы на qa_table нигде не
+  // хранятся до конца пробника, так что просто передаём текущее
+  // состояние поля (value) прямо в теле запроса.
+  const QA_TABLE_AI_TASK_TYPES = new Set(['Umformung', 'Satzfortsetzungen'])
+  const qaTableSupportsAiCheck =
+    currentQuestionForView?.type === 'qa_table' && QA_TABLE_AI_TASK_TYPES.has(currentQuestionForView?.taskType)
+
+  const [qaTableReview, setQaTableReview] = useState(null)
+  const [qaTableChecking, setQaTableChecking] = useState(false)
+  const [qaTableCheckError, setQaTableCheckError] = useState(null)
+  const [qaTableUsage, setQaTableUsage] = useState(null)
+
+  useEffect(() => {
+    setQaTableReview(null)
+    setQaTableCheckError(null)
+    if (!qaTableSupportsAiCheck) return undefined
+    let cancelled = false
+    getLatestQaTableReview(currentQuestionForView.id, test.id).then((review) => {
+      if (!cancelled) setQaTableReview(review)
+    })
+    if (user) {
+      getTodayQaTableCheckUsage(user.id).then((u) => {
+        if (!cancelled) setQaTableUsage(u)
+      })
+    }
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestionForView?.id])
+
+  async function handleCheckQaTableWithAI() {
+    const hasAnyAnswer = Object.values(value || {}).some((v) => typeof v === 'string' && v.trim())
+    if (!hasAnyAnswer) {
+      setQaTableCheckError('Сначала заполните хотя бы одну строку задания.')
+      return
+    }
+    setQaTableChecking(true)
+    setQaTableCheckError(null)
+    try {
+      const review = await checkQaTableWithAI(question.id, test.id, value)
+      setQaTableReview(review)
+      if (review.usage) setQaTableUsage(review.usage)
+    } catch (err) {
+      setQaTableCheckError(err.message || 'Не удалось выполнить проверку.')
+      if (err.usage) setQaTableUsage(err.usage)
+    } finally {
+      setQaTableChecking(false)
     }
   }
 
@@ -683,6 +738,16 @@ export default function TestPage({ examKey }) {
               error={essayCheckError}
               onCheck={handleCheckEssayWithAI}
               showButton={false}
+            />
+          )}
+
+          {qaTableSupportsAiCheck && (
+            <QaTableAiReview
+              review={qaTableReview}
+              checking={qaTableChecking}
+              error={qaTableCheckError}
+              onCheck={handleCheckQaTableWithAI}
+              usage={qaTableUsage}
             />
           )}
 

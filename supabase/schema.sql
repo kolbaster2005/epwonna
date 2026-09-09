@@ -851,3 +851,28 @@ create index if not exists page_views_visitor_created_idx on public.page_views (
 drop policy if exists "test_attempts: admin read" on public.test_attempts;
 create policy "test_attempts: admin read" on public.test_attempts
   for select using (public.is_admin());
+
+-- ---------------------------------------------------------------------
+-- AI-проверка грамматических заданий qa_table (Umformung /
+-- Satzfortsetzungen) — см. supabase/qa_table_ai_reviews.sql для
+-- подробных комментариев.
+-- ---------------------------------------------------------------------
+create table if not exists public.qa_table_ai_reviews (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  question_id text not null references public.questions (id) on delete cascade,
+  test_id text references public.tests (id) on delete cascade,
+  submitted_answers jsonb not null,
+  feedback jsonb not null,
+  model text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.qa_table_ai_reviews enable row level security;
+
+drop policy if exists "qa_table_ai_reviews: own" on public.qa_table_ai_reviews;
+create policy "qa_table_ai_reviews: own" on public.qa_table_ai_reviews
+  for select using (auth.uid() = user_id);
+
+create index if not exists qa_table_ai_reviews_question_user_test_idx
+  on public.qa_table_ai_reviews (question_id, user_id, test_id, created_at desc);
