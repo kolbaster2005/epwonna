@@ -301,10 +301,18 @@ function QaTableInput({ question, examKey, value, onChange, checked }) {
           {question.qaTable.rows.map((row) => {
             const isGiven = row.given !== undefined
             const rowVerdict = checked ? getVerdictForRow(row, val) : null
+            // Некоторые freeText-строки (задания на Umformung) хранят
+            // в prompt и исходное предложение, и начало преобразованного
+            // — через перевод строки. Исходное идёт в левую колонку,
+            // начало преобразованного — как подпись прямо над полем
+            // ввода в правой, а не сваливается вместе с исходным слева.
+            const [promptMain, promptContinuation] = row.prompt.includes('\n')
+              ? row.prompt.split(/\n(.*)/s).filter((_, i) => i !== 2)
+              : [row.prompt, '']
             return (
               <tr key={row.id} className={isGiven ? 'qa-table-example' : ''}>
                 <td className="qa-table-prompt">
-                  {isGiven && <span className="qa-table-example-label">{exampleLabel}</span>} {renderUnderline(row.prompt)}
+                  {isGiven && <span className="qa-table-example-label">{exampleLabel}</span>} {renderUnderline(promptMain)}
                 </td>
                 <td className="qa-table-answer">
                   {isGiven ? (
@@ -355,6 +363,7 @@ function QaTableInput({ question, examKey, value, onChange, checked }) {
                     </>
                   ) : row.freeText ? (
                     <>
+                      {promptContinuation && <div className="qa-table-prefix">{renderUnderline(promptContinuation)}</div>}
                       <textarea
                         className={'qa-table-freetext' + (checked ? ' locked' : '')}
                         rows={3}

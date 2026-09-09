@@ -116,9 +116,6 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
           <button className={'exam-tab' + (tab === 'tests' ? ' active' : '')} onClick={() => setTab('tests')}>
             Пробники
           </button>
-          <button className={'exam-tab' + (tab === 'about' ? ' active' : '')} onClick={() => setTab('about')}>
-            Об экзамене
-          </button>
           {exam.theory && (
             <button className={'exam-tab' + (tab === 'theory' ? ' active' : '')} onClick={() => setTab('theory')}>
               Теория
@@ -134,6 +131,9 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
               Полезные материалы
             </button>
           )}
+          <button className={'exam-tab' + (tab === 'about' ? ' active' : '')} onClick={() => setTab('about')}>
+            Об экзамене
+          </button>
         </div>
       </div>
 

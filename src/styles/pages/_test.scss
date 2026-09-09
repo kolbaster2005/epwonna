@@ -1106,6 +1106,13 @@ input:checked + .option-mark.radio::after {
   color: $color-green-dark;
 }
 
+.qa-table-prefix {
+  margin-bottom: 6px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: $color-ink;
+}
+
 .qa-table-freetext {
   width: 100%;
   font: inherit;
