@@ -678,6 +678,83 @@ export const exams = {
                 },
               ],
             },
+            {
+              h: 'Памятка Doppelkonjunktionen',
+              downloadUrl: 'https://drive.google.com/file/d/18mNEZuRo_EN-dqRv6F5kBVoVfRpvdGOI/view?usp=sharing',
+              content: [
+                { type: 'p', text: 'Двойные союзы (Doppelkonjunktionen) — устойчивые пары слов, которые связывают между собой два элемента предложения.' },
+                {
+                  type: 'table',
+                  headers: ['Doppelkonjunktion', 'Beispiel', 'Anmerkung'],
+                  rows: [
+                    [
+                      'nicht nur … sondern auch (не только …, но и)',
+                      [
+                        '__Nicht nur__ die Arbeitsbedingungen, __sondern auch__ das Gehalt spielen bei der Berufswahl eine wichtige Rolle.',
+                        'Перевод: Не только условия труда, но и зарплата играют важную роль при выборе профессии.',
+                      ],
+                      '',
+                    ],
+                    [
+                      'entweder … oder (либо … либо / или … или)',
+                      [
+                        '__Entweder__ wir fahren mit dem Zug, __oder__ wir mieten ein Auto.',
+                        'Перевод: Либо мы поедем на поезде, либо возьмём машину напрокат.',
+                      ],
+                      '',
+                    ],
+                    [
+                      'sowohl … als (auch) (как … так и)',
+                      [
+                        '__Sowohl__ die Mitarbeiter __als auch__ die Kunden waren mit der neuen Regelung unzufrieden.',
+                        'Перевод: И сотрудники, и клиенты были недовольны новым правилом.',
+                      ],
+                      '',
+                    ],
+                    [
+                      'weder … noch (ни … ни)',
+                      [
+                        '__Weder__ die hohen Kosten __noch__ der lange Anfahrtsweg konnten ihn davon abhalten, die Stelle anzunehmen.',
+                        'Перевод: Ни высокие расходы, ни долгое время в пути не смогли помешать ему принять эту должность.',
+                      ],
+                      'Важно: дополнительное nicht обычно НЕ требуется: Ich trinke weder Kaffee noch Tee.',
+                    ],
+                    [
+                      'je …, desto / umso (чем …, тем …)',
+                      [
+                        '__Je__ mehr man sich mit einem Thema beschäftigt, __desto__ besser versteht man die Zusammenhänge.',
+                        'Перевод: Чем больше человек занимается какой-либо темой, тем лучше он понимает взаимосвязи.',
+                      ],
+                      'Порядок слов: после je — придаточное предложение, глагол в конце. После desto/umso — инверсия: desto + сравнительная степень + Verb + Subjekt.',
+                    ],
+                    [
+                      'zwar … aber (хотя …, но)',
+                      [
+                        '__Zwar__ ist die Wohnung ziemlich teuer, __aber__ sie liegt direkt im Stadtzentrum.',
+                        'Перевод: Квартира действительно довольно дорогая, но она находится прямо в центре города.',
+                      ],
+                      '',
+                    ],
+                    [
+                      'einerseits … andererseits (с одной стороны … с другой стороны)',
+                      [
+                        '__Einerseits__ bietet das Homeoffice mehr Flexibilität, __andererseits__ kann die Trennung zwischen Berufs- und Privatleben schwieriger werden.',
+                        'Перевод: С одной стороны, работа из дома предоставляет больше гибкости, с другой стороны, разделение между профессиональной и личной жизнью может стать сложнее.',
+                      ],
+                      'Порядок слов: при начале с einerseits/andererseits — инверсия: Einerseits bietet … / Andererseits kann …',
+                    ],
+                    [
+                      'teils … teils (отчасти … отчасти / частично … частично)',
+                      [
+                        'Die Teilnehmer waren __teils__ begeistert, __teils__ enttäuscht von den Ergebnissen der Veranstaltung.',
+                        'Перевод: Участники были отчасти воодушевлены, отчасти разочарованы результатами мероприятия.',
+                      ],
+                      '',
+                    ],
+                  ],
+                },
+              ],
+            },
           ],
         },
         {
