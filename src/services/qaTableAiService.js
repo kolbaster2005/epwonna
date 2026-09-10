@@ -20,7 +20,7 @@ import { supabase } from '../lib/supabaseClient.js'
 // реального ответа функции. Сознательно отличается от лимита
 // сочинений (DAILY_ESSAY_CHECK_LIMIT) — это две разные фичи со своими
 // счётчиками.
-export const DAILY_QA_TABLE_CHECK_LIMIT = 3
+export const DAILY_QA_TABLE_CHECK_LIMIT = 5
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Неизвестная ошибка')

@@ -35,7 +35,7 @@ const GEMINI_FALLBACK_MODEL = 'gemini-3.5-flash-lite'
 // DAILY_QA_TABLE_CHECK_LIMIT в src/services/qaTableAiService.js —
 // эта константа здесь главная, там только для отображения "X из N"
 // на фронтенде до первого реального ответа функции.
-const DAILY_LIMIT = 3
+const DAILY_LIMIT = 5
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

@@ -316,17 +316,76 @@
 }
 
 // ---- Прогресс по темам -------------------------------------------
-.topic-progress-list {
+.topic-progress-head {
   display: flex;
-  flex-direction: column;
-  gap: $space-6;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  flex-wrap: wrap;
+  margin-bottom: $space-5;
+
+  h2 {
+    margin-bottom: 0;
+  }
 }
 
-.topic-progress-exam-label {
-  margin: 0 0 10px;
-  font-size: 14px;
+.topic-progress-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topic-progress-nav-btn {
+  @include button-reset;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid $color-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-ink-soft;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: $color-primary;
+    color: $color-primary;
+  }
+}
+
+.topic-progress-nav-prev {
+  transform: rotate(180deg);
+}
+
+.topic-progress-nav-label {
+  font-size: 13px;
   font-weight: 700;
   color: $color-ink;
+  min-width: 44px;
+  text-align: center;
+}
+
+.topic-progress-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.topic-progress-badge-empty {
+  background: #fde9e9;
+  color: #b0332c;
+}
+
+.topic-progress-badge-mid {
+  background: $color-amber-light;
+  color: $color-amber-dark;
+}
+
+.topic-progress-badge-good {
+  background: $color-primary-light;
+  color: $color-primary-dark;
 }
 
 .topic-progress-table-scroll {

@@ -7,7 +7,20 @@ import { listTests, listAllQuestionsForBank } from '../services/testsService.js'
 import { listTopics } from '../services/topicsService.js'
 import { getTopicProgress } from '../services/taskAttemptsService.js'
 import ExamIcon from '../components/ExamIcon.jsx'
-import { IconClock } from '../components/Icons.jsx'
+import { IconClock, IconChevronRight } from '../components/Icons.jsx'
+
+// Общий процент по теме (сумма решённых из суммы всех доступных across
+// Чтение/Грамматика/Письмо) — и цветовая метка к нему. Пороги — то, что
+// попросили: 0% совсем красным ("ничего не делал"), дальше жёлто-
+// оранжевый как среднее, от 70% зелёным.
+function topicRowProgress(r) {
+  const solved = r.reading.solved + r.grammar.solved + r.writing.solved
+  const total = r.reading.total + r.grammar.total + r.writing.total
+  if (total === 0) return null
+  const percent = Math.round((solved / total) * 100)
+  const band = percent === 0 ? 'empty' : percent < 70 ? 'mid' : 'good'
+  return { percent, band }
+}
 
 function formatShortDate(iso) {
   return new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
@@ -74,6 +87,9 @@ export default function MyLearning() {
   const [attempts, setAttempts] = useState([])
   const [subjectProgress, setSubjectProgress] = useState([])
   const [topicProgress, setTopicProgress] = useState([]) // [{ examKey, rows: { topicId: {...} } }]
+  // Какой предмет сейчас показан в карусели «Прогресс по темам» — один
+  // за раз, а не все предметы подряд друг под другом.
+  const [topicCarouselIndex, setTopicCarouselIndex] = useState(0)
 
   useEffect(() => {
     if (!user) {
@@ -205,23 +221,39 @@ export default function MyLearning() {
           </section>
 
           <section className="widget-card wide">
-            <h2>Динамика результатов</h2>
-            {chartSeries.length === 0 ? (
-              <p className="admin-note">Пройдите хотя бы два пробника по одному предмету, чтобы увидеть динамику результатов.</p>
-            ) : (
-              <ProgressChart series={chartSeries} />
-            )}
-          </section>
-
-          <section className="widget-card wide">
-            <h2>Прогресс по темам</h2>
+            <div className="topic-progress-head">
+              <h2>Прогресс по темам</h2>
+              {topicProgress.length > 1 && (
+                <div className="topic-progress-nav">
+                  <button
+                    type="button"
+                    className="topic-progress-nav-btn"
+                    aria-label="Предыдущий предмет"
+                    onClick={() => setTopicCarouselIndex((i) => (i - 1 + topicProgress.length) % topicProgress.length)}
+                  >
+                    <IconChevronRight size={16} className="topic-progress-nav-prev" />
+                  </button>
+                  <span className="topic-progress-nav-label">
+                    {exams[topicProgress[topicCarouselIndex]?.examKey]?.label}
+                  </span>
+                  <button
+                    type="button"
+                    className="topic-progress-nav-btn"
+                    aria-label="Следующий предмет"
+                    onClick={() => setTopicCarouselIndex((i) => (i + 1) % topicProgress.length)}
+                  >
+                    <IconChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
             {topicProgress.length === 0 ? (
               <p className="admin-note">Как только в банке заданий появятся темы, здесь будет видно, сколько заданий по каждой из них уже решено.</p>
             ) : (
-              <div className="topic-progress-list">
-                {topicProgress.map(({ examKey, rows }) => (
-                  <div className="topic-progress-exam" key={examKey}>
-                    {topicProgress.length > 1 && <h3 className="topic-progress-exam-label">{exams[examKey].label}</h3>}
+              (() => {
+                const current = topicProgress[topicCarouselIndex] || topicProgress[0]
+                return (
+                  <div className="topic-progress-exam">
                     <div className="topic-progress-table-scroll">
                       <table className="topic-progress-table">
                         <thead>
@@ -230,23 +262,45 @@ export default function MyLearning() {
                             <th>Чтение</th>
                             <th>Грамматика</th>
                             <th>Письмо</th>
+                            <th>Прогресс</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {Object.entries(rows).map(([topicId, r]) => (
-                            <tr key={topicId}>
-                              <td>{r.label}</td>
-                              <td>{r.reading.total > 0 ? `${r.reading.solved} из ${r.reading.total}` : '—'}</td>
-                              <td>{r.grammar.total > 0 ? `${r.grammar.solved} из ${r.grammar.total}` : '—'}</td>
-                              <td>{r.writing.total > 0 ? `${r.writing.solved} из ${r.writing.total}` : '—'}</td>
-                            </tr>
-                          ))}
+                          {Object.entries(current.rows).map(([topicId, r]) => {
+                            const progress = topicRowProgress(r)
+                            return (
+                              <tr key={topicId}>
+                                <td>{r.label}</td>
+                                <td>{r.reading.total > 0 ? `${r.reading.solved} из ${r.reading.total}` : '—'}</td>
+                                <td>{r.grammar.total > 0 ? `${r.grammar.solved} из ${r.grammar.total}` : '—'}</td>
+                                <td>{r.writing.total > 0 ? `${r.writing.solved} из ${r.writing.total}` : '—'}</td>
+                                <td>
+                                  {progress ? (
+                                    <span className={`topic-progress-badge topic-progress-badge-${progress.band}`}>
+                                      {progress.percent}%
+                                    </span>
+                                  ) : (
+                                    '—'
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
                   </div>
-                ))}
-              </div>
+                )
+              })()
+            )}
+          </section>
+
+          <section className="widget-card wide">
+            <h2>Динамика результатов</h2>
+            {chartSeries.length === 0 ? (
+              <p className="admin-note">Пройдите хотя бы два пробника по одному предмету, чтобы увидеть динамику результатов.</p>
+            ) : (
+              <ProgressChart series={chartSeries} />
             )}
           </section>
         </div>
