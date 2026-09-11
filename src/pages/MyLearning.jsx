@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { exams, examList } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { listAttempts, summarizeAttempts, deleteAttempt } from '../services/attemptsService.js'
+import { listAttempts, summarizeAttempts, deleteAttempt, deleteAllAttempts } from '../services/attemptsService.js'
+import { getTopicProgress, deleteAllTaskAttempts } from '../services/taskAttemptsService.js'
 import { useDialog } from '../contexts/DialogContext.jsx'
 import { listTests, listAllQuestionsForBank } from '../services/testsService.js'
 import { listTopics } from '../services/topicsService.js'
-import { getTopicProgress } from '../services/taskAttemptsService.js'
 import ExamIcon from '../components/ExamIcon.jsx'
 import { IconClock, IconChevronRight } from '../components/Icons.jsx'
 
@@ -146,6 +146,22 @@ export default function MyLearning() {
     }
   }
 
+  async function handleResetProgress() {
+    if (
+      !(await confirm(
+        'Обнулить весь прогресс по всем предметам? Пропадут результаты всех пробников, история решённых заданий по темам и динамика — восстановить будет нельзя.'
+      ))
+    )
+      return
+    try {
+      await Promise.all([deleteAllAttempts(user.id), deleteAllTaskAttempts(user.id)])
+      setAttempts([])
+      setTopicProgress([])
+    } catch (err) {
+      await alertMessage(err.message || 'Не удалось обнулить прогресс.')
+    }
+  }
+
   // One series per subject — own color, own chronological order, only
   // included once there are at least 2 scored attempts (nothing to draw
   // a line between otherwise).
@@ -170,6 +186,11 @@ export default function MyLearning() {
           <h1>Мой прогресс</h1>
           <p>Личный прогресс по выбранным предметам.</p>
         </div>
+        {user && attempts.length > 0 && (
+          <button type="button" className="btn btn-outline btn-danger" onClick={handleResetProgress}>
+            Обнулить прогресс
+          </button>
+        )}
       </div>
 
       {!user ? (

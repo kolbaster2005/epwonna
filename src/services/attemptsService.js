@@ -103,6 +103,16 @@ export async function deleteAttempt(attemptId) {
   }
 }
 
+// Удаляет ВСЕ попытки пользователя разом — для кнопки «Обнулить
+// прогресс». RLS та же самая (own, for all), просто без .eq('id', ...).
+export async function deleteAllAttempts(userId) {
+  const { error } = await supabase.from('test_attempts').delete().eq('user_id', userId)
+  if (error) {
+    console.error('[attemptsService.deleteAllAttempts]', error)
+    throw error
+  }
+}
+
 // A single attempt, including its full answers_snapshot — for
 // AttemptReview.jsx. RLS already scopes this to the current user, no
 // need to pass userId here.

@@ -83,3 +83,16 @@ export async function getTopicProgress(userId, examKey, allTasks, topics) {
   // покажет пустые строки для тем без единого занесённого задания.
   return Object.fromEntries(Object.entries(rows).filter(([, r]) => r.reading.total + r.grammar.total + r.writing.total > 0))
 }
+
+// Удаляет ВСЕ task_attempts пользователя разом — часть «Обнулить
+// прогресс» на странице «Мой прогресс», вместе с deleteAllAttempts из
+// attemptsService.js. Без этого виджет «Прогресс по темам» остался бы
+// со старыми процентами даже после того, как результаты пробников
+// уже удалены.
+export async function deleteAllTaskAttempts(userId) {
+  const { error } = await supabase.from('task_attempts').delete().eq('user_id', userId)
+  if (error) {
+    console.error('[taskAttemptsService.deleteAllTaskAttempts]', error)
+    throw error
+  }
+}
