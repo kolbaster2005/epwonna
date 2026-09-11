@@ -91,6 +91,18 @@ export async function listAttempts(userId) {
   }
 }
 
+// Удаляет попытку безвозвратно — RLS уже гарантирует, что можно
+// удалить только свою собственную (policy "test_attempts: own" —
+// for all, includes delete). Вызывается из «Последние пробники» на
+// странице «Мой прогресс» после подтверждения через диалог.
+export async function deleteAttempt(attemptId) {
+  const { error } = await supabase.from('test_attempts').delete().eq('id', attemptId)
+  if (error) {
+    console.error('[attemptsService.deleteAttempt]', error)
+    throw error
+  }
+}
+
 // A single attempt, including its full answers_snapshot — for
 // AttemptReview.jsx. RLS already scopes this to the current user, no
 // need to pass userId here.

@@ -154,6 +154,35 @@
   border-bottom: none;
 }
 
+.recent-list-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.recent-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-delete {
+  @include button-reset;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-sm;
+  color: $color-gray;
+  font-size: 13px;
+
+  &:hover {
+    background: #fde9e9;
+    color: #b0332c;
+  }
+}
+
 .recent-badge {
   grid-area: badge;
   color: #fff;

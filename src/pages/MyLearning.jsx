@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { exams, examList } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { listAttempts, summarizeAttempts } from '../services/attemptsService.js'
+import { listAttempts, summarizeAttempts, deleteAttempt } from '../services/attemptsService.js'
+import { useDialog } from '../contexts/DialogContext.jsx'
 import { listTests, listAllQuestionsForBank } from '../services/testsService.js'
 import { listTopics } from '../services/topicsService.js'
 import { getTopicProgress } from '../services/taskAttemptsService.js'
@@ -83,6 +84,7 @@ function ProgressChart({ series }) {
 
 export default function MyLearning() {
   const { user } = useAuth()
+  const { confirm, alertMessage } = useDialog()
   const [loading, setLoading] = useState(true)
   const [attempts, setAttempts] = useState([])
   const [subjectProgress, setSubjectProgress] = useState([])
@@ -133,6 +135,16 @@ export default function MyLearning() {
   }, [user])
 
   const recentAttempts = attempts.slice(0, 5)
+
+  async function handleDeleteAttempt(attempt) {
+    if (!(await confirm('Удалить результат этого пробника? Результат пропадёт навсегда, это действие необратимо.'))) return
+    try {
+      await deleteAttempt(attempt.id)
+      setAttempts((prev) => prev.filter((a) => a.id !== attempt.id))
+    } catch (err) {
+      await alertMessage(err.message || 'Не удалось удалить результат.')
+    }
+  }
 
   // One series per subject — own color, own chronological order, only
   // included once there are at least 2 scored attempts (nothing to draw
@@ -206,13 +218,21 @@ export default function MyLearning() {
                 {recentAttempts.map((a) => {
                   const exam = exams[a.examKey]
                   return (
-                    <li key={a.id}>
+                    <li key={a.id} className="recent-list-item">
                       <Link className="recent-item" to={`/my-learning/attempt/${a.id}`}>
                         <span className="recent-badge" style={{ background: exam.color }}>{exam.label}</span>
                         <span className="recent-title">{a.testTitle}</span>
                         <span className="recent-score">{a.scorePercent != null ? `${a.scorePercent}%` : '—'}</span>
                         <span className="recent-date">{formatShortDate(a.completedAt)}</span>
                       </Link>
+                      <button
+                        type="button"
+                        className="recent-delete"
+                        onClick={() => handleDeleteAttempt(a)}
+                        aria-label="Удалить результат пробника"
+                      >
+                        ✕
+                      </button>
                     </li>
                   )
                 })}
