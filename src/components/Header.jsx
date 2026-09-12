@@ -20,7 +20,7 @@ const MY_LEARNING_ITEMS = [
 ]
 
 export default function Header({ onBurgerClick }) {
-  const { user, profile, isAdmin, signOut, updateAvatar } = useAuth()
+  const { user, profile, isAdmin, isPro, signOut, updateAvatar } = useAuth()
   const { alertMessage } = useDialog()
   const [authOpen, setAuthOpen] = useState(false)
   // Which dropdown is open — 'exams' | 'unis' | 'user' | null. Click-driven,
@@ -158,16 +158,19 @@ export default function Header({ onBurgerClick }) {
         <div className="header-actions">
           {user ? (
             <div className="nav-item" ref={userRef}>
-              <button
-                type="button"
-                className="user-avatar"
-                aria-expanded={openMenu === 'user'}
-                aria-haspopup="true"
-                onClick={() => toggleMenu('user')}
-                aria-label="Аккаунт"
-              >
-                {avatarSrc ? <img src={avatarSrc} alt="" /> : avatarLetter}
-              </button>
+              <span className="user-avatar-wrap">
+                <button
+                  type="button"
+                  className="user-avatar"
+                  aria-expanded={openMenu === 'user'}
+                  aria-haspopup="true"
+                  onClick={() => toggleMenu('user')}
+                  aria-label="Аккаунт"
+                >
+                  {avatarSrc ? <img src={avatarSrc} alt="" /> : avatarLetter}
+                </button>
+                {isPro && <span className="pro-badge user-avatar-pro-badge">PRO</span>}
+              </span>
               <div className={'dropdown user-dropdown' + (openMenu === 'user' ? ' open' : '')}>
                 <div className="user-dropdown-email" title={user.email}>{user.email}</div>
 

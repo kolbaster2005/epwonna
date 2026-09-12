@@ -6,6 +6,7 @@ import Home from './pages/Home.jsx'
 import ExamPage from './pages/ExamPage.jsx'
 import TestDetailPage from './pages/TestDetailPage.jsx'
 import TestPage from './pages/TestPage.jsx'
+import PracticeBuilder from './pages/PracticeBuilder.jsx'
 import OralTestPage from './pages/OralTestPage.jsx'
 import About from './pages/About.jsx'
 import UniversityPage from './pages/UniversityPage.jsx'
@@ -61,16 +62,19 @@ export default function App() {
           <Route path="/epm/about" element={<ExamPage key="epm" examKey="epm" initialTab="about" />} />
           <Route path="/epm/probnik/:testId" element={<TestDetailPage key="epm" examKey="epm" />} />
           <Route path="/epm/test/:testId" element={<TestPage key="epm" examKey="epm" />} />
+          <Route path="/epm/practice" element={<PracticeBuilder key="epm" examKey="epm" />} />
           <Route path="/epd" element={<ExamPage key="epd" examKey="epd" />} />
           <Route path="/epd/about" element={<ExamPage key="epd" examKey="epd" initialTab="about" />} />
           <Route path="/epd/probnik/:testId" element={<TestDetailPage key="epd" examKey="epd" />} />
           <Route path="/epd/test/:testId" element={<TestPage key="epd" examKey="epd" />} />
           <Route path="/epd/oral/:testId" element={<OralTestPage key="epd" examKey="epd" />} />
+          <Route path="/epd/practice" element={<PracticeBuilder key="epd" examKey="epd" />} />
           <Route path="/epe" element={<ExamPage key="epe" examKey="epe" />} />
           <Route path="/epe/about" element={<ExamPage key="epe" examKey="epe" initialTab="about" />} />
           <Route path="/epe/probnik/:testId" element={<TestDetailPage key="epe" examKey="epe" />} />
           <Route path="/epe/test/:testId" element={<TestPage key="epe" examKey="epe" />} />
           <Route path="/epe/oral/:testId" element={<OralTestPage key="epe" examKey="epe" />} />
+          <Route path="/epe/practice" element={<PracticeBuilder key="epe" examKey="epe" />} />
 
           {/* Subjects with no real content yet — see comingSoonSubjects
               in examData.js. One route per subject key, all pointing at

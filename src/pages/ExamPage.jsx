@@ -39,7 +39,7 @@ function resolveFilters(exam, tests, topics) {
 
 export default function ExamPage({ examKey, initialTab = 'tests' }) {
   const exam = exams[examKey]
-  const { user } = useAuth()
+  const { user, isPro } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState(initialTab)
   const [tests, setTests] = useState([])
@@ -116,6 +116,11 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
           <button className={'exam-tab' + (tab === 'tests' ? ' active' : '')} onClick={() => setTab('tests')}>
             Пробники
           </button>
+          {isPro && (
+            <Link className="exam-tab exam-tab-pro" to={`/${examKey}/practice`}>
+              Тренировка <span className="pro-badge">PRO</span>
+            </Link>
+          )}
           {exam.theory && (
             <button className={'exam-tab' + (tab === 'theory' ? ' active' : '')} onClick={() => setTab('theory')}>
               Теория

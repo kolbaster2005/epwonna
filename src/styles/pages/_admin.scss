@@ -1285,3 +1285,25 @@
     max-width: 640px;
   }
 }
+
+// ---- PracticeBuilder.jsx (pro: тренировка по теме/типу задания) ----
+.practice-builder-page {
+  padding: $space-5 0 $space-10;
+}
+
+.practice-builder-form {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+  background: #fff;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-6;
+}
+
+.practice-builder-hint {
+  margin-top: -8px;
+  font-size: 12.5px;
+  color: $color-gray;
+}

@@ -1,6 +1,15 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 
+// Pro-версия ещё не продаётся — пока просто список почт, у кого есть
+// доступ к функциям для тренировки по теме/типу задания. Когда дойдёт
+// до реальных платных подписок, это стоит заменить на столбец
+// profiles.is_pro (или отдельную таблицу подписок), проверяемый и
+// здесь, и на сервере в Edge Function — сейчас список специально
+// хранится в двух местах (тут и в generate-practice-test/index.ts),
+// чтобы сервер не доверял слепо тому, что говорит клиент.
+const PRO_EMAILS = ['maksimmissuragin@gmail.com']
+
 const AuthContext = createContext(null)
 
 // See the identical helper (and comment) in services/testsService.js —
@@ -179,6 +188,7 @@ export function AuthProvider({ children }) {
   }
 
   const isAdmin = profile?.role === 'admin'
+  const isPro = !!user?.email && PRO_EMAILS.includes(user.email)
 
   return (
     <AuthContext.Provider
@@ -188,6 +198,7 @@ export function AuthProvider({ children }) {
         profile,
         profileLoading,
         isAdmin,
+        isPro,
         signUp,
         signIn,
         signOut,

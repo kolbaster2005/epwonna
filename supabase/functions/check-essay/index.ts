@@ -100,6 +100,67 @@ Zu "Erfüllung der Aufgabe" bei Grafikinterpretation: Eine allgemeine Beschreibu
 
 WICHTIGE REGEL zur Wortzahl: Liegt der Text deutlich unter 230 Wörtern, ist das laut Bewertungsschema automatisch ein Punkteabzug beim Kriterium Inhalt (Erfüllung der Aufgabe) — bei sehr kurzen Texten (z. B. unter 150 Wörtern) praktisch 0 von 5 Punkten in diesem Kriterium, unabhängig von der sonstigen Qualität. Prüfe die tatsächliche Wortzahl (unten angegeben) und wende diese Regel konsequent an.`
 
+// Официальная шкала B1 VWU для Blog Comment (EPE Schreiben) — прислана
+// пользователем напрямую (текст из реального оценочного листа
+// экзамена), не мой черновик. 4 критерия по 5 баллов = 20 всего.
+// Организована по критериям (а не по баллам, как в оригинальном
+// документе) — так модели легче последовательно оценить каждый
+// критерий по очереди, а не держать в голове всю таблицу сразу.
+const EPE_BLOG_RUBRIC = `Official B1 VWU assessment scale for Blog Comment (4 criteria, 5 points each, 20 points total). Score each criterion 0-5 based on the descriptions below — do NOT factor word count into these scores, word count is scored separately and added afterwards.
+
+TASK ACHIEVEMENT (T) — did the text fulfil the blog-comment task itself:
+- 5: all 3 content points fully developed with relevant supporting details/examples; strong, convincing argumentation relevant to the blog post; text-type requirements (reference to the blog post, interactive elements, conversational tone) fully observed.
+- 4: all 3 content points developed, though only 2 have full supporting detail; effective argumentation; text-type requirements generally observed.
+- 3: all 3 content points addressed but not fully developed, only some relevant supporting detail; comprehensible argumentation; text-type requirements largely observed.
+- 2: only 2 content points addressed and not fully developed, with insufficient/irrelevant supporting detail; argumentation not always convincing, use of empty phrases/platitudes; text-type requirements partly not observed.
+- 1: only one or no content point developed; irrelevant content; incomprehensible or irrelevant argumentation; text-type requirements not observed.
+- 0: fails to address the task at all, OR fewer than 110 words, OR illegible/unintelligible.
+
+ORGANISATION AND COHERENCE (O):
+- 5: very clear coherence and links between ideas and content points; text structured very clearly and logically; good, successful variety of linking devices/reference words/pronouns.
+- 4: clear coherence/links between ideas and CPs; text generally clearly structured; some variety of linking devices, good use of reference words/pronouns.
+- 3: sufficiently clear coherence/links; text sufficiently structured; limited but adequate variety of linking devices, reference words sufficiently clear.
+- 2: difficulty producing clearly intelligible continuous writing, links between ideas/CPs unclear or missing; insufficiently structured, illogical or inadequate paragraphing; limited variety and/or inadequate use of linking devices, reference words sometimes unclear.
+- 1: little if any coherence/links between ideas and CPs; ideas presented in random order without logical connections, no or illogical paragraphing; lack or inadequate use of linking devices, reference words frequently unclear.
+- 0: no attempt at organisation.
+
+LEXICAL AND STRUCTURAL RANGE (R):
+- 5: very good variety of vocabulary and structures; no signs of limitations of expression; appropriate and convincing blogging style/register.
+- 4: good variety of vocabulary and structures; almost no signs of limitations of expression; largely appropriate blogging style/register.
+- 3: sufficient range of vocabulary and structures; some signs of limitations of expression (awkward expressions/repetitions), some prompt lifting; clearly distinguishable blogging style/register.
+- 2: insufficient range of vocabulary and structures to fulfil the task; apparent limitations of expression (lots of repetition or awkward expressions), phrases lifted from the prompt; largely inappropriate blogging style/register.
+- 1: hardly any structural or lexical range, resulting in a failure to express him/herself clearly; frequent failure to express appropriately, frequent repetition or lifting of phrases from the prompt; inappropriate blogging style/register.
+- 0: performance fails to display any structural or lexical range.
+
+LEXICAL AND STRUCTURAL ACCURACY (A):
+- 5: very good control of frequent structures, basic vocabulary and punctuation; errors never impede understanding.
+- 4: good control of frequent structures, basic vocabulary and punctuation; errors rarely impede communication.
+- 3: sufficient control of frequent structures and basic vocabulary; errors impede communication only when trying to express complex ideas.
+- 2: some severe lapses in the control of frequent structures, basic vocabulary and punctuation; errors occur even when trying to express basic ideas; frequent interference from other languages; reader has to make an effort to understand sections.
+- 1: mistakes repeatedly cause misunderstanding/a breakdown of communication; elementary/basic mistakes; systematic interference from other languages; reader frequently has to stop to re-read sections.
+- 0: errors cause a breakdown of communication throughout the text.
+
+IMPORTANT rule: if Task Achievement (T) is scored 0, all other three criteria must also be scored 0 (this mirrors the official rule exactly).`
+
+// Официальная таблица штрафов за длину текста Blog Comment (EPE,
+// цель — 250 слов). Считаем программно, а не доверяем модели
+// арифметику с порогами — только тут, а не в промпте, чтобы штраф был
+// гарантированно точным. deduction вычитается из суммы T+O+R+A;
+// forceZero — отдельное правило "меньше 110 слов = 0 баллов за всё".
+function epeWordCountPenalty(words: number): { deduction: number; forceZero: boolean } {
+  if (words < 110) return { deduction: 0, forceZero: true }
+  if (words <= 129) return { deduction: 6, forceZero: false }
+  if (words <= 149) return { deduction: 5, forceZero: false }
+  if (words <= 169) return { deduction: 4, forceZero: false }
+  if (words <= 189) return { deduction: 3, forceZero: false }
+  if (words <= 209) return { deduction: 2, forceZero: false }
+  if (words <= 224) return { deduction: 1, forceZero: false }
+  if (words <= 275) return { deduction: 0, forceZero: false } // целевой диапазон (250 ± 10%), без штрафа
+  if (words <= 375) return { deduction: 1, forceZero: false }
+  if (words <= 475) return { deduction: 2, forceZero: false }
+  return { deduction: 3, forceZero: false }
+}
+
 function buildPrompt({ examKey, choiceTitle, taskText, instructions, stimulusText, studentText, wordCountValue }: PromptInput): string {
   const instructionsList = instructions.length
     ? instructions.map((line, i) => `${i + 1}. ${line}`).join('\n')
@@ -114,15 +175,14 @@ function buildPrompt({ examKey, choiceTitle, taskText, instructions, stimulusTex
 
   // Единая официальная рубрика для всего EPD Schreiben (см.
   // EPD_SCHREIBEN_RUBRIC выше) — не зависит от того, Stellungnahme это
-  // или Grafikinterpretation. Для EPE своей официальной рубрики пока
-  // нет — используется общая схема уровня B1/B2, ЧЕРНОВИК.
-  const criteriaNote = isGerman
-    ? EPD_SCHREIBEN_RUBRIC
-    : 'Criteria (draft — no official rubric provided for this exam yet): task achievement (all bullet points covered?), coherence & organisation, vocabulary range, grammar accuracy, register/style.'
+  // или Grafikinterpretation. Для EPE — официальная шкала B1 VWU для
+  // Blog Comment (EPE_BLOG_RUBRIC), единственного типа письменного
+  // задания в EPE.
+  const criteriaNote = isGerman ? EPD_SCHREIBEN_RUBRIC : EPE_BLOG_RUBRIC
 
   const criteriaFormatHint = isGerman
     ? '"band" для каждого критерия — в формате "X из Y баллов" (например "3 из 5"), используя ровно те максимумы, что в рубрике выше (5/6/6/8). "overall.band" — сумма всех четырёх, в формате "X из 25".'
-    : '"band" — оценка по шкале A1-C2 или примерный процент выполнения, одна короткая строка.'
+    : '"band" для каждого из четырёх критериев (Task Achievement, Organisation and Coherence, Lexical and Structural Range, Lexical and Structural Accuracy) — в формате "X из 5 баллов". "overall.band" временно оставь как "X из 20" (сумму этих четырёх без учёта штрафа за длину текста — итоговый штраф посчитает и применит сама платформа отдельно, не ты).'
 
   return `Ты — опытный экзаменатор письменной части языкового экзамена. Оцени сочинение студента на ${language}, как если бы ты был реальным экзаменатором EP-экзамена.
 
@@ -344,12 +404,35 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Пустой ответ от ИИ.' }, 502)
     }
 
-    let feedback: unknown
+    let feedback: any
     try {
       feedback = JSON.parse(rawText)
     } catch {
       console.error('Failed to parse Gemini JSON:', rawText)
       return jsonResponse({ error: 'Не удалось разобрать ответ ИИ.' }, 502)
+    }
+
+    // Штраф за длину текста для EPE (Blog Comment) — считаем сами, не
+    // доверяя это модели (см. epeWordCountPenalty выше). Модель
+    // намеренно не учитывала длину текста при выставлении баллов по
+    // критериям — правим итог здесь, один раз, гарантированно точно
+    // по официальной таблице.
+    if (submission.exam_key === 'epe' && feedback && typeof feedback === 'object') {
+      const penalty = epeWordCountPenalty(words)
+      const rawTotal = Array.isArray(feedback.criteria)
+        ? feedback.criteria.reduce((sum: number, c: any) => {
+            const match = typeof c.band === 'string' ? c.band.match(/(\d+)/) : null
+            return sum + (match ? Number(match[1]) : 0)
+          }, 0)
+        : 0
+      const finalTotal = penalty.forceZero ? 0 : Math.max(0, rawTotal - penalty.deduction)
+      feedback.overall = feedback.overall || {}
+      feedback.overall.band = `${finalTotal} из 20`
+      if (penalty.forceZero) {
+        feedback.overall.comment = `Текст короче 110 слов (сейчас ${words}) — по официальной шкале это автоматически 0 баллов за всё сочинение. ${feedback.overall.comment || ''}`.trim()
+      } else if (penalty.deduction > 0) {
+        feedback.overall.comment = `${feedback.overall.comment || ''} Штраф за длину текста (${words} слов вместо целевых ~250): −${penalty.deduction} балл(ов) от суммы ${rawTotal}.`.trim()
+      }
     }
 
     // Пишем сервисным ключом — у обычных пользователей нет INSERT-права

@@ -129,6 +129,22 @@
 }
 
 // ---- User avatar + account dropdown (header, when logged in) -------------
+.user-avatar-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.user-avatar-pro-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -6px;
+  font-size: 8px;
+  line-height: 1.4;
+  padding: 1px 5px;
+  border: 1.5px solid #fff;
+}
+
 .user-avatar {
   @include button-reset;
   width: 34px;
