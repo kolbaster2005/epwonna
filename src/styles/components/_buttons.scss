@@ -10,6 +10,22 @@
   font-size: 14.5px;
   border: 1.5px solid transparent;
   transition: all 0.15s ease;
+
+  // Без этого disabled-кнопка выглядела почти как обычная активная
+  // (разве что чуть тусклее по умолчанию в браузере) — человеку было
+  // неочевидно, что жать пока рано, и приходилось объяснять это
+  // отдельным текстом рядом. Явный серый вид + курсор "нельзя"
+  // читается однозначно сам по себе.
+  &:disabled {
+    background: $color-bg;
+    border-color: $color-border;
+    color: $color-gray;
+    cursor: not-allowed;
+
+    &:hover {
+      background: $color-bg;
+    }
+  }
 }
 
 .btn-primary {

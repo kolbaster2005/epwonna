@@ -593,16 +593,6 @@ input:checked + .option-mark.radio::after {
   cursor: default;
 }
 
-.test-answer-hint {
-  margin-top: $space-5;
-  padding: 10px 14px;
-  background: $color-amber-light;
-  color: $color-amber-dark;
-  border-radius: $radius-md;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
 .test-feedback {
   margin-top: $space-5;
   padding: 12px 16px;

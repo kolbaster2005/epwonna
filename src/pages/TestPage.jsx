@@ -728,12 +728,6 @@ export default function TestPage({ examKey }) {
             <div className="test-question-block">{questionCore}</div>
           )}
 
-          {!isChecked && !showStepPart && !hasAnswer(question, value) && hasAnyAnswer(question, value) && (
-            <p className="test-answer-hint">
-              Похоже, вы заполнили не всё — проверьте, не пропустили ли какой-то пункт или строку, чтобы кнопка «Ответить» стала активной.
-            </p>
-          )}
-
           {question.type === 'essay_choice' && (
             <EssayAiReview
               review={essayReview}
