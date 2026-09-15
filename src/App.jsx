@@ -75,6 +75,14 @@ export default function App() {
           <Route path="/epe/test/:testId" element={<TestPage key="epe" examKey="epe" />} />
           <Route path="/epe/oral/:testId" element={<OralTestPage key="epe" examKey="epe" />} />
           <Route path="/epe/practice" element={<PracticeBuilder key="epe" examKey="epe" />} />
+          <Route path="/chemie" element={<ExamPage key="chemie" examKey="chemie" initialTab="about" />} />
+          <Route path="/chemie/about" element={<ExamPage key="chemie" examKey="chemie" initialTab="about" />} />
+          <Route path="/chemie/probnik/:testId" element={<TestDetailPage key="chemie" examKey="chemie" />} />
+          <Route path="/chemie/test/:testId" element={<TestPage key="chemie" examKey="chemie" />} />
+          <Route path="/physik" element={<ExamPage key="physik" examKey="physik" initialTab="about" />} />
+          <Route path="/physik/about" element={<ExamPage key="physik" examKey="physik" initialTab="about" />} />
+          <Route path="/physik/probnik/:testId" element={<TestDetailPage key="physik" examKey="physik" />} />
+          <Route path="/physik/test/:testId" element={<TestPage key="physik" examKey="physik" />} />
 
           {/* Subjects with no real content yet — see comingSoonSubjects
               in examData.js. One route per subject key, all pointing at

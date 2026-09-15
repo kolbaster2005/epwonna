@@ -116,7 +116,7 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
           <button className={'exam-tab' + (tab === 'tests' ? ' active' : '')} onClick={() => setTab('tests')}>
             Пробники
           </button>
-          {isPro && (
+          {isPro && !exam.hidePracticeTab && (
             <Link className="exam-tab exam-tab-pro" to={`/${examKey}/practice`}>
               Тренировка <span className="pro-badge">PRO</span>
             </Link>

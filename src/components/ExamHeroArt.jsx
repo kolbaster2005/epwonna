@@ -23,7 +23,8 @@ export default function ExamHeroArt({ examKey, exam }) {
   }
 
   const { color, colorDark } = exam
-  const subtitle = examKey === 'epd' ? 'немецкий' : 'английский'
+  const SUBTITLE_BY_KEY = { epd: 'немецкий', epe: 'английский', chemie: 'химия', physik: 'физика' }
+  const subtitle = SUBTITLE_BY_KEY[examKey] || exam.label
 
   return (
     <div className="exam-hero-art">
