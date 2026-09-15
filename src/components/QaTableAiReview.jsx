@@ -1,19 +1,25 @@
 // Отображает результат AI-проверки задания qa_table (Umformung /
 // Satzfortsetzungen) — см. qaTableAiService.js. Не запускает проверку
-// само, только рендерит `review` либо кнопку «Проверить с ИИ».
+// само, только рендерит `review` либо кнопку «Проверить с ИИ» (если
+// showButton — иначе кнопка стоит снаружи, см. TestPage.jsx, рядом с
+// «Ответить», чтобы было видно, что после проверки всё ещё нужно
+// нажать «Ответить»).
 
 import { useState } from 'react'
 
-export default function QaTableAiReview({ review, onCheck, checking, error, usage }) {
+export default function QaTableAiReview({ review, onCheck, checking, error, showButton = true, usage }) {
   const [expanded, setExpanded] = useState(false)
 
   const usageLine = usage ? (
     <p className="essay-ai-usage">
-      Проверок этого задания: {usage.used} из {usage.limit}
+      Проверок сегодня: {usage.used} из {usage.limit}
     </p>
   ) : null
 
   if (!review) {
+    if (!showButton) {
+      return error ? <p className="essay-ai-error">{error}</p> : null
+    }
     return (
       <div className="essay-ai-review essay-ai-review-empty">
         <button type="button" className="btn btn-outline" onClick={onCheck} disabled={checking}>
@@ -21,10 +27,7 @@ export default function QaTableAiReview({ review, onCheck, checking, error, usag
         </button>
         {usageLine}
         {error && <p className="essay-ai-error">{error}</p>}
-        <p className="essay-ai-disclaimer">
-          Проверка выполняется нейросетью (Gemini) и может ошибаться — воспринимайте как черновой ориентир, а не
-          официальную оценку.
-        </p>
+        <p className="essay-ai-disclaimer">Не является официальной оценкой.</p>
       </div>
     )
   }
@@ -41,12 +44,14 @@ export default function QaTableAiReview({ review, onCheck, checking, error, usag
           </span>
           {feedback?.overallComment && <span className="essay-ai-overall-comment">{feedback.overallComment}</span>}
         </div>
-        <div className="essay-ai-recheck">
-          <button type="button" className="btn btn-outline btn-sm" onClick={onCheck} disabled={checking}>
-            {checking ? 'Проверяем…' : 'Проверить заново'}
-          </button>
-          {usageLine}
-        </div>
+        {showButton && (
+          <div className="essay-ai-recheck">
+            <button type="button" className="btn btn-outline btn-sm" onClick={onCheck} disabled={checking}>
+              {checking ? 'Проверяем…' : 'Проверить заново'}
+            </button>
+            {usageLine}
+          </div>
+        )}
       </div>
 
       {error && <p className="essay-ai-error">{error}</p>}
@@ -77,7 +82,7 @@ export default function QaTableAiReview({ review, onCheck, checking, error, usag
         </>
       )}
 
-      <p className="essay-ai-disclaimer">Оценка выполнена нейросетью (Gemini) и может ошибаться.</p>
+      <p className="essay-ai-disclaimer">Не является официальной оценкой.</p>
     </div>
   )
 }

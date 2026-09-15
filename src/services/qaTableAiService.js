@@ -14,12 +14,12 @@
 
 import { supabase } from '../lib/supabaseClient.js'
 
-// Держим в синхроне со значением PER_QUESTION_LIMIT в
+// Держим в синхроне со значением DAILY_LIMIT в
 // supabase/functions/check-qa-table/index.ts — сервер всё равно
 // источник правды, это только для отображения "X из N" до первого
-// реального ответа функции. Лимит свой у каждого задания (считается
-// отдельно по вопросу), а не общий «в день» на все задания сразу.
-export const PER_QUESTION_QA_TABLE_CHECK_LIMIT = 2
+// реального ответа функции. Общий счётчик на день (не по каждому
+// заданию отдельно) — так понятнее пользователю.
+export const DAILY_QA_TABLE_CHECK_LIMIT = 4
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Неизвестная ошибка')
@@ -37,22 +37,21 @@ function rowToReview(row) {
   }
 }
 
-// Сколько раз уже проверяли именно ЭТО задание (в рамках именно этого
-// пробника) — не сумма по всем грамматическим заданиям сразу.
-export async function getQuestionQaTableCheckUsage(userId, questionId, testId) {
-  if (!userId || !questionId || !testId) return { used: 0, limit: PER_QUESTION_QA_TABLE_CHECK_LIMIT }
+export async function getTodayQaTableCheckUsage(userId) {
+  if (!userId) return { used: 0, limit: DAILY_QA_TABLE_CHECK_LIMIT }
   try {
+    const startOfDayUtc = new Date()
+    startOfDayUtc.setUTCHours(0, 0, 0, 0)
     const { count, error } = await supabase
       .from('qa_table_ai_reviews')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('question_id', questionId)
-      .eq('test_id', testId)
+      .gte('created_at', startOfDayUtc.toISOString())
     if (error) throw error
-    return { used: count ?? 0, limit: PER_QUESTION_QA_TABLE_CHECK_LIMIT }
+    return { used: count ?? 0, limit: DAILY_QA_TABLE_CHECK_LIMIT }
   } catch (err) {
-    console.error('[qaTableAiService.getQuestionQaTableCheckUsage]', toError(err))
-    return { used: 0, limit: PER_QUESTION_QA_TABLE_CHECK_LIMIT }
+    console.error('[qaTableAiService.getTodayQaTableCheckUsage]', toError(err))
+    return { used: 0, limit: DAILY_QA_TABLE_CHECK_LIMIT }
   }
 }
 

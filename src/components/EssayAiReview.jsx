@@ -27,10 +27,7 @@ export default function EssayAiReview({ review, onCheck, checking, error, showBu
         </button>
         {usageLine}
         {error && <p className="essay-ai-error">{error}</p>}
-        <p className="essay-ai-disclaimer">
-          Проверка выполняется нейросетью (Gemini) и может ошибаться — воспринимайте как черновой ориентир, а не
-          официальную оценку.
-        </p>
+        <p className="essay-ai-disclaimer">Не является официальной оценкой.</p>
       </div>
     )
   }
@@ -100,7 +97,7 @@ export default function EssayAiReview({ review, onCheck, checking, error, showBu
         </div>
       )}
 
-      <p className="essay-ai-disclaimer">Оценка выполнена нейросетью (Gemini) и может ошибаться.</p>
+      <p className="essay-ai-disclaimer">Не является официальной оценкой.</p>
     </div>
   )
 }

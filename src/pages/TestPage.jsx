@@ -6,7 +6,7 @@ import { listContentByIds } from '../services/contentService.js'
 import { saveEssaySubmission } from '../services/essaysService.js'
 import { checkEssayWithAI, getLatestEssayReview, getTodayEssayCheckUsage } from '../services/essayAiService.js'
 import EssayAiReview from '../components/EssayAiReview.jsx'
-import { checkQaTableWithAI, getLatestQaTableReview, getQuestionQaTableCheckUsage } from '../services/qaTableAiService.js'
+import { checkQaTableWithAI, getLatestQaTableReview, getTodayQaTableCheckUsage } from '../services/qaTableAiService.js'
 import QaTableAiReview from '../components/QaTableAiReview.jsx'
 import { saveAttempt } from '../services/attemptsService.js'
 import { upsertTaskAttempt } from '../services/taskAttemptsService.js'
@@ -201,7 +201,7 @@ export default function TestPage({ examKey }) {
       if (!cancelled) setQaTableReview(review)
     })
     if (user) {
-      getQuestionQaTableCheckUsage(user.id, currentQuestionForView.id, test.id).then((u) => {
+      getTodayQaTableCheckUsage(user.id).then((u) => {
         if (!cancelled) setQaTableUsage(u)
       })
     }
@@ -223,6 +223,13 @@ export default function TestPage({ examKey }) {
       const review = await checkQaTableWithAI(question.id, test.id, value)
       setQaTableReview(review)
       if (review.usage) setQaTableUsage(review.usage)
+      // Балл, который только что посчитал ИИ, сразу же становится
+      // самооценкой за задание — не нужно отдельно тыкать по кнопкам
+      // 0..N после того, как ИИ уже всё посчитал. Можно всё ещё
+      // поменять вручную, если не согласны с оценкой.
+      if (typeof review.feedback?.totalScore === 'number') {
+        setSelfGrade(question.id, review.feedback.totalScore)
+      }
     } catch (err) {
       setQaTableCheckError(err.message || 'Не удалось выполнить проверку.')
       if (err.usage) setQaTableUsage(err.usage)
@@ -748,6 +755,7 @@ export default function TestPage({ examKey }) {
               error={qaTableCheckError}
               onCheck={handleCheckQaTableWithAI}
               usage={qaTableUsage}
+              showButton={false}
             />
           )}
 
@@ -770,6 +778,24 @@ export default function TestPage({ examKey }) {
                   {essayUsage && (
                     <span className="test-essay-check-usage">
                       Проверок сегодня: {essayUsage.used} из {essayUsage.limit}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {qaTableSupportsAiCheck && !showStepPart && (
+                <div className="test-essay-check-group">
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={handleCheckQaTableWithAI}
+                    disabled={qaTableChecking}
+                  >
+                    {qaTableChecking ? 'Проверяем…' : qaTableReview ? 'Проверить заново' : '✨ Проверить с ИИ'}
+                  </button>
+                  {qaTableUsage && (
+                    <span className="test-essay-check-usage">
+                      Проверок сегодня: {qaTableUsage.used} из {qaTableUsage.limit}
                     </span>
                   )}
                 </div>

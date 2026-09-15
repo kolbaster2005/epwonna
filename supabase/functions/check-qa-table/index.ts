@@ -29,14 +29,13 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const GEMINI_MODEL = 'gemini-3.5-flash'
 const GEMINI_FALLBACK_MODEL = 'gemini-3.5-flash-lite'
-// Лимит теперь не общий «в день», а свой у каждого задания — 2
-// проверки на каждое qa_table-задание (считается отдельно по
-// (user_id, question_id, test_id), не суммарно по всем заданиям сразу).
-// Держим в синхроне с PER_QUESTION_QA_TABLE_CHECK_LIMIT в
-// src/services/qaTableAiService.js — эта константа здесь главная, там
-// только для отображения "X из N" на фронтенде до первого реального
-// ответа функции.
-const PER_QUESTION_LIMIT = 2
+// Общий лимит на день — не по каждому заданию отдельно (было так
+// раньше, но оказалось хуже для юзабилити: если человек проверил уже
+// N заданий и хочет проверить ещё одно, ему не нужно помнить лимит на
+// КАЖДОЕ по отдельности — один дневной счётчик на все грамматические
+// проверки сразу проще для восприятия). Держим в синхроне с
+// DAILY_QA_TABLE_CHECK_LIMIT в src/services/qaTableAiService.js.
+const DAILY_LIMIT = 4
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -161,19 +160,20 @@ Deno.serve(async (req: Request) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return jsonResponse({ error: 'Не авторизован.' }, 401)
 
+    const startOfDayUtc = new Date()
+    startOfDayUtc.setUTCHours(0, 0, 0, 0)
     const { count: usedCount, error: countErr } = await userClient
       .from('qa_table_ai_reviews')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('question_id', questionId)
-      .eq('test_id', testId)
+      .gte('created_at', startOfDayUtc.toISOString())
     if (countErr) {
-      console.error('Per-question limit count error:', countErr)
-    } else if ((usedCount ?? 0) >= PER_QUESTION_LIMIT) {
+      console.error('Daily limit count error:', countErr)
+    } else if ((usedCount ?? 0) >= DAILY_LIMIT) {
       return jsonResponse(
         {
-          error: `Лимит проверок для этого задания (${PER_QUESTION_LIMIT}) исчерпан.`,
-          usage: { used: usedCount, limit: PER_QUESTION_LIMIT },
+          error: `Дневной лимит проверок (${DAILY_LIMIT} в день) исчерпан. Новые проверки будут доступны завтра.`,
+          usage: { used: usedCount, limit: DAILY_LIMIT },
         },
         429
       )
@@ -302,7 +302,7 @@ Deno.serve(async (req: Request) => {
       .select()
       .single()
 
-    const usage = { used: (usedCount ?? 0) + 1, limit: PER_QUESTION_LIMIT }
+    const usage = { used: (usedCount ?? 0) + 1, limit: DAILY_LIMIT }
 
     if (insErr) {
       console.error('Insert error:', insErr)

@@ -117,8 +117,26 @@ function rowToQuestion(row) {
       return { ...base, acceptedAnswers: row.accepted_answers || [] }
     case 'cloze':
       return { ...base, cloze: row.cloze || { template: '', blanks: {} } }
-    case 'qa_table':
-      return { ...base, qaTable: row.qa_table || { rows: [] } }
+    case 'qa_table': {
+      const qaTable = row.qa_table || { rows: [] }
+      // Для Umformung/Satzfortsetzungen считаем максимум баллов из
+      // реальной структуры строк (столько же, сколько реально
+      // проверяемых — без given-примеров), а не берём вручную
+      // выставленное значение из self_grade_max_points в базе: оно
+      // легко может разойтись с фактическим числом строк, и тогда
+      // самооценка после AI-проверки не совпадала бы с тем, что
+      // только что посчитал ИИ (та же формула — 2 балла за строку
+      // Umformung, 3 за строку Satzfortsetzungen — используется и в
+      // supabase/functions/check-qa-table/index.ts).
+      const maxPerQaRow = row.task_type === 'Umformung' ? 2 : row.task_type === 'Satzfortsetzungen' ? 3 : null
+      const qaRowCount = (qaTable.rows || []).filter((r) => r.given === undefined).length
+      const computedSelfGradeMax = maxPerQaRow && qaRowCount > 0 ? qaRowCount * maxPerQaRow : undefined
+      return {
+        ...base,
+        qaTable,
+        selfGradeMaxPoints: computedSelfGradeMax ?? base.selfGradeMaxPoints,
+      }
+    }
     case 'tf_table':
       return { ...base, tfTable: row.tf_table || { rows: [] } }
     case 'essay_choice':
