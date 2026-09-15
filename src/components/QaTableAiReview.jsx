@@ -9,7 +9,7 @@ export default function QaTableAiReview({ review, onCheck, checking, error, usag
 
   const usageLine = usage ? (
     <p className="essay-ai-usage">
-      Проверок сегодня: {usage.used} из {usage.limit}
+      Проверок этого задания: {usage.used} из {usage.limit}
     </p>
   ) : null
 

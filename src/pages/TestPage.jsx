@@ -6,7 +6,7 @@ import { listContentByIds } from '../services/contentService.js'
 import { saveEssaySubmission } from '../services/essaysService.js'
 import { checkEssayWithAI, getLatestEssayReview, getTodayEssayCheckUsage } from '../services/essayAiService.js'
 import EssayAiReview from '../components/EssayAiReview.jsx'
-import { checkQaTableWithAI, getLatestQaTableReview, getTodayQaTableCheckUsage } from '../services/qaTableAiService.js'
+import { checkQaTableWithAI, getLatestQaTableReview, getQuestionQaTableCheckUsage } from '../services/qaTableAiService.js'
 import QaTableAiReview from '../components/QaTableAiReview.jsx'
 import { saveAttempt } from '../services/attemptsService.js'
 import { upsertTaskAttempt } from '../services/taskAttemptsService.js'
@@ -201,7 +201,7 @@ export default function TestPage({ examKey }) {
       if (!cancelled) setQaTableReview(review)
     })
     if (user) {
-      getTodayQaTableCheckUsage(user.id).then((u) => {
+      getQuestionQaTableCheckUsage(user.id, currentQuestionForView.id, test.id).then((u) => {
         if (!cancelled) setQaTableUsage(u)
       })
     }
