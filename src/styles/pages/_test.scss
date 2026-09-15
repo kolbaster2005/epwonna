@@ -1810,6 +1810,24 @@ input:checked + .option-mark.radio::after {
   }
 }
 
+.test-resume-prompt {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: $space-9 0 $space-10;
+  text-align: center;
+
+  p {
+    margin-top: $space-4;
+    color: $color-ink-soft;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .test-results-actions {
+    margin-top: $space-7;
+  }
+}
+
 // ---- Mobile: the sidebar was way too tall/heavy on a phone screen ------
 // (full desktop-sized squares, labels, timer, and a legend block that
 // ate a full screen's worth of scroll before you even reached question

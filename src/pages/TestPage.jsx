@@ -8,7 +8,7 @@ import { checkEssayWithAI, getTodayEssayCheckUsage } from '../services/essayAiSe
 import EssayAiReview from '../components/EssayAiReview.jsx'
 import { checkQaTableWithAI, getTodayQaTableCheckUsage } from '../services/qaTableAiService.js'
 import QaTableAiReview from '../components/QaTableAiReview.jsx'
-import { saveAttempt } from '../services/attemptsService.js'
+import { saveAttempt, saveDraftAttempt, getDraftAttempt, deleteDraftAttempt } from '../services/attemptsService.js'
 import { upsertTaskAttempt } from '../services/taskAttemptsService.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useDialog } from '../contexts/DialogContext.jsx'
@@ -58,6 +58,34 @@ export default function TestPage({ examKey }) {
       cancelled = true
     }
   }, [examKey, testId])
+
+  // Незавершённая попытка этого пробника, если есть — запрашивается
+  // параллельно с getTest выше, не после него. null, пока не решили,
+  // что с ней делать (см. handleResumeDraft/handleDiscardDraft); после
+  // решения — снова null, и дальше страница ведёт себя как обычно.
+  const [draftPrompt, setDraftPrompt] = useState(null)
+  // Гейт для `loading` ниже — не мигать вопросом №1 на долю секунды,
+  // пока ещё не знаем, есть ли черновик, который нужно предложить
+  // продолжить вместо этого.
+  const [draftChecked, setDraftChecked] = useState(false)
+
+  useEffect(() => {
+    if (!user) {
+      setDraftPrompt(null)
+      setDraftChecked(true)
+      return undefined
+    }
+    let cancelled = false
+    setDraftChecked(false)
+    getDraftAttempt(user.id, testId).then((draft) => {
+      if (cancelled) return
+      setDraftPrompt(draft)
+      setDraftChecked(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [user, testId])
 
   const questions = test ? test.questions : []
   const totalSeconds = (test?.durationMinutes || exam.timeLimitMinutes || 45) * 60
@@ -277,6 +305,7 @@ export default function TestPage({ examKey }) {
               durationSeconds: totalSeconds,
               answersSnapshot: { answers, selfGrades },
             }).then(setSavedAttemptId)
+            deleteDraftAttempt(user.id, test.id)
           }
           setFinished(true)
           return 0
@@ -288,7 +317,68 @@ export default function TestPage({ examKey }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [test, paused, finished])
 
-  if (loading) {
+  // Последний известный снимок ответов через ref (не через замыкание) —
+  // нужен и debounce-автосохранению ниже (таймер мог быть запущен ещё
+  // до завершения теста и сработать уже после), и подстраховке на
+  // beforeunload/visibilitychange, чтобы не переподписываться на эти
+  // события при каждом нажатии клавиши.
+  const latestDraftStateRef = useRef({ answers, selfGrades, secondsLeft, finished })
+  useEffect(() => {
+    latestDraftStateRef.current = { answers, selfGrades, secondsLeft, finished }
+  })
+
+  // Автосохранение черновика — раз в ~2.5с после последнего изменения
+  // ответов/самооценок, не на каждое нажатие клавиши в сочинении.
+  // Ничего не пишет, пока экран "продолжить?" ещё не закрыт (иначе
+  // черновик перезаписался бы пустыми ответами до решения пользователя).
+  // Проверка `finished` — внутри самого таймера, через ref, а не в
+  // условии эффекта: иначе таймер, запущенный до нажатия «Завершить»,
+  // мог бы сработать уже после и воскресить черновик у уже сданного теста.
+  useEffect(() => {
+    if (!user || !test || draftPrompt) return undefined
+    const timeoutId = setTimeout(() => {
+      if (latestDraftStateRef.current.finished) return
+      saveDraftAttempt({
+        userId: user.id,
+        testId: test.id,
+        examKey,
+        testTitle: test.title,
+        answersSnapshot: { answers, selfGrades },
+        durationSeconds: totalSeconds - secondsLeft,
+      })
+    }, 2500)
+    return () => clearTimeout(timeoutId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, selfGrades])
+
+  // Подстраховка на случай ухода со страницы раньше, чем сработает
+  // дебаунс выше.
+  useEffect(() => {
+    if (!user || !test || draftPrompt) return undefined
+    function saveNow() {
+      const { answers: a, selfGrades: sg, secondsLeft: sl, finished: isFinished } = latestDraftStateRef.current
+      if (isFinished) return
+      saveDraftAttempt({
+        userId: user.id,
+        testId: test.id,
+        examKey,
+        testTitle: test.title,
+        answersSnapshot: { answers: a, selfGrades: sg },
+        durationSeconds: totalSeconds - sl,
+      })
+    }
+    function handleVisibility() {
+      if (document.visibilityState === 'hidden') saveNow()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('beforeunload', saveNow)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('beforeunload', saveNow)
+    }
+  }, [user, test, draftPrompt])
+
+  if (loading || !draftChecked) {
     return <PageLoader />
   }
 
@@ -312,6 +402,29 @@ export default function TestPage({ examKey }) {
         <h1>{test.title}</h1>
         <p>Это устная часть — она проходит в отдельном формате.</p>
         <Link className="btn btn-primary" to={`/${examKey}/oral/${test.id}`}>Перейти к устной части</Link>
+      </div>
+    )
+  }
+
+  if (draftPrompt) {
+    const draftAnswers = draftPrompt.answersSnapshot?.answers || {}
+    const answeredInDraft = questions.filter((q) => hasAnswer(q, draftAnswers[q.id] ?? defaultValue(q.type))).length
+    const savedAt = new Date(draftPrompt.updatedAt).toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    return (
+      <div className="test-resume-prompt">
+        <h1>Есть незавершённая попытка</h1>
+        <p>
+          Сохранено {savedAt} — отвечено {answeredInDraft} из {questions.length}.
+        </p>
+        <div className="test-results-actions">
+          <button type="button" className="btn btn-primary" onClick={handleResumeDraft}>Продолжить</button>
+          <button type="button" className="btn btn-outline" onClick={handleDiscardDraft}>Начать заново</button>
+        </div>
       </div>
     )
   }
@@ -445,6 +558,10 @@ export default function TestPage({ examKey }) {
         answersSnapshot: { answers, selfGrades },
       })
       setSavedAttemptId(newId)
+      // Готовая попытка не должна висеть рядом с черновиком той же пары
+      // (пользователь, пробник) — иначе следующий заход сюда снова
+      // предложит "продолжить" уже сданный тест.
+      deleteDraftAttempt(user.id, test.id)
     }
     setFinished(true)
   }
@@ -457,6 +574,32 @@ export default function TestPage({ examKey }) {
     setPaused(false)
     setFinished(false)
     setSavedAttemptId(null)
+    if (user) deleteDraftAttempt(user.id, test.id)
+  }
+
+  // «Продолжить» на экране незавершённой попытки — восстанавливает
+  // ответы и самооценки из черновика. checkedIds не хранится отдельно
+  // (снимок черновика — это те же { answers, selfGrades }, что и у
+  // завершённой попытки), поэтому пересчитывается тем же способом, что
+  // и "Ответить"/lockCurrentIfComplete: полностью заполненный на момент
+  // сохранения вопрос считается отвеченным.
+  function handleResumeDraft() {
+    const snapshot = draftPrompt.answersSnapshot || {}
+    const restoredAnswers = snapshot.answers || {}
+    const restoredSelfGrades = snapshot.selfGrades || {}
+    setAnswers(restoredAnswers)
+    setSelfGrades(restoredSelfGrades)
+    setCheckedIds(
+      new Set(questions.filter((q) => hasAnswer(q, restoredAnswers[q.id] ?? defaultValue(q.type))).map((q) => q.id))
+    )
+    setDraftPrompt(null)
+  }
+
+  // «Начать заново» на экране незавершённой попытки — просто выбрасывает
+  // черновик, дальше пробник открывается с чистого листа как обычно.
+  async function handleDiscardDraft() {
+    if (user) await deleteDraftAttempt(user.id, test.id)
+    setDraftPrompt(null)
   }
 
   if (finished) {

@@ -403,6 +403,15 @@ create index if not exists dictionary_words_user_id_idx on public.dictionary_wor
 --    column allows for it rather than lying with a 0%). Oral tests
 --    aren't tracked here yet — OralTestPage.jsx has no per-question
 --    verdicts to compute a score from.
+--
+--    completed_at is null for an in-progress draft (see
+--    attemptsService.saveDraftAttempt/getDraftAttempt/deleteDraftAttempt
+--    and TestPage.jsx's autosave) — set once, at submission time, for a
+--    finished attempt and never changed after. Every read site that
+--    means "finished attempts" (listAttempts, getMostAttemptedTests)
+--    filters `completed_at is not null` explicitly; a draft is not a
+--    completed attempt and must never show up in "Мой прогресс" /
+--    "Последние пробники" / admin stats.
 -- ---------------------------------------------------------------------
 create table if not exists public.test_attempts (
   id uuid primary key default gen_random_uuid(),
@@ -422,12 +431,18 @@ create table if not exists public.test_attempts (
   -- attempt can be reviewed later (which answers were given, which were
   -- right/wrong) without needing the test's questions to stay unchanged
   -- forever. Nullable — attempts saved before this column existed just
-  -- won't have a reviewable snapshot.
+  -- won't have a reviewable snapshot. Also doubles as the autosaved
+  -- draft's own snapshot while completed_at is still null.
   answers_snapshot jsonb,
-  completed_at timestamptz not null default now()
+  -- Bumped on every draft autosave — lets the "продолжить?" prompt show
+  -- when the draft was last saved. Unused (stays at its insert value)
+  -- once completed_at is set.
+  updated_at timestamptz not null default now(),
+  completed_at timestamptz
 );
 
 alter table public.test_attempts add column if not exists answers_snapshot jsonb;
+alter table public.test_attempts add column if not exists updated_at timestamptz not null default now();
 
 alter table public.test_attempts enable row level security;
 
@@ -436,6 +451,12 @@ create policy "test_attempts: own" on public.test_attempts
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create index if not exists test_attempts_user_id_idx on public.test_attempts (user_id);
+
+-- One in-progress draft per (user, test) — TestPage.jsx looks this up
+-- every time the probnik is opened.
+create index if not exists test_attempts_in_progress_idx
+  on public.test_attempts (user_id, test_id)
+  where completed_at is null;
 
 -- ---------------------------------------------------------------------
 -- 7. topics — was hardcoded per-exam in src/data/examData.js (see the

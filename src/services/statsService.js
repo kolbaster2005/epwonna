@@ -86,10 +86,15 @@ export async function getVisitStats(days = 14) {
 }
 
 // Самые часто проходимые пробники — из уже существующих test_attempts,
-// никакой новой инфраструктуры для этого не нужно.
+// никакой новой инфраструктуры для этого не нужно. Только завершённые —
+// незавершённые черновики (completed_at is null, см. attemptsService)
+// не считаются "прохождением".
 export async function getMostAttemptedTests(limit = 10) {
   try {
-    const { data, error } = await supabase.from('test_attempts').select('test_id, test_title, exam_key')
+    const { data, error } = await supabase
+      .from('test_attempts')
+      .select('test_id, test_title, exam_key')
+      .not('completed_at', 'is', null)
     if (error) throw error
     const counts = new Map()
     for (const row of data || []) {

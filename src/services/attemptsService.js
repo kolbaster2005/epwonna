@@ -21,6 +21,7 @@ function rowToAttempt(row) {
     totalQuestions: row.total_questions,
     durationSeconds: row.duration_seconds,
     completedAt: row.completed_at,
+    updatedAt: row.updated_at,
     answersSnapshot: row.answers_snapshot ?? null,
   }
 }
@@ -62,6 +63,10 @@ export async function saveAttempt({
         total_questions: totalQuestions,
         duration_seconds: durationSeconds,
         answers_snapshot: answersSnapshot ?? null,
+        // completed_at has no DB default (see allow_draft_test_attempts.sql
+        // — a draft row needs it to default to null instead), so a
+        // finished attempt has to set it explicitly here.
+        completed_at: new Date().toISOString(),
       })
       .select('id')
       .single()
@@ -73,15 +78,17 @@ export async function saveAttempt({
   }
 }
 
-// All of the current user's attempts, newest first — used for both the
-// "Последние пробники" list (sliced to a handful) and the trend chart
-// (reversed to chronological order there).
+// All of the current user's FINISHED attempts, newest first — used for
+// both the "Последние пробники" list (sliced to a handful) and the trend
+// chart (reversed to chronological order there). In-progress drafts
+// (completed_at is null — see saveDraftAttempt below) never belong here.
 export async function listAttempts(userId) {
   try {
     const { data, error } = await supabase
       .from('test_attempts')
       .select('*')
       .eq('user_id', userId)
+      .not('completed_at', 'is', null)
       .order('completed_at', { ascending: false })
     if (error) throw error
     return (data || []).map(rowToAttempt)
@@ -141,5 +148,92 @@ export function summarizeAttempts(attempts, totalTests) {
     completed: distinctTestIds.size,
     total: totalTests,
     avgMinutes: Math.round(avgSeconds / 60),
+  }
+}
+
+// ---------------------------------------------------------------------
+// Draft (in-progress) attempts — "продолжить незавершённый пробник".
+// A draft is a test_attempts row with completed_at still null; TestPage.jsx
+// autosaves one periodically while the person is answering, and turns it
+// into a real finished row (saveAttempt) or discards it, never both.
+// ---------------------------------------------------------------------
+
+// Autosaved every couple of seconds from TestPage.jsx (debounced) and
+// once more on tab-close/visibility-change — never call this after the
+// test has already been finished. Fire-and-forget from the caller: a
+// missed autosave shouldn't interrupt someone mid-test.
+export async function saveDraftAttempt({ userId, testId, examKey, testTitle, answersSnapshot, durationSeconds }) {
+  try {
+    const existing = await getDraftRow(userId, testId)
+    const patch = {
+      duration_seconds: durationSeconds,
+      answers_snapshot: answersSnapshot ?? null,
+      updated_at: new Date().toISOString(),
+    }
+    if (existing) {
+      const { error } = await supabase.from('test_attempts').update(patch).eq('id', existing.id)
+      if (error) throw error
+    } else {
+      const { error } = await supabase.from('test_attempts').insert({
+        user_id: userId,
+        test_id: testId,
+        exam_key: examKey,
+        test_title: testTitle,
+        completed_at: null,
+        ...patch,
+      })
+      if (error) throw error
+    }
+  } catch (err) {
+    console.error('[attemptsService.saveDraftAttempt]', err)
+  }
+}
+
+async function getDraftRow(userId, testId) {
+  const { data, error } = await supabase
+    .from('test_attempts')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('test_id', testId)
+    .is('completed_at', null)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+// The in-progress draft for this (user, test) pair, if any — null if
+// there isn't one. Called when TestPage.jsx opens a probnik, to offer
+// "продолжить?" instead of silently starting over.
+export async function getDraftAttempt(userId, testId) {
+  try {
+    const { data, error } = await supabase
+      .from('test_attempts')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('test_id', testId)
+      .is('completed_at', null)
+      .maybeSingle()
+    if (error) throw error
+    return data ? rowToAttempt(data) : null
+  } catch (err) {
+    console.error('[attemptsService.getDraftAttempt]', err)
+    return null
+  }
+}
+
+// Called right after a successful saveAttempt() (the draft is now a
+// finished attempt, no reason to keep it around) and on an explicit
+// "Начать заново" (the draft's answers are being thrown away).
+export async function deleteDraftAttempt(userId, testId) {
+  try {
+    const { error } = await supabase
+      .from('test_attempts')
+      .delete()
+      .eq('user_id', userId)
+      .eq('test_id', testId)
+      .is('completed_at', null)
+    if (error) throw error
+  } catch (err) {
+    console.error('[attemptsService.deleteDraftAttempt]', err)
   }
 }
