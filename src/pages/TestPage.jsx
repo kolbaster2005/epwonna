@@ -759,67 +759,66 @@ export default function TestPage({ examKey }) {
             />
           )}
 
-          <div className="test-actions">
-            <button className="btn btn-outline" disabled={index === 0 && (!isPaginatedMultiPart || partIndex === 0)} onClick={handlePrev}>
-              ← Назад
-            </button>
+          {(() => {
+            const essayNeedsChoice = question.type === 'essay_choice' && !value?.choice
+            const activeUsage = question.type === 'essay_choice' ? essayUsage : qaTableSupportsAiCheck ? qaTableUsage : null
+            return (
+              <>
+                {!showStepPart && !essayNeedsChoice && activeUsage && (
+                  <p className="test-check-usage-line">
+                    Проверок сегодня: {activeUsage.used} из {activeUsage.limit}
+                  </p>
+                )}
 
-            <div className="test-actions-right">
-              {question.type === 'essay_choice' && !showStepPart && (
-                <div className="test-essay-check-group">
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={handleCheckEssayWithAI}
-                    disabled={essayChecking || !hasAnswer(question, value)}
-                  >
-                    {essayChecking ? 'Проверяем…' : essayReview ? 'Проверить заново' : '✨ Проверить с ИИ'}
+                <div className="test-actions">
+                  <button className="btn btn-outline" disabled={index === 0 && (!isPaginatedMultiPart || partIndex === 0)} onClick={handlePrev}>
+                    ← Назад
                   </button>
-                  {essayUsage && (
-                    <span className="test-essay-check-usage">
-                      Проверок сегодня: {essayUsage.used} из {essayUsage.limit}
-                    </span>
-                  )}
-                </div>
-              )}
 
-              {qaTableSupportsAiCheck && !showStepPart && (
-                <div className="test-essay-check-group">
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={handleCheckQaTableWithAI}
-                    disabled={qaTableChecking}
-                  >
-                    {qaTableChecking ? 'Проверяем…' : qaTableReview ? 'Проверить заново' : '✨ Проверить с ИИ'}
-                  </button>
-                  {qaTableUsage && (
-                    <span className="test-essay-check-usage">
-                      Проверок сегодня: {qaTableUsage.used} из {qaTableUsage.limit}
-                    </span>
-                  )}
-                </div>
-              )}
+                  <div className="test-actions-right">
+                    {!essayNeedsChoice && (
+                      <>
+                        {question.type === 'essay_choice' && !showStepPart && (
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={handleCheckEssayWithAI}
+                            disabled={essayChecking || !hasAnswer(question, value)}
+                          >
+                            {essayChecking ? 'Проверяем…' : essayReview ? 'Проверить заново' : '✨ Проверить с ИИ'}
+                          </button>
+                        )}
 
-              {showStepPart ? (
-                <button className="btn btn-primary" onClick={stepPart}>
-                  Далее →
-                </button>
-              ) : !isChecked ? (
-                <button className="btn btn-primary" disabled={!hasAnswer(question, value)} onClick={handleAnswer}>
-                  Ответить
-                </button>
-              ) : isLast ? (
-                <button className="btn btn-primary" onClick={handleFinish}>
-                  Завершить тест
-                </button>
-              ) : (
-                <button className="btn btn-primary" onClick={() => goTo(index + 1)}>
-                  Далее →
-                </button>
-              )}
-            </div>
-          </div>
+                        {qaTableSupportsAiCheck && !showStepPart && (
+                          <button type="button" className="btn btn-outline" onClick={handleCheckQaTableWithAI} disabled={qaTableChecking}>
+                            {qaTableChecking ? 'Проверяем…' : qaTableReview ? 'Проверить заново' : '✨ Проверить с ИИ'}
+                          </button>
+                        )}
+
+                        {showStepPart ? (
+                          <button className="btn btn-primary" onClick={stepPart}>
+                            Далее →
+                          </button>
+                        ) : !isChecked ? (
+                          <button className="btn btn-primary" disabled={!hasAnswer(question, value)} onClick={handleAnswer}>
+                            Ответить
+                          </button>
+                        ) : isLast ? (
+                          <button className="btn btn-primary" onClick={handleFinish}>
+                            Завершить тест
+                          </button>
+                        ) : (
+                          <button className="btn btn-primary" onClick={() => goTo(index + 1)}>
+                            Далее →
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
+            )
+          })()}
         </section>
       </div>
 

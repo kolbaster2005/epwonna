@@ -579,7 +579,6 @@ function EssayChoiceInput({ question, value, onChange, checked }) {
   if (!chosen) {
     return (
       <div className="essay-choice-picker">
-        <p className="admin-note">Выберите тему — остальные станут недоступны для этой попытки.</p>
         <div className="essay-choice-cards">
           {options.map((opt) => (
             <button

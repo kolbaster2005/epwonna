@@ -725,6 +725,7 @@ input:checked + .option-mark.radio::after {
 
 .test-actions {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-top: $space-7;
@@ -740,16 +741,11 @@ input:checked + .option-mark.radio::after {
   justify-content: flex-end;
 }
 
-.test-essay-check-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.test-essay-check-usage {
+.test-check-usage-line {
+  text-align: right;
   font-size: 11.5px;
   color: $color-gray;
+  margin: -8px 0 0;
 }
 
 // ---- Numeric answer (math) ----------------------------------------------
