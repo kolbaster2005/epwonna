@@ -4,9 +4,9 @@ import { exams } from '../data/examData.js'
 import { getTest } from '../services/testsService.js'
 import { listContentByIds } from '../services/contentService.js'
 import { saveEssaySubmission } from '../services/essaysService.js'
-import { checkEssayWithAI, getLatestEssayReview, getTodayEssayCheckUsage } from '../services/essayAiService.js'
+import { checkEssayWithAI, getTodayEssayCheckUsage } from '../services/essayAiService.js'
 import EssayAiReview from '../components/EssayAiReview.jsx'
-import { checkQaTableWithAI, getLatestQaTableReview, getTodayQaTableCheckUsage } from '../services/qaTableAiService.js'
+import { checkQaTableWithAI, getTodayQaTableCheckUsage } from '../services/qaTableAiService.js'
 import QaTableAiReview from '../components/QaTableAiReview.jsx'
 import { saveAttempt } from '../services/attemptsService.js'
 import { upsertTaskAttempt } from '../services/taskAttemptsService.js'
@@ -67,8 +67,13 @@ export default function TestPage({ examKey }) {
   // step through parts before moving to the next question, instead of
   // only the in-question pager dots being able to change it.
   const [partIndex, setPartIndex] = useState(0)
+  // Кнопки «Ответить»/«Проверить с ИИ» больше не блокируются — если
+  // ответ неполный, при клике вместо этого показываем ошибку в блоке
+  // под рядом кнопок.
+  const [answerError, setAnswerError] = useState(null)
   useEffect(() => {
     setPartIndex(0)
+    setAnswerError(null)
   }, [index])
   const [answers, setAnswers] = useState({}) // { [questionId]: <shape depends on question.type> }
   // Which questions have been submitted via "Ответить". Until a question's
@@ -129,9 +134,6 @@ export default function TestPage({ examKey }) {
     setEssayCheckError(null)
     if (currentQuestionForView?.type !== 'essay_choice') return undefined
     let cancelled = false
-    getLatestEssayReview(currentQuestionForView.id, test.id).then((review) => {
-      if (!cancelled) setEssayReview(review)
-    })
     if (user) {
       getTodayEssayCheckUsage(user.id).then((u) => {
         if (!cancelled) setEssayUsage(u)
@@ -197,9 +199,6 @@ export default function TestPage({ examKey }) {
     setQaTableCheckError(null)
     if (!qaTableSupportsAiCheck) return undefined
     let cancelled = false
-    getLatestQaTableReview(currentQuestionForView.id, test.id).then((review) => {
-      if (!cancelled) setQaTableReview(review)
-    })
     if (user) {
       getTodayQaTableCheckUsage(user.id).then((u) => {
         if (!cancelled) setQaTableUsage(u)
@@ -212,9 +211,8 @@ export default function TestPage({ examKey }) {
   }, [currentQuestionForView?.id])
 
   async function handleCheckQaTableWithAI() {
-    const hasAnyAnswer = Object.values(value || {}).some((v) => typeof v === 'string' && v.trim())
-    if (!hasAnyAnswer) {
-      setQaTableCheckError('Сначала заполните хотя бы одну строку задания.')
+    if (!hasAnswer(question, value)) {
+      setQaTableCheckError('Похоже, вы заполнили не всё — проверьте, не пропустили ли какую-то строку.')
       return
     }
     setQaTableChecking(true)
@@ -513,6 +511,11 @@ export default function TestPage({ examKey }) {
   // button directly, or handleFinish/the timer running out (both still
   // call lockCurrentIfComplete for whatever's on screen at that moment).
   function handleAnswer() {
+    if (!hasAnswer(question, value)) {
+      setAnswerError('Похоже, вы заполнили не всё — проверьте, не пропустили ли какой-то пункт или строку.')
+      return
+    }
+    setAnswerError(null)
     lockCurrentIfComplete()
   }
 
@@ -729,89 +732,76 @@ export default function TestPage({ examKey }) {
           )}
 
           {question.type === 'essay_choice' && (
-            <EssayAiReview
-              review={essayReview}
-              checking={essayChecking}
-              error={essayCheckError}
-              onCheck={handleCheckEssayWithAI}
-              showButton={false}
-            />
+            <EssayAiReview review={essayReview} checking={essayChecking} onCheck={handleCheckEssayWithAI} showButton={false} />
           )}
 
           {qaTableSupportsAiCheck && (
-            <QaTableAiReview
-              review={qaTableReview}
-              checking={qaTableChecking}
-              error={qaTableCheckError}
-              onCheck={handleCheckQaTableWithAI}
-              usage={qaTableUsage}
-              showButton={false}
-            />
+            <QaTableAiReview review={qaTableReview} checking={qaTableChecking} onCheck={handleCheckQaTableWithAI} showButton={false} />
           )}
 
           {(() => {
             const essayNeedsChoice = question.type === 'essay_choice' && !value?.choice
+            const activeError = answerError || essayCheckError || qaTableCheckError
             return (
-              <div className="test-actions">
-                <button className="btn btn-outline" disabled={index === 0 && (!isPaginatedMultiPart || partIndex === 0)} onClick={handlePrev}>
-                  ← Назад
-                </button>
+              <>
+                <div className="test-actions">
+                  <button className="btn btn-outline" disabled={index === 0 && (!isPaginatedMultiPart || partIndex === 0)} onClick={handlePrev}>
+                    ← Назад
+                  </button>
 
-                <div className="test-actions-right">
-                  {!essayNeedsChoice && (
-                    <>
-                      {question.type === 'essay_choice' && !showStepPart && (
-                        <div className="test-check-group">
-                          <button
-                            type="button"
-                            className="btn btn-outline"
-                            onClick={handleCheckEssayWithAI}
-                            disabled={essayChecking || !hasAnswer(question, value)}
-                          >
-                            {essayChecking ? 'Проверяем…' : essayReview ? 'Проверить заново' : '✨ Проверить с ИИ'}
+                  <div className="test-actions-right">
+                    {!essayNeedsChoice && (
+                      <>
+                        {question.type === 'essay_choice' && !showStepPart && (
+                          <div className="test-check-group">
+                            <button type="button" className="btn btn-outline" onClick={handleCheckEssayWithAI} disabled={essayChecking}>
+                              {essayChecking ? 'Проверяем…' : essayReview ? 'Проверить заново' : 'Проверить с ИИ'}
+                            </button>
+                            {essayUsage && (
+                              <span className="test-check-usage">
+                                Проверок сегодня: {essayUsage.used} из {essayUsage.limit}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {qaTableSupportsAiCheck && !showStepPart && (
+                          <div className="test-check-group">
+                            <button type="button" className="btn btn-outline" onClick={handleCheckQaTableWithAI} disabled={qaTableChecking}>
+                              {qaTableChecking ? 'Проверяем…' : qaTableReview ? 'Проверить заново' : 'Проверить с ИИ'}
+                            </button>
+                            {qaTableUsage && (
+                              <span className="test-check-usage">
+                                Проверок сегодня: {qaTableUsage.used} из {qaTableUsage.limit}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {showStepPart ? (
+                          <button className="btn btn-primary" onClick={stepPart}>
+                            Далее →
                           </button>
-                          {essayUsage && (
-                            <span className="test-check-usage">
-                              Проверок сегодня: {essayUsage.used} из {essayUsage.limit}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {qaTableSupportsAiCheck && !showStepPart && (
-                        <div className="test-check-group">
-                          <button type="button" className="btn btn-outline" onClick={handleCheckQaTableWithAI} disabled={qaTableChecking}>
-                            {qaTableChecking ? 'Проверяем…' : qaTableReview ? 'Проверить заново' : '✨ Проверить с ИИ'}
+                        ) : !isChecked ? (
+                          <button className="btn btn-primary" onClick={handleAnswer}>
+                            Ответить
                           </button>
-                          {qaTableUsage && (
-                            <span className="test-check-usage">
-                              Проверок сегодня: {qaTableUsage.used} из {qaTableUsage.limit}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {showStepPart ? (
-                        <button className="btn btn-primary" onClick={stepPart}>
-                          Далее →
-                        </button>
-                      ) : !isChecked ? (
-                        <button className="btn btn-primary" disabled={!hasAnswer(question, value)} onClick={handleAnswer}>
-                          Ответить
-                        </button>
-                      ) : isLast ? (
-                        <button className="btn btn-primary" onClick={handleFinish}>
-                          Завершить тест
-                        </button>
-                      ) : (
-                        <button className="btn btn-primary" onClick={() => goTo(index + 1)}>
-                          Далее →
-                        </button>
-                      )}
-                    </>
-                  )}
+                        ) : isLast ? (
+                          <button className="btn btn-primary" onClick={handleFinish}>
+                            Завершить тест
+                          </button>
+                        ) : (
+                          <button className="btn btn-primary" onClick={() => goTo(index + 1)}>
+                            Далее →
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
+
+                {activeError && <p className="test-actions-error">{activeError}</p>}
+              </>
             )
           })()}
         </section>

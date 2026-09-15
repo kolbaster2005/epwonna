@@ -1,10 +1,12 @@
 // Отображает результат AI-проверки сочинения (см. essayAiService.js).
 // Не занимается запуском проверки само — только рендерит `review`,
-// либо кнопку «Проверить с ИИ», если проверки ещё нет.
+// либо кнопку «Проверить с ИИ», если проверки ещё нет. Ошибки
+// валидации/сети показываются снаружи, в общем блоке под рядом кнопок
+// в TestPage.jsx — не здесь.
 
 import { useState } from 'react'
 
-export default function EssayAiReview({ review, onCheck, checking, error, showButton = true, usage }) {
+export default function EssayAiReview({ review, onCheck, checking, showButton = true, usage }) {
   const [expanded, setExpanded] = useState(false)
 
   const usageLine = usage ? (
@@ -14,19 +16,13 @@ export default function EssayAiReview({ review, onCheck, checking, error, showBu
   ) : null
 
   if (!review) {
-    if (!showButton) {
-      // Ничего проверять пока нечего, а свою кнопку эта копия не
-      // показывает (кнопка уже есть снаружи, например рядом с
-      // «Ответить» в TestPage.jsx) — рендерить тут вообще нечего.
-      return error ? <p className="essay-ai-error">{error}</p> : null
-    }
+    if (!showButton) return null
     return (
       <div className="essay-ai-review essay-ai-review-empty">
         <button type="button" className="btn btn-outline" onClick={onCheck} disabled={checking}>
-          {checking ? 'Проверяем…' : '✨ Проверить с ИИ'}
+          {checking ? 'Проверяем…' : 'Проверить с ИИ'}
         </button>
         {usageLine}
-        {error && <p className="essay-ai-error">{error}</p>}
         <p className="essay-ai-disclaimer">Не является официальной оценкой.</p>
       </div>
     )
@@ -50,8 +46,6 @@ export default function EssayAiReview({ review, onCheck, checking, error, showBu
           </div>
         )}
       </div>
-
-      {error && <p className="essay-ai-error">{error}</p>}
 
       <button type="button" className="essay-ai-toggle" onClick={() => setExpanded((e) => !e)}>
         {expanded ? 'Скрыть подробности' : 'Показать подробности по критериям'}

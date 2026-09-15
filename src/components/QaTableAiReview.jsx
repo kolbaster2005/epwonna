@@ -2,12 +2,12 @@
 // Satzfortsetzungen) — см. qaTableAiService.js. Не запускает проверку
 // само, только рендерит `review` либо кнопку «Проверить с ИИ» (если
 // showButton — иначе кнопка стоит снаружи, см. TestPage.jsx, рядом с
-// «Ответить», чтобы было видно, что после проверки всё ещё нужно
-// нажать «Ответить»).
+// «Ответить»). Ошибки валидации/сети показываются снаружи, в общем
+// блоке под рядом кнопок — не здесь.
 
 import { useState } from 'react'
 
-export default function QaTableAiReview({ review, onCheck, checking, error, showButton = true, usage }) {
+export default function QaTableAiReview({ review, onCheck, checking, showButton = true, usage }) {
   const [expanded, setExpanded] = useState(false)
 
   const usageLine = usage ? (
@@ -17,16 +17,13 @@ export default function QaTableAiReview({ review, onCheck, checking, error, show
   ) : null
 
   if (!review) {
-    if (!showButton) {
-      return error ? <p className="essay-ai-error">{error}</p> : null
-    }
+    if (!showButton) return null
     return (
       <div className="essay-ai-review essay-ai-review-empty">
         <button type="button" className="btn btn-outline" onClick={onCheck} disabled={checking}>
-          {checking ? 'Проверяем…' : '✨ Проверить с ИИ'}
+          {checking ? 'Проверяем…' : 'Проверить с ИИ'}
         </button>
         {usageLine}
-        {error && <p className="essay-ai-error">{error}</p>}
         <p className="essay-ai-disclaimer">Не является официальной оценкой.</p>
       </div>
     )
@@ -53,8 +50,6 @@ export default function QaTableAiReview({ review, onCheck, checking, error, show
           </div>
         )}
       </div>
-
-      {error && <p className="essay-ai-error">{error}</p>}
 
       {rows.length > 0 && (
         <>

@@ -707,6 +707,14 @@ input:checked + .option-mark.radio::after {
   font-style: italic;
 }
 
+.test-actions-error {
+  margin-top: 10px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b0332c;
+}
+
 .test-actions {
   display: flex;
   align-items: flex-start;
