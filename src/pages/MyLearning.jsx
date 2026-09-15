@@ -9,6 +9,7 @@ import { listTests, listAllQuestionsForBank } from '../services/testsService.js'
 import { listTopics } from '../services/topicsService.js'
 import ExamIcon from '../components/ExamIcon.jsx'
 import { IconClock, IconChevronRight } from '../components/Icons.jsx'
+import PageLoader from '../components/PageLoader.jsx'
 
 // Общий процент по теме (сумма решённых из суммы всех доступных across
 // Чтение/Грамматика/Письмо) — и цветовая метка к нему. Пороги — то, что
@@ -135,6 +136,10 @@ export default function MyLearning() {
   }, [user])
 
   const recentAttempts = attempts.slice(0, 5)
+  // Only subjects with at least one completed test — with 5 subjects on
+  // the platform, a learner studying for just one or two shouldn't have
+  // to scroll past a wall of "0 из N" rows for subjects they never touch.
+  const startedSubjects = subjectProgress.filter((p) => p.completed > 0)
 
   async function handleDeleteAttempt(attempt) {
     if (!(await confirm('Удалить результат этого пробника? Результат пропадёт навсегда, это действие необратимо.'))) return
@@ -196,38 +201,38 @@ export default function MyLearning() {
       {!user ? (
         <p className="admin-note">Войдите, чтобы видеть свой прогресс по пробникам.</p>
       ) : loading ? (
-        <p className="admin-note">Загрузка…</p>
+        <PageLoader />
       ) : (
         <div className="mylearning-grid">
           <section className="widget-card">
             <h2>Прогресс по предметам</h2>
-            <div className="subject-progress-list">
-              {subjectProgress.map((p) => {
-                const exam = exams[p.examKey]
-                const pct = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 0
-                return (
-                  <div className="subject-progress-row" key={p.examKey}>
-                    <div className="subject-progress-head">
-                      <span className="subject-progress-icon" style={{ background: exam.color }}>
-                        <ExamIcon examKey={p.examKey} size={15} />
-                      </span>
-                      <span className="subject-progress-label">{exam.label}</span>
-                      <span className="subject-progress-count">{p.completed} из {p.total}</span>
+            {startedSubjects.length === 0 ? (
+              <p className="admin-note">Пройдите пробник по любому предмету — здесь появится ваш прогресс.</p>
+            ) : (
+              <div className="subject-progress-list">
+                {startedSubjects.map((p) => {
+                  const exam = exams[p.examKey]
+                  const pct = p.total > 0 ? Math.round((p.completed / p.total) * 100) : 0
+                  return (
+                    <div className="subject-progress-row" key={p.examKey}>
+                      <div className="subject-progress-head">
+                        <span className="subject-progress-icon" style={{ background: exam.color }}>
+                          <ExamIcon examKey={p.examKey} size={15} />
+                        </span>
+                        <span className="subject-progress-label">{exam.label}</span>
+                        <span className="subject-progress-count">{p.completed} из {p.total}</span>
+                      </div>
+                      <div className="progress-bar">
+                        <div className="progress-bar-fill" style={{ width: `${pct}%`, background: exam.color }} />
+                      </div>
+                      <div className="subject-progress-meta">
+                        <IconClock size={14} /> Среднее время на пробник: {p.avgMinutes} мин
+                      </div>
                     </div>
-                    <div className="progress-bar">
-                      <div className="progress-bar-fill" style={{ width: `${pct}%`, background: exam.color }} />
-                    </div>
-                    <div className="subject-progress-meta">
-                      {p.completed > 0 ? (
-                        <><IconClock size={14} /> Среднее время на пробник: {p.avgMinutes} мин</>
-                      ) : (
-                        'Пока не пройдено ни одного пробника'
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </section>
 
           <section className="widget-card">

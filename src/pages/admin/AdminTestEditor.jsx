@@ -4,6 +4,7 @@ import { exams } from '../../data/examData.js'
 import { getTest, createTest, updateTest, listTaskShareCounts } from '../../services/testsService.js'
 import { pluralizeRu } from '../../utils/pluralize.js'
 import { listTopics, listTaskTopicsFor, setTaskTopics } from '../../services/topicsService.js'
+import PageLoader from '../../components/PageLoader.jsx'
 import { useDialog } from '../../contexts/DialogContext.jsx'
 import { listExamParts } from '../../services/examPartsService.js'
 import { clozeBlankIds } from '../../utils/grading.js'
@@ -250,7 +251,7 @@ export default function AdminTestEditor({ examKey }) {
   }, [form?.format, form?.oralTask])
 
   if (!form) {
-    return <div className="tests-empty">Загрузка…</div>
+    return <PageLoader />
   }
 
   // Sections used to come from the hardcoded exam.categories array —

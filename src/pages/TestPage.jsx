@@ -16,6 +16,7 @@ import QuestionImage from '../components/QuestionImage.jsx'
 import QuestionAnswerInput, { PAGINATE_THRESHOLD } from '../components/QuestionAnswerInput.jsx'
 import FloatingPassageWindow from '../components/FloatingPassageWindow.jsx'
 import ReportIssueModal from '../components/ReportIssueModal.jsx'
+import PageLoader from '../components/PageLoader.jsx'
 import { getVerdictWithSelfGrade, hasAnswer, hasAnyAnswer, isAutoGraded, defaultValue } from '../utils/grading.js'
 import { pluralizeRu } from '../utils/pluralize.js'
 import { formatTime, MICROLABEL_BY_TYPE, groupByCategory } from '../utils/testLayout.js'
@@ -288,7 +289,7 @@ export default function TestPage({ examKey }) {
   }, [test, paused, finished])
 
   if (loading) {
-    return <div className="tests-empty">Загрузка пробника…</div>
+    return <PageLoader />
   }
 
   if (!test) {

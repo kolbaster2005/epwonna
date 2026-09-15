@@ -4,6 +4,7 @@ import { exams } from '../data/examData.js'
 import { getTest } from '../services/testsService.js'
 import QuestionImage from '../components/QuestionImage.jsx'
 import { IconImage, IconMic } from '../components/Icons.jsx'
+import PageLoader from '../components/PageLoader.jsx'
 
 function formatTime(totalSeconds) {
   const s = Math.max(0, totalSeconds)
@@ -137,7 +138,7 @@ export default function OralTestPage({ examKey }) {
   }, [phase, paused])
 
   if (loading) {
-    return <div className="tests-empty">Загрузка пробника…</div>
+    return <PageLoader />
   }
 
   if (!test || !test.oralTask) {

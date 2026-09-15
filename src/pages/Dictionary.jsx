@@ -4,6 +4,7 @@ import { useDialog } from '../contexts/DialogContext.jsx'
 import { listWords, deleteWord, wordsToAnkiText, downloadTextFile } from '../services/dictionaryService.js'
 import AddWordModal from '../components/AddWordModal.jsx'
 import { IconDownload, IconPlus, IconEdit, IconTrash, IconBook } from '../components/Icons.jsx'
+import PageLoader from '../components/PageLoader.jsx'
 
 const NO_CATEGORY = 'Без категории'
 
@@ -84,7 +85,7 @@ export default function Dictionary() {
       {!user ? (
         <p className="admin-note">Войдите, чтобы вести свой словарь.</p>
       ) : loading ? (
-        <p className="admin-note">Загрузка…</p>
+        <PageLoader />
       ) : words.length === 0 ? (
         <div className="dict-empty">
           <IconBook size={28} />

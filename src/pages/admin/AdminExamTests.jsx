@@ -5,6 +5,7 @@ import { listTests, deleteTest, setPinned } from '../../services/testsService.js
 import { listTopics } from '../../services/topicsService.js'
 import { pluralizeRu } from '../../utils/pluralize.js'
 import { IconPin, IconPinFilled } from '../../components/Icons.jsx'
+import PageLoader from '../../components/PageLoader.jsx'
 import { useDialog } from '../../contexts/DialogContext.jsx'
 
 export default function AdminExamTests({ examKey }) {
@@ -95,7 +96,7 @@ export default function AdminExamTests({ examKey }) {
       )}
 
       {loading ? (
-        <div className="tests-empty">Загрузка…</div>
+        <PageLoader />
       ) : visibleTests.length === 0 ? (
         <div className="tests-empty">
           {tests.length === 0

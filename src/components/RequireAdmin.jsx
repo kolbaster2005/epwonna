@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import PageLoader from './PageLoader.jsx'
 
 // Wraps every /admin/* route. Not just a UI nicety — the real
 // enforcement is the RLS policies in supabase/schema.sql ("tests:
@@ -12,7 +13,7 @@ export default function RequireAdmin({ children }) {
   const { user, loading, isAdmin, profileLoading } = useAuth()
 
   if (loading || (user && profileLoading)) {
-    return <div className="tests-empty">Загрузка…</div>
+    return <PageLoader />
   }
 
   if (!user || !isAdmin) {

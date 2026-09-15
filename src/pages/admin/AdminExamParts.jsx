@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { exams } from '../../data/examData.js'
 import { listExamParts, createExamPart, updateExamPart, deleteExamPart } from '../../services/examPartsService.js'
 import { IconPlus, IconTrash } from '../../components/Icons.jsx'
+import PageLoader from '../../components/PageLoader.jsx'
 import { useDialog } from '../../contexts/DialogContext.jsx'
 
 // Same slugification as AdminTopics.jsx.
@@ -115,7 +116,7 @@ export default function AdminExamParts({ examKey }) {
       </div>
 
       {loading ? (
-        <p className="admin-note">Загрузка…</p>
+        <PageLoader />
       ) : (
         <>
           {parts.length === 0 ? (

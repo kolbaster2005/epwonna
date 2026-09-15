@@ -1,0 +1,23 @@
+@use '../abstracts' as *;
+
+.page-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-10 $space-5;
+}
+
+.page-loader-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid $color-border;
+  border-top-color: $color-primary;
+  animation: page-loader-spin 0.7s linear infinite;
+}
+
+@keyframes page-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

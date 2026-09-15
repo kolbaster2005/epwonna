@@ -4,7 +4,7 @@
 .directions-grid {
   display: none;
   grid-template-columns: 1fr;
-  gap: $space-5;
+  gap: $space-6;
   margin-bottom: $space-9;
 
   @include mq(lg) {
@@ -23,12 +23,20 @@
   cursor: pointer;
   @include hover-lift;
 
+  &:active {
+    transform: translateY(-2px) scale(0.99);
+  }
+
   @include mq(sm) {
     padding: 25px 24px 28px;
   }
 
+  // Each exam gets its own accent for background, icon, text — and now
+  // also for the border and hover shadow, so the card's edge and lift
+  // feel tied to the same color instead of a generic neutral shadow.
   &.blue {
     background: linear-gradient(160deg, $color-blue-light, #fff 60%);
+    border-color: rgba($color-blue, 0.18);
     .dir-icon {
       background: $color-blue;
     }
@@ -36,9 +44,13 @@
     .goto {
       color: $color-blue;
     }
+    &:hover {
+      box-shadow: 0 20px 40px -16px rgba($color-blue-dark, 0.35);
+    }
   }
   &.violet {
     background: linear-gradient(160deg, $color-violet-light, #fff 60%);
+    border-color: rgba($color-violet, 0.18);
     .dir-icon {
       background: $color-violet;
     }
@@ -46,9 +58,13 @@
     .goto {
       color: $color-violet;
     }
+    &:hover {
+      box-shadow: 0 20px 40px -16px rgba($color-violet-dark, 0.35);
+    }
   }
   &.teal {
     background: linear-gradient(160deg, $color-teal-light, #fff 60%);
+    border-color: rgba($color-teal, 0.18);
     .dir-icon {
       background: $color-teal;
     }
@@ -56,9 +72,13 @@
     .goto {
       color: $color-teal;
     }
+    &:hover {
+      box-shadow: 0 20px 40px -16px rgba($color-teal-dark, 0.35);
+    }
   }
   &.green {
     background: linear-gradient(160deg, $color-green-light, #fff 60%);
+    border-color: rgba($color-green, 0.18);
     .dir-icon {
       background: $color-green;
     }
@@ -66,9 +86,13 @@
     .goto {
       color: $color-green;
     }
+    &:hover {
+      box-shadow: 0 20px 40px -16px rgba($color-green-dark, 0.35);
+    }
   }
   &.red {
     background: linear-gradient(160deg, #fce9e8, #fff 60%);
+    border-color: rgba(#d0453f, 0.18);
     .dir-icon {
       background: #d0453f;
     }
@@ -76,15 +100,22 @@
     .goto {
       color: #d0453f;
     }
+    &:hover {
+      box-shadow: 0 20px 40px -16px rgba(#b0332c, 0.35);
+    }
   }
   &.orange {
     background: linear-gradient(160deg, $color-amber-light, #fff 60%);
+    border-color: rgba($color-amber-dark, 0.18);
     .dir-icon {
       background: $color-amber-dark;
     }
     .sub,
     .goto {
       color: $color-amber-dark;
+    }
+    &:hover {
+      box-shadow: 0 20px 40px -16px rgba($color-amber-dark, 0.35);
     }
   }
 }
@@ -108,7 +139,7 @@
 .coming-soon-section-title {
   font-size: 18px;
   font-weight: 800;
-  margin-bottom: $space-4;
+  margin-bottom: $space-5;
   color: $color-ink-soft;
 }
 
@@ -229,6 +260,10 @@
   padding: $space-6;
   @include hover-lift;
 
+  &:active {
+    transform: translateY(-2px) scale(0.99);
+  }
+
   h4 {
     font-size: 16px;
     font-weight: 800;
@@ -241,6 +276,63 @@
     line-height: 1.55;
     flex: 1; // pushes meta + button to the same baseline across a row
   }
+
+  // Tie the card's edge and hover lift to its exam's own color, same
+  // treatment as .dir-card on the homepage, instead of a neutral
+  // ink-tinted shadow for every exam.
+  &.blue {
+    border-color: rgba($color-blue, 0.16);
+    &:hover {
+      box-shadow: 0 20px 40px -18px rgba($color-blue-dark, 0.35);
+    }
+  }
+  &.violet {
+    border-color: rgba($color-violet, 0.16);
+    &:hover {
+      box-shadow: 0 20px 40px -18px rgba($color-violet-dark, 0.35);
+    }
+  }
+  &.teal {
+    border-color: rgba($color-teal, 0.16);
+    &:hover {
+      box-shadow: 0 20px 40px -18px rgba($color-teal-dark, 0.35);
+    }
+  }
+
+  // Already completed at least once — fade it back so untouched probniks
+  // keep the visual priority. Saturation/opacity recover a bit on hover
+  // so the card doesn't read as disabled.
+  &.completed {
+    filter: saturate(0.5) opacity(0.8);
+
+    &:hover {
+      filter: saturate(0.8) opacity(0.95);
+    }
+  }
+}
+
+.test-card-badges {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  z-index: 1;
+}
+
+.test-done-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: $radius-pill;
+  background: $color-green-light;
+  color: $color-green-dark;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .test-meta {
@@ -271,17 +363,19 @@
   color: #fff;
   font-weight: 700;
   font-size: 14px;
-  transition: filter 0.15s ease;
+  transition: filter 0.15s ease, transform 0.1s ease;
 }
 
 .test-card:hover .test-card-cta {
   filter: brightness(0.93);
 }
 
+.test-card:active .test-card-cta {
+  filter: brightness(0.88);
+  transform: scale(0.98);
+}
+
 .test-pinned-badge {
-  position: absolute;
-  top: 14px;
-  right: 14px;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -290,4 +384,5 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }

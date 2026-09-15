@@ -4,6 +4,7 @@ import { exams } from '../../data/examData.js'
 import { listAllQuestionsForBank, ensureTaskBankTest } from '../../services/testsService.js'
 import { listExamParts } from '../../services/examPartsService.js'
 import { listTopics } from '../../services/topicsService.js'
+import PageLoader from '../../components/PageLoader.jsx'
 
 const TYPE_LABEL = {
   multiple_choice: 'Варианты ответа',
@@ -91,7 +92,7 @@ export default function AdminTaskBank({ examKey }) {
       </p>
 
       {loading ? (
-        <p className="admin-note">Загрузка…</p>
+        <PageLoader />
       ) : (
         <>
           <div className="admin-bank-filters">

@@ -62,6 +62,7 @@ $breakpoints: (
 
 // ---- Shared "lift on hover" interaction for cards ---------------------
 @mixin hover-lift {
+  box-shadow: v.$shadow-resting;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   &:hover {
     transform: translateY(-4px);

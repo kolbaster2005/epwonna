@@ -5,8 +5,7 @@
   position: sticky;
   top: 0;
   z-index: $z-header;
-  background: rgba(247, 249, 252, 0.9);
-  backdrop-filter: blur(10px);
+  background: $color-white;
   border-bottom: 1px solid $color-border;
 }
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { exams } from '../data/examData.js'
 import { listTests } from '../services/testsService.js'
 import { listTopics } from '../services/topicsService.js'
+import { listAttempts } from '../services/attemptsService.js'
 import GenerateProbnikModal from '../components/GenerateProbnikModal.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import TestFilters from '../components/TestFilters.jsx'
@@ -10,7 +11,8 @@ import ExamIcon from '../components/ExamIcon.jsx'
 import ExamHeroArt from '../components/ExamHeroArt.jsx'
 import AboutSection from '../components/AboutSection.jsx'
 import TheoryTab from '../components/TheoryTab.jsx'
-import { IconList, IconClock, IconShield, IconPinFilled } from '../components/Icons.jsx'
+import { IconList, IconClock, IconShield, IconPinFilled, IconCheckCircle } from '../components/Icons.jsx'
+import PageLoader from '../components/PageLoader.jsx'
 import { pluralizeRu } from '../utils/pluralize.js'
 
 // Temporarily hidden per product decision — the modal, state and handler
@@ -50,10 +52,29 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
   const [filterValues, setFilterValues] = useState({})
   const [topics, setTopics] = useState([])
   const [genOpen, setGenOpen] = useState(false)
+  // testId's the person has completed at least once, for this exam only
+  // — dims the card and marks it "Пройдено" in the tests grid below.
+  const [completedTestIds, setCompletedTestIds] = useState(() => new Set())
 
   useEffect(() => {
     listTopics(examKey).then(setTopics)
   }, [examKey])
+
+  useEffect(() => {
+    if (!user) {
+      setCompletedTestIds(new Set())
+      return
+    }
+    let cancelled = false
+    listAttempts(user.id).then((allAttempts) => {
+      if (cancelled) return
+      const ids = allAttempts.filter((a) => a.examKey === examKey).map((a) => a.testId)
+      setCompletedTestIds(new Set(ids))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [user, examKey])
 
   useEffect(() => {
     let cancelled = false
@@ -101,10 +122,10 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
 
   return (
     <>
-      <div className="exam-hero">
+      <div className={`exam-hero ${exam.className}`}>
         <div className="exam-top">
           <div className="exam-tag" style={{ background: exam.color }}>
-            <ExamIcon examKey={examKey} size={22} />
+            <ExamIcon examKey={examKey} size={24} />
           </div>
           <div className="exam-title">
             <h1>{exam.title}</h1>
@@ -113,7 +134,11 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
         </div>
 
         <div className="exam-tabs">
-          <button className={'exam-tab' + (tab === 'tests' ? ' active' : '')} onClick={() => setTab('tests')}>
+          <button
+            className={'exam-tab' + (tab === 'tests' ? ' active' : '')}
+            style={tab === 'tests' ? { color: exam.color, borderColor: exam.color } : undefined}
+            onClick={() => setTab('tests')}
+          >
             Пробники
           </button>
           {isPro && !exam.hidePracticeTab && (
@@ -122,21 +147,37 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
             </Link>
           )}
           {exam.theory && (
-            <button className={'exam-tab' + (tab === 'theory' ? ' active' : '')} onClick={() => setTab('theory')}>
+            <button
+              className={'exam-tab' + (tab === 'theory' ? ' active' : '')}
+              style={tab === 'theory' ? { color: exam.color, borderColor: exam.color } : undefined}
+              onClick={() => setTab('theory')}
+            >
               Теория
             </button>
           )}
           {exam.topicsList && (
-            <button className={'exam-tab' + (tab === 'topics' ? ' active' : '')} onClick={() => setTab('topics')}>
+            <button
+              className={'exam-tab' + (tab === 'topics' ? ' active' : '')}
+              style={tab === 'topics' ? { color: exam.color, borderColor: exam.color } : undefined}
+              onClick={() => setTab('topics')}
+            >
               Список тем
             </button>
           )}
           {exam.usefulMaterials && (
-            <button className={'exam-tab' + (tab === 'materials' ? ' active' : '')} onClick={() => setTab('materials')}>
+            <button
+              className={'exam-tab' + (tab === 'materials' ? ' active' : '')}
+              style={tab === 'materials' ? { color: exam.color, borderColor: exam.color } : undefined}
+              onClick={() => setTab('materials')}
+            >
               Полезные материалы
             </button>
           )}
-          <button className={'exam-tab' + (tab === 'about' ? ' active' : '')} onClick={() => setTab('about')}>
+          <button
+            className={'exam-tab' + (tab === 'about' ? ' active' : '')}
+            style={tab === 'about' ? { color: exam.color, borderColor: exam.color } : undefined}
+            onClick={() => setTab('about')}
+          >
             Об экзамене
           </button>
         </div>
@@ -189,17 +230,32 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
           )}
 
           {loading ? (
-            <div className="tests-empty">Загрузка пробников…</div>
+            <PageLoader />
           ) : filteredTests.length === 0 ? (
             <div className="tests-empty">Ничего не найдено по выбранным фильтрам.</div>
           ) : (
             <div className="tests-grid">
-              {filteredTests.map((test) => (
-                <Link className={`test-card ${exam.className}`} to={`/${examKey}/probnik/${test.id}`} key={test.id}>
-                  {test.isPinned && (
-                    <span className="test-pinned-badge" title="Закреплён">
-                      <IconPinFilled size={13} />
-                    </span>
+              {filteredTests.map((test) => {
+                const isCompleted = completedTestIds.has(test.id)
+                return (
+                <Link
+                  className={`test-card ${exam.className}` + (isCompleted ? ' completed' : '')}
+                  to={`/${examKey}/probnik/${test.id}`}
+                  key={test.id}
+                >
+                  {(test.isPinned || isCompleted) && (
+                    <div className="test-card-badges">
+                      {test.isPinned && (
+                        <span className="test-pinned-badge" title="Закреплён">
+                          <IconPinFilled size={13} />
+                        </span>
+                      )}
+                      {isCompleted && (
+                        <span className="test-done-badge">
+                          <IconCheckCircle size={13} /> Пройдено
+                        </span>
+                      )}
+                    </div>
                   )}
                   <div className="test-icon-badge">
                     <ExamIcon examKey={examKey} color={exam.color} size={22} />
@@ -226,7 +282,8 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
                     {test.isModel ? 'Посмотреть модель →' : 'Перейти к пробнику →'}
                   </span>
                 </Link>
-              ))}
+                )
+              })}
             </div>
           )}
         </>

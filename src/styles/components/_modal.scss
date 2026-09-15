@@ -137,19 +137,19 @@
 
 .user-avatar-pro-badge {
   position: absolute;
-  bottom: -4px;
-  right: -6px;
-  font-size: 8px;
-  line-height: 1.4;
-  padding: 1px 5px;
-  border: 1.5px solid #fff;
+  bottom: -3px;
+  right: -5px;
+  font-size: 6.5px;
+  line-height: 1.2;
+  padding: 0 4px;
+  border: 1px solid #fff;
 }
 
 .user-avatar {
   @include button-reset;
   width: 34px;
   height: 34px;
-  border-radius: 50%;
+  border-radius: $radius-sm;
   background: $color-primary;
   color: #fff;
   font-family: $font-display;

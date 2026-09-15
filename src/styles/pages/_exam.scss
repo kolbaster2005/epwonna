@@ -88,43 +88,61 @@
 .exam-top {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 12px;
+  margin-bottom: 10px;
 
   @include mq(sm) {
-    gap: 12px;
+    gap: 16px;
   }
 }
 
 .exam-tag {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: $radius-md;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+
+  @include mq(sm) {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+// Soft tinted glow behind the icon tag, tying the header to the exam's
+// own color the same way .dir-card's border/shadow does on the homepage.
+.exam-hero.blue .exam-tag {
+  box-shadow: 0 8px 20px -8px rgba($color-blue-dark, 0.45);
+}
+.exam-hero.violet .exam-tag {
+  box-shadow: 0 8px 20px -8px rgba($color-violet-dark, 0.45);
+}
+.exam-hero.teal .exam-tag {
+  box-shadow: 0 8px 20px -8px rgba($color-teal-dark, 0.45);
 }
 
 .exam-title {
   h1 {
-    font-size: 16px;
+    font-size: 18px;
     font-family: $font-display;
     font-weight: 800;
+    letter-spacing: -0.01em;
 
     @include mq(sm) {
-      font-size: 19px;
+      font-size: 22px;
     }
   }
 
   p {
     color: $color-gray;
-    font-size: 12px;
-    margin-top: 2px;
+    font-size: 12.5px;
+    margin-top: 3px;
 
     @include mq(sm) {
-      font-size: 12.5px;
+      font-size: 13.5px;
     }
   }
 }
@@ -256,8 +274,9 @@
   background: #fff;
   border: 1px solid $color-border;
   border-radius: $radius-lg;
-  margin: $space-5 0;
+  margin: $space-4 0;
   overflow: hidden;
+  box-shadow: $shadow-resting;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &.open {

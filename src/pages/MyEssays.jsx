@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useDialog } from '../contexts/DialogContext.jsx'
 import { listEssaySubmissions, deleteEssaySubmission } from '../services/essaysService.js'
 import { IconTrash } from '../components/Icons.jsx'
+import PageLoader from '../components/PageLoader.jsx'
 
 function formatShortDate(iso) {
   return new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
@@ -65,7 +66,7 @@ export default function MyEssays() {
           <section className="widget-card wide">
             <h2>Сохранённые работы</h2>
             {loading ? (
-              <p className="admin-note">Загрузка…</p>
+              <PageLoader />
             ) : essays.length === 0 ? (
               <p className="admin-note">
                 Пока нет сохранённых сочинений — они появятся здесь после того, как вы напишете и отправите

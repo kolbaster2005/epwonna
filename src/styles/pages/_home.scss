@@ -97,11 +97,17 @@
   background: #fff;
   border: 1px solid $color-border;
   border-radius: $radius-md;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  box-shadow: $shadow-resting;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
     border-color: $color-primary;
     transform: translateY(-1px);
+    box-shadow: 0 10px 24px -14px rgba($color-primary-dark, 0.35);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
   }
 
   .feature-icon {
@@ -166,11 +172,15 @@
   gap: 12px;
   padding: 14px 16px;
   border-radius: $radius-md;
-  transition: filter 0.15s ease;
+  transition: filter 0.15s ease, transform 0.1s ease;
 
-  &:hover,
-  &:active {
+  &:hover {
     filter: brightness(0.96);
+  }
+
+  &:active {
+    filter: brightness(0.94);
+    transform: scale(0.98);
   }
 
   &.blue {

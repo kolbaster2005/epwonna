@@ -4,6 +4,7 @@ import { exams } from '../data/examData.js'
 import { getTest } from '../services/testsService.js'
 import ExamIcon from '../components/ExamIcon.jsx'
 import { IconList, IconClock, IconShield, IconCalendar, IconHome, IconChevronRight, IconDownload } from '../components/Icons.jsx'
+import PageLoader from '../components/PageLoader.jsx'
 import { pluralizeRu } from '../utils/pluralize.js'
 
 export default function TestDetailPage({ examKey }) {
@@ -28,7 +29,7 @@ export default function TestDetailPage({ examKey }) {
   }, [examKey, testId])
 
   if (loading) {
-    return <div className="tests-empty">Загрузка пробника…</div>
+    return <PageLoader />
   }
 
   if (!test) {

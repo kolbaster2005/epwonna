@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { exams } from '../../data/examData.js'
 import { listTopics, createTopic, updateTopic, deleteTopic } from '../../services/topicsService.js'
 import { IconPlus, IconTrash } from '../../components/Icons.jsx'
+import PageLoader from '../../components/PageLoader.jsx'
 import { useDialog } from '../../contexts/DialogContext.jsx'
 
 // Same slugification the person would otherwise have to do by hand —
@@ -114,7 +115,7 @@ export default function AdminTopics({ examKey }) {
       </div>
 
       {loading ? (
-        <p className="admin-note">Загрузка…</p>
+        <PageLoader />
       ) : (
         <>
           {topics.length === 0 ? (

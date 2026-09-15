@@ -4,6 +4,7 @@ import { exams } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { listTopics } from '../services/topicsService.js'
 import { listTaskTypesForExam, generatePracticeTest } from '../services/practiceService.js'
+import PageLoader from '../components/PageLoader.jsx'
 
 // Pro-фича — тренировка по конкретной теме и/или конкретному типу
 // задания вместо целого пробника. Доступна только пользователям из
@@ -63,7 +64,7 @@ export default function PracticeBuilder({ examKey }) {
       </div>
 
       {loading ? (
-        <p className="admin-note">Загрузка…</p>
+        <PageLoader />
       ) : (
         <div className="practice-builder-form">
           <label className="admin-field">

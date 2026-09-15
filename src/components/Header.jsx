@@ -76,8 +76,8 @@ export default function Header({ onBurgerClick }) {
   }
 
   return (
-    <header className="main-wrapper site-header">
-      <div className="header-inner">
+    <header className="site-header">
+      <div className="header-inner main-wrapper">
         <Link to="/" className="logo">
           <div className="logo-mark">
             <img src={logo} alt="" />

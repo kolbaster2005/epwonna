@@ -18,13 +18,16 @@
   font-size: 14px;
   color: $color-gray;
   border-bottom: 2.5px solid transparent;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease, border-color 0.15s ease, opacity 0.1s ease;
 
   @include mq(sm) {
     margin-right: 26px;
     font-size: 15px;
   }
 
+  // Active color comes from an inline style set per exam (see
+  // ExamPage.jsx) so the underline matches that exam's own accent
+  // instead of a fixed neutral ink color.
   &.active {
     color: $color-ink;
     border-color: currentColor;
@@ -32,6 +35,10 @@
 
   &:hover {
     color: $color-ink;
+  }
+
+  &:active {
+    opacity: 0.7;
   }
 }
 

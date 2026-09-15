@@ -7,6 +7,7 @@ import { getAttempt } from '../services/attemptsService.js'
 import QuestionImage from '../components/QuestionImage.jsx'
 import QuestionAnswerInput, { PAGINATE_THRESHOLD } from '../components/QuestionAnswerInput.jsx'
 import FloatingPassageWindow from '../components/FloatingPassageWindow.jsx'
+import PageLoader from '../components/PageLoader.jsx'
 import { getVerdictWithSelfGrade, hasAnswer, defaultValue } from '../utils/grading.js'
 import { MICROLABEL_BY_TYPE, groupByCategory } from '../utils/testLayout.js'
 
@@ -77,7 +78,7 @@ export default function AttemptReview() {
   }, [question?.id])
 
   if (attempt === undefined) {
-    return <div className="tests-empty">Загрузка…</div>
+    return <PageLoader />
   }
 
   if (!attempt || !test) {

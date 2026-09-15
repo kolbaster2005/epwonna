@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getVisitStats, getMostAttemptedTests } from '../../services/statsService.js'
 import { isExcludedFromStats, excludeThisDeviceFromStats, includeThisDeviceInStats } from '../../lib/visits.js'
+import PageLoader from '../../components/PageLoader.jsx'
 
 function formatDay(dayStr) {
   const d = new Date(dayStr + 'T00:00:00')
@@ -56,7 +57,7 @@ export default function AdminStats() {
       </div>
 
       {loading ? (
-        <p className="admin-note">Загрузка…</p>
+        <PageLoader />
       ) : !stats ? (
         <p className="admin-note">
           Не удалось загрузить статистику — возможно, таблица <code>page_views</code> ещё не создана (нужно

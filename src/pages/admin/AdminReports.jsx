@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listQuestionReports, setReportStatus } from '../../services/reportsService.js'
+import PageLoader from '../../components/PageLoader.jsx'
 
 function formatDate(iso) {
   return new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -37,7 +38,7 @@ export default function AdminReports() {
       </div>
 
       {loading ? (
-        <p className="admin-note">Загрузка…</p>
+        <PageLoader />
       ) : reports.length === 0 ? (
         <p className="admin-note">Обращений пока нет.</p>
       ) : (
