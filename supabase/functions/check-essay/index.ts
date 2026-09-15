@@ -47,6 +47,10 @@ const MIN_WORDS = 30
 // потратить всё за раз. Легко поменять в одном месте, когда будет
 // понятно по реальному трафику, что 2 — мало или много.
 const DAILY_LIMIT = 2
+// Держим в синхроне со списком в src/contexts/AuthContext.jsx и
+// supabase/functions/generate-practice-test/index.ts — pro-пользователи
+// (пока только сам разработчик) не упираются в дневной лимит проверок.
+const PRO_EMAILS = ['maksimmissuragin@gmail.com']
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -249,29 +253,36 @@ Deno.serve(async (req: Request) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return jsonResponse({ error: 'Не авторизован.' }, 401)
 
+    const isPro = !!user.email && PRO_EMAILS.includes(user.email)
+
     // Дневной лимит — считаем, сколько проверок этот пользователь уже
     // получил с начала текущих суток (UTC), и отказываем до истечения
     // лимита. Простая реализация: essay_ai_reviews уже хранит и
     // user_id, и created_at — отдельная таблица-счётчик не нужна.
-    const startOfDayUtc = new Date()
-    startOfDayUtc.setUTCHours(0, 0, 0, 0)
-    const { count: todayCount, error: countErr } = await userClient
-      .from('essay_ai_reviews')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', startOfDayUtc.toISOString())
-    if (countErr) {
-      console.error('Daily limit count error:', countErr)
-      // Не блокируем проверку из-за сбоя самого подсчёта лимита —
-      // лучше пропустить проверку, чем ложно отказать всем.
-    } else if ((todayCount ?? 0) >= DAILY_LIMIT) {
-      return jsonResponse(
-        {
-          error: `Дневной лимит проверок (${DAILY_LIMIT} в день) исчерпан. Новые проверки будут доступны завтра.`,
-          usage: { used: todayCount, limit: DAILY_LIMIT },
-        },
-        429
-      )
+    // Pro-пользователи лимит не видят вообще.
+    let todayCount = 0
+    if (!isPro) {
+      const startOfDayUtc = new Date()
+      startOfDayUtc.setUTCHours(0, 0, 0, 0)
+      const { count, error: countErr } = await userClient
+        .from('essay_ai_reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', startOfDayUtc.toISOString())
+      todayCount = count ?? 0
+      if (countErr) {
+        console.error('Daily limit count error:', countErr)
+        // Не блокируем проверку из-за сбоя самого подсчёта лимита —
+        // лучше пропустить проверку, чем ложно отказать всем.
+      } else if (todayCount >= DAILY_LIMIT) {
+        return jsonResponse(
+          {
+            error: `Дневной лимит проверок (${DAILY_LIMIT} в день) исчерпан. Новые проверки будут доступны завтра.`,
+            usage: { used: todayCount, limit: DAILY_LIMIT },
+          },
+          429
+        )
+      }
     }
 
     const { data: question, error: qErr } = await userClient
@@ -451,7 +462,7 @@ Deno.serve(async (req: Request) => {
       .select()
       .single()
 
-    const usage = { used: (todayCount ?? 0) + 1, limit: DAILY_LIMIT }
+    const usage = isPro ? null : { used: todayCount + 1, limit: DAILY_LIMIT }
 
     if (insErr) {
       console.error('Insert error:', insErr)

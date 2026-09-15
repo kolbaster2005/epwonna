@@ -24,7 +24,7 @@ export default function TestPage({ examKey }) {
   const { testId } = useParams()
   const navigate = useNavigate()
   const exam = exams[examKey]
-  const { user } = useAuth()
+  const { user, isPro } = useAuth()
   const { confirm } = useDialog()
 
   const [test, setTest] = useState(undefined) // undefined = loading, null = not found
@@ -134,7 +134,7 @@ export default function TestPage({ examKey }) {
     setEssayCheckError(null)
     if (currentQuestionForView?.type !== 'essay_choice') return undefined
     let cancelled = false
-    if (user) {
+    if (user && !isPro) {
       getTodayEssayCheckUsage(user.id).then((u) => {
         if (!cancelled) setEssayUsage(u)
       })
@@ -199,7 +199,7 @@ export default function TestPage({ examKey }) {
     setQaTableCheckError(null)
     if (!qaTableSupportsAiCheck) return undefined
     let cancelled = false
-    if (user) {
+    if (user && !isPro) {
       getTodayQaTableCheckUsage(user.id).then((u) => {
         if (!cancelled) setQaTableUsage(u)
       })

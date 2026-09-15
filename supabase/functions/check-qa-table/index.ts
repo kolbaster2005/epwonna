@@ -36,6 +36,9 @@ const GEMINI_FALLBACK_MODEL = 'gemini-3.5-flash-lite'
 // проверки сразу проще для восприятия). Держим в синхроне с
 // DAILY_QA_TABLE_CHECK_LIMIT в src/services/qaTableAiService.js.
 const DAILY_LIMIT = 4
+// Держим в синхроне со списком в src/contexts/AuthContext.jsx и
+// supabase/functions/generate-practice-test/index.ts.
+const PRO_EMAILS = ['maksimmissuragin@gmail.com']
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -160,23 +163,29 @@ Deno.serve(async (req: Request) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return jsonResponse({ error: 'Не авторизован.' }, 401)
 
-    const startOfDayUtc = new Date()
-    startOfDayUtc.setUTCHours(0, 0, 0, 0)
-    const { count: usedCount, error: countErr } = await userClient
-      .from('qa_table_ai_reviews')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', startOfDayUtc.toISOString())
-    if (countErr) {
-      console.error('Daily limit count error:', countErr)
-    } else if ((usedCount ?? 0) >= DAILY_LIMIT) {
-      return jsonResponse(
-        {
-          error: `Дневной лимит проверок (${DAILY_LIMIT} в день) исчерпан. Новые проверки будут доступны завтра.`,
-          usage: { used: usedCount, limit: DAILY_LIMIT },
-        },
-        429
-      )
+    const isPro = !!user.email && PRO_EMAILS.includes(user.email)
+
+    let usedCount = 0
+    if (!isPro) {
+      const startOfDayUtc = new Date()
+      startOfDayUtc.setUTCHours(0, 0, 0, 0)
+      const { count, error: countErr } = await userClient
+        .from('qa_table_ai_reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', startOfDayUtc.toISOString())
+      usedCount = count ?? 0
+      if (countErr) {
+        console.error('Daily limit count error:', countErr)
+      } else if (usedCount >= DAILY_LIMIT) {
+        return jsonResponse(
+          {
+            error: `Дневной лимит проверок (${DAILY_LIMIT} в день) исчерпан. Новые проверки будут доступны завтра.`,
+            usage: { used: usedCount, limit: DAILY_LIMIT },
+          },
+          429
+        )
+      }
     }
 
     const { data: question, error: qErr } = await userClient
@@ -302,7 +311,7 @@ Deno.serve(async (req: Request) => {
       .select()
       .single()
 
-    const usage = { used: (usedCount ?? 0) + 1, limit: DAILY_LIMIT }
+    const usage = isPro ? null : { used: usedCount + 1, limit: DAILY_LIMIT }
 
     if (insErr) {
       console.error('Insert error:', insErr)
