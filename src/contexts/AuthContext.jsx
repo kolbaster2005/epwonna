@@ -77,8 +77,21 @@ export function AuthProvider({ children }) {
     // Keeps `user` in sync across tabs and after token refresh, sign-in,
     // sign-out, etc. — anything that touches the session goes through
     // this one listener instead of every call site updating state itself.
+    //
+    // Supabase fires this same event on a plain token refresh too — which
+    // happens automatically whenever the tab regains focus/visibility,
+    // not just on real sign-in/out. That refresh carries a brand-new
+    // `session.user` object even though the actual logged-in person
+    // hasn't changed. Blindly calling setUser() with it used to hand out
+    // a new reference on every tab-switch, which made every effect
+    // elsewhere in the app keyed on `user` (draft-attempt checks on
+    // TestPage, progress refetches on MyLearning, etc.) think the user
+    // had changed and re-run — showing loading flashes/re-fetched data
+    // just from switching tabs and back. Only replace `user` when the
+    // actual identity changed (different id, or logged in/out).
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      const nextUser = session?.user ?? null
+      setUser((prev) => (prev?.id === nextUser?.id ? prev : nextUser))
     })
 
     return () => listener.subscription.unsubscribe()

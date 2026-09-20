@@ -68,6 +68,106 @@
   white-space: pre-line;
 }
 
+.audio-player {
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: 18px 20px;
+  margin: $space-5 0 $space-6;
+}
+
+.audio-player-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: $color-ink;
+  margin-bottom: 12px;
+}
+
+.audio-player-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.audio-player-toggle {
+  @include button-reset;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: $color-primary;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 6px 14px -6px rgba(18, 32, 61, 0.35);
+  transition: filter 0.15s ease, transform 0.1s ease;
+
+  &:hover {
+    filter: brightness(0.92);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.audio-player-time {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: $color-gray;
+  font-weight: 600;
+  min-width: 34px;
+}
+
+.audio-player-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: $color-border;
+  cursor: pointer;
+  position: relative;
+
+  // Bigger hit area than the visible 6px track, without an equally tall
+  // visual bar.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -7px 0;
+  }
+}
+
+.audio-player-track-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: $color-primary;
+  position: relative;
+  pointer-events: none;
+
+  // Round thumb at the current playback position — a plain filled bar
+  // reads as a loading indicator, not a scrubber.
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -1px;
+    transform: translate(50%, -50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: inherit;
+    box-shadow: 0 0 0 2px #fff;
+  }
+}
+
+.audio-player-error {
+  font-size: 13px;
+  color: #b0332c;
+  margin: 0;
+}
+
 // Standalone full-width reading view (view === 'text') — flows with the
 // page like any other content, no fixed height/scrollbar.
 .test-passage-full {
@@ -83,6 +183,7 @@
   border: 1px solid $color-border;
   border-radius: $radius-lg;
   padding: $space-5;
+  box-shadow: $shadow-resting;
   position: static;
 
   @include mq(lg) {
@@ -316,6 +417,7 @@
   border: 1px solid $color-border;
   border-radius: $radius-lg;
   padding: $space-6;
+  box-shadow: $shadow-resting;
   min-width: 0;
 
   @include mq(sm) {

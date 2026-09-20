@@ -17,6 +17,31 @@ import epdOralModel1Grafik from '../assets/oral/epd-oral-model-1-grafik.jpg'
 import epdOralModel1Karikatur from '../assets/oral/epd-oral-model-1-karikatur.jpg'
 import epdOralModel1Bildimpuls from '../assets/oral/epd-oral-model-1-bildimpuls.jpg'
 import epdOralModel1_2bGrafik from '../assets/oral/epd-oral-model-1-2b-grafik.jpg'
+import epdOralMedien1Grafik from '../assets/oral/epd-oral-medien-1-grafik.jpg'
+import epdOralMedien1Karikatur from '../assets/oral/epd-oral-medien-1-karikatur.jpg'
+import epdOralUmwelt1Grafik from '../assets/oral/epd-oral-umwelt-1-grafik.jpg'
+import epdOralUmwelt1Karikatur from '../assets/oral/epd-oral-umwelt-1-karikatur.jpg'
+import epdOralWohnen1Grafik from '../assets/oral/epd-oral-wohnen-1-grafik.jpg'
+import epdOralWohnen1Karikatur from '../assets/oral/epd-oral-wohnen-1-karikatur.jpg'
+import epdOralWohnen1Teil2Karikatur from '../assets/oral/epd-oral-wohnen-1-teil2-karikatur.jpg'
+import epdOralLernen1Grafik from '../assets/oral/epd-oral-lernen-1-grafik.jpg'
+import epdOralLernen1Bildimpuls from '../assets/oral/epd-oral-lernen-1-bildimpuls.jpg'
+import epdOralLernen1Karikatur from '../assets/oral/epd-oral-lernen-1-karikatur.jpg'
+import epdOralGesundheit1Grafik from '../assets/oral/epd-oral-gesundheit-1-grafik.jpg'
+import epdOralGesundheit1Karikatur from '../assets/oral/epd-oral-gesundheit-1-karikatur.jpg'
+import epdOralGesundheit1Bildimpuls from '../assets/oral/epd-oral-gesundheit-1-bildimpuls.jpg'
+import epdOralKonsum1Grafik from '../assets/oral/epd-oral-konsum-1-grafik.jpg'
+import epdOralKonsum1Karikatur from '../assets/oral/epd-oral-konsum-1-karikatur.jpg'
+import epdOralKonsum1Bildimpuls from '../assets/oral/epd-oral-konsum-1-bildimpuls.jpg'
+import epdOralEngagement1Grafik from '../assets/oral/epd-oral-engagement-1-grafik.jpg'
+import epdOralEngagement1Karikatur from '../assets/oral/epd-oral-engagement-1-karikatur.jpg'
+import epdOralEngagement1Bildimpuls from '../assets/oral/epd-oral-engagement-1-bildimpuls.jpg'
+import epdOralGeschlechtergerechtigkeit1Bildimpuls from '../assets/oral/epd-oral-geschlechtergerechtigkeit-1-bildimpuls.jpg'
+import epdOralGeschlechtergerechtigkeit1Karikatur from '../assets/oral/epd-oral-geschlechtergerechtigkeit-1-karikatur.jpg'
+import epdOralGeschlechtergerechtigkeit1Grafik from '../assets/oral/epd-oral-geschlechtergerechtigkeit-1-grafik.jpg'
+import epdOralArbeitswelt1Grafik from '../assets/oral/epd-oral-arbeitswelt-1-grafik.jpg'
+import epdOralArbeitswelt1Karikatur from '../assets/oral/epd-oral-arbeitswelt-1-karikatur.jpg'
+import epdOralArbeitswelt1Bildimpuls from '../assets/oral/epd-oral-arbeitswelt-1-bildimpuls.jpg'
 import epeSample1WritingBlog from '../assets/questions/epe-sample-1-writing-blog.jpg'
 import epeSellallBlogComment from '../assets/questions/epe-sellall-blog-comment.jpg'
 import epeFarmingBlogPost from '../assets/questions/epe-farming-blog-post.jpg'
@@ -62,6 +87,31 @@ const REAL_PHOTOS = {
   'epd-oral-model-1-karikatur': epdOralModel1Karikatur,
   'epd-oral-model-1-bildimpuls': epdOralModel1Bildimpuls,
   'epd-oral-model-1-2b-grafik': epdOralModel1_2bGrafik,
+  'epd-oral-medien-1-grafik': epdOralMedien1Grafik,
+  'epd-oral-medien-1-karikatur': epdOralMedien1Karikatur,
+  'epd-oral-umwelt-1-grafik': epdOralUmwelt1Grafik,
+  'epd-oral-umwelt-1-karikatur': epdOralUmwelt1Karikatur,
+  'epd-oral-wohnen-1-grafik': epdOralWohnen1Grafik,
+  'epd-oral-wohnen-1-karikatur': epdOralWohnen1Karikatur,
+  'epd-oral-wohnen-1-teil2-karikatur': epdOralWohnen1Teil2Karikatur,
+  'epd-oral-lernen-1-grafik': epdOralLernen1Grafik,
+  'epd-oral-lernen-1-bildimpuls': epdOralLernen1Bildimpuls,
+  'epd-oral-lernen-1-karikatur': epdOralLernen1Karikatur,
+  'epd-oral-gesundheit-1-grafik': epdOralGesundheit1Grafik,
+  'epd-oral-gesundheit-1-karikatur': epdOralGesundheit1Karikatur,
+  'epd-oral-gesundheit-1-bildimpuls': epdOralGesundheit1Bildimpuls,
+  'epd-oral-konsum-1-grafik': epdOralKonsum1Grafik,
+  'epd-oral-konsum-1-karikatur': epdOralKonsum1Karikatur,
+  'epd-oral-konsum-1-bildimpuls': epdOralKonsum1Bildimpuls,
+  'epd-oral-engagement-1-grafik': epdOralEngagement1Grafik,
+  'epd-oral-engagement-1-karikatur': epdOralEngagement1Karikatur,
+  'epd-oral-engagement-1-bildimpuls': epdOralEngagement1Bildimpuls,
+  'epd-oral-geschlechtergerechtigkeit-1-bildimpuls': epdOralGeschlechtergerechtigkeit1Bildimpuls,
+  'epd-oral-geschlechtergerechtigkeit-1-karikatur': epdOralGeschlechtergerechtigkeit1Karikatur,
+  'epd-oral-geschlechtergerechtigkeit-1-grafik': epdOralGeschlechtergerechtigkeit1Grafik,
+  'epd-oral-arbeitswelt-1-grafik': epdOralArbeitswelt1Grafik,
+  'epd-oral-arbeitswelt-1-karikatur': epdOralArbeitswelt1Karikatur,
+  'epd-oral-arbeitswelt-1-bildimpuls': epdOralArbeitswelt1Bildimpuls,
   'epe-sample-1-writing-blog': epeSample1WritingBlog,
   'epe-sellall-blog-comment': epeSellallBlogComment,
   'epe-farming-blog-post': epeFarmingBlogPost,

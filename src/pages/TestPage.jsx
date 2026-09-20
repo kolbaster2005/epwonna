@@ -15,6 +15,7 @@ import { useDialog } from '../contexts/DialogContext.jsx'
 import QuestionImage from '../components/QuestionImage.jsx'
 import QuestionAnswerInput, { PAGINATE_THRESHOLD } from '../components/QuestionAnswerInput.jsx'
 import FloatingPassageWindow from '../components/FloatingPassageWindow.jsx'
+import AudioPlayer from '../components/AudioPlayer.jsx'
 import ReportIssueModal from '../components/ReportIssueModal.jsx'
 import PageLoader from '../components/PageLoader.jsx'
 import { getVerdictWithSelfGrade, hasAnswer, hasAnyAnswer, isAutoGraded, defaultValue } from '../utils/grading.js'
@@ -678,6 +679,8 @@ export default function TestPage({ examKey }) {
       </div>
       <h1 className="test-question-text">{question.text}</h1>
 
+      {passage?.audioUrl && <AudioPlayer src={passage.audioUrl} color={exam.color} />}
+
       {question.explanation && <p className="test-explanation">{question.explanation}</p>}
 
       {question.image && <QuestionImage name={question.image} />}
@@ -771,7 +774,7 @@ export default function TestPage({ examKey }) {
   const passageCore = passage && (
     <>
       {passage.title && <h3>{passage.title}</h3>}
-      <div className="test-passage-text">{passage.text}</div>
+      {passage.text && <div className="test-passage-text">{passage.text}</div>}
     </>
   )
 
@@ -846,7 +849,7 @@ export default function TestPage({ examKey }) {
         </aside>
 
         <section className="test-main">
-          {passage && (
+          {passage?.text && (
             <div className="test-view-switch">
               <button type="button" className={'test-view-tab' + (view === 'text' ? ' active' : '')} onClick={() => setView('text')}>
                 📖 Текст
@@ -869,7 +872,7 @@ export default function TestPage({ examKey }) {
             </div>
           )}
 
-          {passage && view === 'text' ? (
+          {passage?.text && view === 'text' ? (
             <div className="test-passage-full">{passageCore}</div>
           ) : (
             <div className="test-question-block">{questionCore}</div>

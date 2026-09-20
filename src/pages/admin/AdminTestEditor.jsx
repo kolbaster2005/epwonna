@@ -7,6 +7,8 @@ import { listTopics, listTaskTopicsFor, setTaskTopics } from '../../services/top
 import PageLoader from '../../components/PageLoader.jsx'
 import { useDialog } from '../../contexts/DialogContext.jsx'
 import { listExamParts } from '../../services/examPartsService.js'
+import { listContentForExam } from '../../services/contentService.js'
+import ContentAudioPicker from '../../components/ContentAudioPicker.jsx'
 import { clozeBlankIds } from '../../utils/grading.js'
 
 function uid(prefix) {
@@ -239,6 +241,12 @@ export default function AdminTestEditor({ examKey }) {
   useEffect(() => {
     listExamParts(examKey).then(setExamParts)
   }, [examKey])
+
+  const [contentList, setContentList] = useState([])
+  function reloadContentList() {
+    listContentForExam(examKey).then(setContentList)
+  }
+  useEffect(reloadContentList, [examKey])
 
   // If the format is switched to "устная часть" (or an existing test
   // somehow has none), make sure there's always a real oralTask object
@@ -963,6 +971,9 @@ export default function AdminTestEditor({ examKey }) {
       <form className="admin-form" onSubmit={handleSubmit}>
         <div className="admin-header">
           <h1>{isNew ? 'Новый пробник' : 'Редактирование пробника'}</h1>
+          {form.format !== 'oral' && (
+            <Link className="btn btn-outline btn-sm" to={`/admin/${examKey}/parts`}>Части экзамена</Link>
+          )}
         </div>
 
         <div className="admin-fieldset">
@@ -1329,6 +1340,19 @@ export default function AdminTestEditor({ examKey }) {
                         </select>
                       </label>
                     )}
+
+                    <label className="admin-field">
+                      <span>
+                        Аудио / переиспользуемый текст <em>(из банка — доступно любому вопросу в любом пробнике, не только в этом)</em>
+                      </span>
+                      <ContentAudioPicker
+                        examKey={examKey}
+                        value={q.contentId}
+                        options={contentList}
+                        onChange={(contentId) => setQuestion(qIndex, { contentId })}
+                        onCreated={reloadContentList}
+                      />
+                    </label>
 
               <label className="admin-field">
                 <span>Тип ответа</span>
