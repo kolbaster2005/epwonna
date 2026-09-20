@@ -53,14 +53,31 @@ export default function TheoryTab({ theory, exam }) {
           )}
           {section.sub?.length > 0 && (
             <ul className="theory-links">
-              {section.sub.map((item) => (
-                <li key={item.h}>
-                  <button type="button" className={`theory-link ${exam.className}`} onClick={() => setArticle(item)}>
-                    <span>{item.h}</span>
-                    <IconChevronRight size={15} />
-                  </button>
-                </li>
-              ))}
+              {section.sub.map((item) =>
+                // items with only a link and no article body (no content/rules)
+                // are just a plain link — no point opening the article view
+                // just to show a single "Скачать материалы" link again.
+                item.downloadUrl && !item.content && !item.rules ? (
+                  <li key={item.h}>
+                    <a
+                      className={`theory-link ${exam.className}`}
+                      href={item.downloadUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <span>{item.h}</span>
+                      <IconChevronRight size={15} />
+                    </a>
+                  </li>
+                ) : (
+                  <li key={item.h}>
+                    <button type="button" className={`theory-link ${exam.className}`} onClick={() => setArticle(item)}>
+                      <span>{item.h}</span>
+                      <IconChevronRight size={15} />
+                    </button>
+                  </li>
+                )
+              )}
             </ul>
           )}
         </div>

@@ -292,6 +292,13 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
       {tab === 'about' && (
         <div className="about-layout">
           <div className="about-text">
+            {exam.topicsLink && (
+              <p>
+                <a className="about-toplink" href={exam.topicsLink} target="_blank" rel="noreferrer">
+                  Список тем
+                </a>
+              </p>
+            )}
             {exam.about.map((section, i) => (
               <AboutSection section={section} exam={exam} key={i} />
             ))}

@@ -314,13 +314,20 @@ export const exams = {
       },
     ],
 
-    // "Теория" tab (see ExamPage.jsx: rendered whenever exam.theory is
-    // set, same as topicsList/usefulMaterials below). Empty for now on
-    // purpose — links get added here later; the tab itself should exist
-    // in the meantime.
+    // "Теория" tab (see ExamPage.jsx: rendered whenever exam.theory is set,
+    // same as usefulMaterials below).
     theory: {
       h: 'Теория',
       sub: [
+        {
+          h: 'Список тем',
+          sub: [
+            {
+              h: 'Список тем',
+              downloadUrl: 'https://drive.google.com/file/d/10aaARhvd0w-k8Utq8Av_ZqYGGT5CiVLq/view?usp=sharing',
+            },
+          ],
+        },
         {
           h: 'Грамматика',
           sub: [
@@ -1006,22 +1013,6 @@ export const exams = {
       ],
     },
 
-    topicsList: {
-      h: 'Список тем',
-      content: [{ type: 'p', text: 'Официальный список тем для подготовки к экзамену — на них может строиться и письменная, и устная часть. Нажмите на тему, чтобы раскрыть подпункты.' }],
-      sub: [
-        { h: 'Arbeitswelt und Wirtschaft', content: [{ type: 'list', items: ['Berufswahl', 'Arbeitsbedingungen', 'Veränderungen der Arbeitswelt', 'Frauen in der Arbeitswelt'] }] },
-        { h: 'Beziehungen und Geschlechtergerechtigkeit', content: [{ type: 'list', items: ['Beziehungen innerhalb und außerhalb der Familie', 'Formen des Zusammenlebens', 'Mann – Frau', 'Generationen', 'Freundschaft', 'Gleichstellung der Geschlechter'] }] },
-        { h: 'Gesellschaft und soziales Engagement', content: [{ type: 'list', items: ['Menschenrechte', 'Umgang mit Minderheiten', 'Ehrenamt', 'Werte', 'Diversität', 'Armut'] }] },
-        { h: 'Konsumgesellschaft', content: [{ type: 'list', items: ['Einkaufsverhalten', 'Rolle der Werbung', 'Online-Shopping vs. stationärer Handel', 'Wegwerfgesellschaft', 'Fairer Handel'] }] },
-        { h: 'Körperliche und mentale Gesundheit', content: [{ type: 'list', items: ['Ernährung und Lebensstil', 'Bewegung und Sport', 'Abhängigkeiten', 'psychisches Wohlbefinden'] }] },
-        { h: 'Lernen, Bildung, Studium, Wissenschaft', content: [{ type: 'list', items: ['Ausbildung', 'Lern- und Studiertechniken', 'Sprachen lernen', 'Gründe für Studienwahl', 'Studienvoraussetzungen', 'Studieren im Ausland', 'Studienfinanzierung', 'wissenschaftliches Arbeiten und Forschung'] }] },
-        { h: 'Medien', content: [{ type: 'list', items: ['Formen und Funktionen von Medien', 'Printmedien, digitale Medien, soziale Medien', 'Medienkompetenz', 'verlässliche Quellen', 'Datensicherheit', 'Gefahren und Chancen von Medien', 'Internetsucht', 'Manipulation', 'kollaboratives Lernen und Arbeiten', 'einfacher Zugang zu Information', 'neue Kommunikationsmöglichkeiten', 'Künstliche Intelligenz'] }] },
-        { h: 'Tourismus und Reisen', content: [{ type: 'list', items: ['Vor- und Nachteile von verschiedenen Arten des Reisens', 'Auswirkungen auf Wirtschaft, Umwelt, Verkehr, Infrastruktur', 'alternative Formen des Reisens'] }] },
-        { h: 'Wohnen', content: [{ type: 'list', items: ['Wohnformen', 'Wohnqualität', 'Stadt – Land', 'Stadtplanung', 'Gentrifizierung'] }] },
-        { h: 'Umwelt', content: [{ type: 'list', items: ['Klimaveränderung', 'Klimaziele', 'Energiewende', 'Umweltverschmutzung und Ressourcenverbrauch', 'Abfallproblematik', 'Bodenverbrauch', 'Bodenversiegelung', 'Kreislaufwirtschaft', 'Verkehrsprobleme', 'Mobilitätskonzepte'] }] },
-      ],
-    },
   },
   epe: {
     key: 'epe',
@@ -1162,21 +1153,10 @@ export const exams = {
       },
     ],
 
-    topicsList: {
-      h: 'Список тем',
-      content: [
-        { type: 'p', text: 'Официальный список тем для подготовки к экзамену — на них может строиться и письменная, и устная часть. Ниже — основные разделы; полный список с подпунктами будет добавлен позже.' },
-        { type: 'list', ordered: true, items: ['Family, Friends and Relationships', 'Hobbies, Free-time Activities and Celebrating Special Events', 'Health and Nutrition', 'Homes and Living; Countries, Cities, Hometowns', 'Shopping, Consumerism, Clothes & Fashion', 'World of Work, Jobs', 'Education, University and Language Learning', 'Media and Communication', 'Travel, Tourism, Means of Transport', 'Environmental Issues and Change'] },
-        {
-          type: 'list',
-          // url: '#' — заглушка, замените на реальную ссылку/файл с
-          // полным списком тем (с подпунктами), когда он появится.
-          items: [
-            { lead: 'Более подробный список тем', text: '', url: '#' },
-          ],
-        },
-      ],
-    },
+    // Plain link shown at the very top of the "Об экзамене" tab (see
+    // ExamPage.jsx) — not a tab of its own, unlike EPD's theory-tab
+    // entry, since EPE has no "Теория" tab to put it in.
+    topicsLink: 'https://drive.google.com/file/d/1zPt8P_ZE1HlU1WFwfOqp5I61Y3AiHpXP/view?usp=sharing',
   },
 
   chemie: {

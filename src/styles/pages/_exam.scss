@@ -262,6 +262,19 @@
   }
 }
 
+// Plain-text link at the top of the "Об экзамене" tab (see exam.topicsLink) —
+// deliberately not bold like .about-link above: it should read as an
+// ordinary underlined link inline with the surrounding prose, not a
+// styled call-to-action.
+.about-toplink {
+  color: $color-green;
+  text-decoration: underline;
+
+  &:hover {
+    color: $color-green-dark;
+  }
+}
+
 .about-section:first-child h3 {
   margin-top: 0;
 }
@@ -391,6 +404,7 @@
   font-size: 14.5px;
   font-weight: 700;
   color: $color-ink;
+  text-decoration: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 
   svg {
