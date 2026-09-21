@@ -1912,6 +1912,18 @@ input:checked + .option-mark.radio::after {
   }
 }
 
+.test-missing-lock-icon {
+  color: $color-gray;
+  margin: 0 auto $space-4;
+}
+
+.test-missing-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: $space-3;
+}
+
 .test-resume-prompt {
   max-width: 480px;
   margin: 0 auto;

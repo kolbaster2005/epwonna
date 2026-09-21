@@ -236,6 +236,21 @@
     border-color: $color-amber;
     color: $color-amber-dark;
   }
+
+  // Eye toggle (requiresAuth) reuses the same square-button shape as the
+  // pin toggle above, but amber means "pinned" everywhere else in the
+  // admin UI — use a neutral gray for "locked" instead so the two
+  // buttons don't read as the same kind of state.
+  &.lock-btn:hover {
+    border-color: $color-gray;
+    color: $color-ink-soft;
+  }
+
+  &.lock-btn.active {
+    background: #eef0f4;
+    border-color: $color-gray;
+    color: $color-ink-soft;
+  }
 }
 
 .admin-delete-btn {
@@ -1315,6 +1330,11 @@
 // ---- PracticeBuilder.jsx (pro: тренировка по теме/типу задания) ----
 .practice-builder-page {
   padding: $space-5 0 $space-10;
+
+  .breadcrumb {
+    padding-top: 0;
+    margin-bottom: $space-5;
+  }
 }
 
 .practice-builder-form {

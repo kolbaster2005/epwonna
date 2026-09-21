@@ -5,6 +5,12 @@ import { getTest } from '../services/testsService.js'
 import QuestionImage from '../components/QuestionImage.jsx'
 import { IconImage, IconMic } from '../components/Icons.jsx'
 import PageLoader from '../components/PageLoader.jsx'
+import LockedTestNotice from '../components/LockedTestNotice.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
+
+function oralIntroDismissKey(examKey) {
+  return `oral-intro-dismissed:${examKey}`
+}
 
 function formatTime(totalSeconds) {
   const s = Math.max(0, totalSeconds)
@@ -61,6 +67,7 @@ export default function OralTestPage({ examKey }) {
   const { testId } = useParams()
   const navigate = useNavigate()
   const exam = exams[examKey]
+  const { user } = useAuth()
 
   const [test, setTest] = useState(undefined)
   const [loading, setLoading] = useState(true)
@@ -79,11 +86,29 @@ export default function OralTestPage({ examKey }) {
     }
   }, [examKey, testId])
 
-  // Shown once at the start of every attempt (not remembered across
-  // visits — showing it every time was a deliberate simplification, so
-  // there's no risk of someone missing it because a past visit
-  // dismissed it for good).
-  const [introSeen, setIntroSeen] = useState(false)
+  // Shown once at the start of every attempt by default — unless the
+  // person has previously ticked "Больше не показывать", in which case
+  // it's skipped for every oral test of this exam from then on (see
+  // handleIntroContinue below).
+  const [introSeen, setIntroSeen] = useState(() => {
+    try {
+      return localStorage.getItem(oralIntroDismissKey(examKey)) === '1'
+    } catch {
+      return false
+    }
+  })
+  const [dontShowIntroAgain, setDontShowIntroAgain] = useState(false)
+
+  function handleIntroContinue() {
+    if (dontShowIntroAgain) {
+      try {
+        localStorage.setItem(oralIntroDismissKey(examKey), '1')
+      } catch {
+        // ignore — worst case the checkbox just doesn't stick
+      }
+    }
+    setIntroSeen(true)
+  }
 
   const stages = test?.oralTask?.stages || []
   const [stageIndex, setStageIndex] = useState(0)
@@ -149,6 +174,10 @@ export default function OralTestPage({ examKey }) {
         <Link className="btn btn-primary" to={`/${examKey}`}>Вернуться к пробникам</Link>
       </div>
     )
+  }
+
+  if (test.requiresAuth && !user) {
+    return <LockedTestNotice examKey={examKey} />
   }
 
   function chooseOption(opt) {
@@ -219,8 +248,16 @@ export default function OralTestPage({ examKey }) {
             </p>
           )}
           <div className="oral-intro-text">{exam.oralExamInfo}</div>
+          <label className="oral-intro-dismiss">
+            <input
+              type="checkbox"
+              checked={dontShowIntroAgain}
+              onChange={(e) => setDontShowIntroAgain(e.target.checked)}
+            />
+            Больше не показывать
+          </label>
           <div className="oral-intro-actions">
-            <button className="btn btn-primary" onClick={() => setIntroSeen(true)}>
+            <button className="btn btn-primary" onClick={handleIntroContinue}>
               Далее →
             </button>
           </div>

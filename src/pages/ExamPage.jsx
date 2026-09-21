@@ -11,7 +11,7 @@ import ExamIcon from '../components/ExamIcon.jsx'
 import ExamHeroArt from '../components/ExamHeroArt.jsx'
 import AboutSection from '../components/AboutSection.jsx'
 import TheoryTab from '../components/TheoryTab.jsx'
-import { IconList, IconClock, IconShield, IconPinFilled, IconCheckCircle } from '../components/Icons.jsx'
+import { IconList, IconClock, IconShield, IconPinFilled, IconCheckCircle, IconLock } from '../components/Icons.jsx'
 import PageLoader from '../components/PageLoader.jsx'
 import { pluralizeRu } from '../utils/pluralize.js'
 
@@ -243,11 +243,16 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
                   to={`/${examKey}/probnik/${test.id}`}
                   key={test.id}
                 >
-                  {(test.isPinned || isCompleted) && (
+                  {(test.isPinned || isCompleted || (test.requiresAuth && !user)) && (
                     <div className="test-card-badges">
                       {test.isPinned && (
                         <span className="test-pinned-badge" title="Закреплён">
                           <IconPinFilled size={13} />
+                        </span>
+                      )}
+                      {test.requiresAuth && !user && (
+                        <span className="test-locked-badge" title="Доступно только авторизованным">
+                          <IconLock size={12} /> Только для авторизованных
                         </span>
                       )}
                       {isCompleted && (

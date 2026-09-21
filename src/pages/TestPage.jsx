@@ -18,6 +18,7 @@ import FloatingPassageWindow from '../components/FloatingPassageWindow.jsx'
 import AudioPlayer from '../components/AudioPlayer.jsx'
 import ReportIssueModal from '../components/ReportIssueModal.jsx'
 import PageLoader from '../components/PageLoader.jsx'
+import LockedTestNotice from '../components/LockedTestNotice.jsx'
 import { getVerdictWithSelfGrade, hasAnswer, hasAnyAnswer, isAutoGraded, defaultValue } from '../utils/grading.js'
 import { pluralizeRu } from '../utils/pluralize.js'
 import { formatTime, MICROLABEL_BY_TYPE, groupByCategory } from '../utils/testLayout.js'
@@ -391,6 +392,10 @@ export default function TestPage({ examKey }) {
         <Link className="btn btn-primary" to={`/${examKey}`}>Вернуться к пробникам</Link>
       </div>
     )
+  }
+
+  if (test.requiresAuth && !user) {
+    return <LockedTestNotice examKey={examKey} />
   }
 
   // Oral-phase tests are a completely different flow (choose a card/photo,

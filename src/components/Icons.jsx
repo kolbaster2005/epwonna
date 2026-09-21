@@ -66,6 +66,37 @@ export function IconShield(props) {
   )
 }
 
+export function IconLock(props) {
+  return (
+    <svg {...base(props)}>
+      <rect x="5.5" y="10.5" width="13" height="9" rx="2.2" {...stroke(props)} />
+      <path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7" {...stroke(props)} />
+    </svg>
+  )
+}
+
+// Открытый/закрытый глаз — быстрый переключатель "виден без входа /
+// только авторизованным" в админ-списке пробников (см. AdminExamTests.jsx),
+// по аналогии с IconPin/IconPinFilled для закрепления.
+export function IconEye(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" {...stroke(props)} />
+      <circle cx="12" cy="12" r="2.8" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconEyeOff(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 4l16 16" {...stroke(props)} />
+      <path d="M9.5 6.2A9.9 9.9 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a15.6 15.6 0 0 1-3.3 4.1M6.9 7.4C4.4 9 2.5 12 2.5 12s3.5 6.5 9.5 6.5c1.3 0 2.5-.3 3.6-.8" {...stroke(props)} />
+      <path d="M9.9 10.4a2.8 2.8 0 0 0 3.9 3.9" {...stroke(props)} />
+    </svg>
+  )
+}
+
 export function IconCalendar(props) {
   return (
     <svg {...base(props)}>

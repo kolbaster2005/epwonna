@@ -172,6 +172,12 @@ alter table public.tests add column if not exists is_task_bank boolean not null 
 -- fixed curriculum probniks, so listing it there would just clutter the
 -- list with a new row every time someone generates one.
 alter table public.tests add column if not exists is_generated boolean not null default false;
+-- When true, the test is hidden behind a login wall — see ExamPage.jsx
+-- (lock badge on the card), TestDetailPage.jsx/TestPage.jsx/
+-- OralTestPage.jsx (locked stub instead of the real content for anyone
+-- with test.requiresAuth && !user). Independent of any PRO/paid concept —
+-- just "must be logged in", available to every authenticated user.
+alter table public.tests add column if not exists requires_auth boolean not null default false;
 
 create index if not exists tests_exam_key_idx on public.tests (exam_key);
 

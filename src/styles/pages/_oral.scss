@@ -290,11 +290,27 @@
   white-space: pre-line;
 }
 
+.oral-intro-dismiss {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: $space-5;
+  font-size: 13.5px;
+  color: $color-ink-soft;
+  cursor: pointer;
+
+  input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+}
+
 .oral-intro-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: $space-6;
+  margin-top: $space-5;
   padding-top: $space-5;
   border-top: 1px solid $color-border;
 }

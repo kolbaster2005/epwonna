@@ -36,6 +36,7 @@ export const exams = {
     className: 'blue',
     homeTitle: 'Экзамен по математике',
     homeDesc: 'Подготовься к экзамену по математике с помощью официальных пробников и практических заданий.',
+    hidePracticeTab: true,
     timeLimitMinutes: 45,
     // Topics used to be hardcoded here — now a real, admin-editable
     // table (see src/services/topicsService.js and
@@ -1393,7 +1394,10 @@ export const exams = {
   },
 }
 
-export const examList = Object.values(exams)
+// Display order for nav dropdowns, the footer, and the home page cards —
+// deliberately not just Object.values(exams) (insertion order), so this
+// can be changed without reshuffling the exam definitions above.
+export const examList = ['epd', 'epm', 'epe', 'chemie', 'physik'].map((key) => exams[key])
 
 // ---------------------------------------------------------------------
 // Subjects the project doesn't have real content for yet (no probniks,

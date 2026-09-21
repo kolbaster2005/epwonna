@@ -386,3 +386,16 @@
   justify-content: center;
   flex-shrink: 0;
 }
+
+.test-locked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: $radius-pill;
+  background: #eef0f4;
+  color: $color-ink-soft;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}

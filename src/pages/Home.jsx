@@ -10,6 +10,20 @@ const HERO_TILES = [
 ]
 
 export default function Home() {
+  // Main card grid: the real exams in nav order, with "Биология" pulled
+  // out of comingSoonSubjects and slotted in between Химия/Физика so the
+  // 3-column grid reads as two clean rows — Немецкий/Математика/
+  // Английский, then Химия/Биология/Физика — instead of a lone leftover
+  // card on its own row. Geschichte (the only subject left out of that
+  // row) stays below in its own "Скоро на платформе" section.
+  const biologie = comingSoonSubjects.find((s) => s.key === 'biologie')
+  const otherComingSoon = comingSoonSubjects.filter((s) => s.key !== 'biologie')
+  const homeCards = [...examList]
+  if (biologie) {
+    const chemieIndex = homeCards.findIndex((e) => e.key === 'chemie')
+    homeCards.splice(chemieIndex + 1, 0, biologie)
+  }
+
   const heroTiles = (
     <div className="hero-tiles">
       {HERO_TILES.map((t) => (
@@ -79,18 +93,18 @@ export default function Home() {
 
       <div>
         <div className="directions-grid">
-          {examList.map((exam) => (
-            <Link className={`dir-card ${exam.className}`} to={`/${exam.key}`} key={exam.key}>
+          {homeCards.map((card) => (
+            <Link className={`dir-card ${card.className}`} to={`/${card.key}`} key={card.key}>
               <div className="dir-card-head">
-                <div className="dir-icon"><ExamIcon examKey={exam.key} /></div>
+                <div className="dir-icon"><ExamIcon examKey={card.key} /></div>
                 <div>
-                  <div className="sub">{exam.label}</div>
-                  <h3>{exam.homeTitle}</h3>
+                  <div className="sub">{card.label}</div>
+                  <h3>{card.homeTitle}</h3>
                 </div>
               </div>
-              <p className="desc">{exam.homeDesc}</p>
-              <span className="goto">Перейти к материалам →</span>
-              <span className="watermark">{exam.label}</span>
+              <p className="desc">{card.homeDesc}</p>
+              <span className="goto">{card.materialsUrl ? 'Подробнее →' : 'Перейти к материалам →'}</span>
+              <span className="watermark">{card.label}</span>
             </Link>
           ))}
         </div>
@@ -98,27 +112,29 @@ export default function Home() {
 
       {/* Subjects with no real content yet — see comingSoonSubjects in
           examData.js. Kept in its own section with its own heading so
-          it reads as clearly separate from the three real exams above,
-          not as a fourth/fifth/sixth equally-ready option. */}
-      <div className="coming-soon-section">
-        <h2 className="coming-soon-section-title">Скоро на платформе</h2>
-        <div className="directions-grid">
-          {comingSoonSubjects.map((subject) => (
-            <Link className={`dir-card ${subject.className}`} to={`/${subject.key}`} key={subject.key}>
-              <div className="dir-card-head">
-                <div className="dir-icon"><ExamIcon examKey={subject.key} /></div>
-                <div>
-                  <div className="sub">{subject.label}</div>
-                  <h3>{subject.homeTitle}</h3>
+          it reads as clearly separate from the real exams above, not as
+          an equally-ready option. */}
+      {otherComingSoon.length > 0 && (
+        <div className="coming-soon-section">
+          <h2 className="coming-soon-section-title">Скоро на платформе</h2>
+          <div className="directions-grid">
+            {otherComingSoon.map((subject) => (
+              <Link className={`dir-card ${subject.className}`} to={`/${subject.key}`} key={subject.key}>
+                <div className="dir-card-head">
+                  <div className="dir-icon"><ExamIcon examKey={subject.key} /></div>
+                  <div>
+                    <div className="sub">{subject.label}</div>
+                    <h3>{subject.homeTitle}</h3>
+                  </div>
                 </div>
-              </div>
-              <p className="desc">{subject.homeDesc}</p>
-              <span className="goto">Подробнее →</span>
-              <span className="watermark">{subject.label}</span>
-            </Link>
-          ))}
+                <p className="desc">{subject.homeDesc}</p>
+                <span className="goto">Подробнее →</span>
+                <span className="watermark">{subject.label}</span>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </>
   )
 }

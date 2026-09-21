@@ -9,6 +9,9 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
 import epmAbschluss2Q5 from '../assets/questions/epm-abschluss-2-q5.jpg'
+import epmAbschluss3Q1 from '../assets/questions/epm-abschluss-3-q1.jpg'
+import epmAbschluss3Q2 from '../assets/questions/epm-abschluss-3-q2.jpg'
+import epmAbschluss3Q5 from '../assets/questions/epm-abschluss-3-q5.jpg'
 import epmAbschluss2Q7 from '../assets/questions/epm-abschluss-2-q7.jpg'
 import epdSchreiben2 from '../assets/questions/epd-musterpruefung-1-schreiben2.jpg'
 import epdStruktur1Beispiel from '../assets/questions/epd-musterpruefung-1-struktur-a1-beispiel.jpg'
@@ -79,6 +82,9 @@ import epdStadtLandMobilitaetGrafik from '../assets/questions/epd-stadt-land-mob
 // in the database.
 const REAL_PHOTOS = {
   'epm-abschluss-2-q5': epmAbschluss2Q5,
+  'epm-abschluss-3-q1': epmAbschluss3Q1,
+  'epm-abschluss-3-q2': epmAbschluss3Q2,
+  'epm-abschluss-3-q5': epmAbschluss3Q5,
   'epm-abschluss-2-q7': epmAbschluss2Q7,
   'epd-musterpruefung-1-schreiben2': epdSchreiben2,
   'epd-musterpruefung-1-struktur-a1-beispiel': epdStruktur1Beispiel,

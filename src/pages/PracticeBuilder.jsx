@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { exams } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { listTopics } from '../services/topicsService.js'
 import { listTaskTypesForExam, generatePracticeTest } from '../services/practiceService.js'
 import PageLoader from '../components/PageLoader.jsx'
+import { IconHome, IconChevronRight } from '../components/Icons.jsx'
 
 // Pro-фича — тренировка по конкретной теме и/или конкретному типу
 // задания вместо целого пробника. Доступна только пользователям из
@@ -45,17 +46,31 @@ export default function PracticeBuilder({ examKey }) {
     }
   }
 
+  const breadcrumb = (
+    <nav className="breadcrumb">
+      <Link to="/" aria-label="Главная"><IconHome size={16} /></Link>
+      <IconChevronRight size={14} className="breadcrumb-sep" />
+      <Link to={`/${examKey}`}>{exam?.label}</Link>
+      <IconChevronRight size={14} className="breadcrumb-sep" />
+      <span>Тренировка</span>
+    </nav>
+  )
+
   if (!user || !isPro) {
     return (
-      <div className="notfound-page">
-        <h1>Доступно в pro-версии</h1>
-        <p>Тренировка по конкретной теме или типу задания — часть pro-версии платформы, которая пока в разработке.</p>
+      <div className="practice-builder-page">
+        {breadcrumb}
+        <div className="notfound-page">
+          <h1>Доступно в pro-версии</h1>
+          <p>Тренировка по конкретной теме или типу задания — часть pro-версии платформы, которая пока в разработке.</p>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="practice-builder-page">
+      {breadcrumb}
       <div className="admin-header">
         <div>
           <h1>Тренировка · {exam?.label}</h1>

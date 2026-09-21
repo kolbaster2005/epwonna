@@ -208,6 +208,7 @@ function rowToTest(row) {
     isPinned: row.is_pinned ?? false,
     isTaskBank: row.is_task_bank ?? false,
     isGenerated: row.is_generated ?? false,
+    requiresAuth: row.requires_auth ?? false,
     topic: row.topic ?? undefined,
     format: row.format ?? undefined,
     year: row.year ?? undefined,
@@ -239,6 +240,7 @@ function testToRow(examKey, test) {
     is_pinned: test.isPinned ?? false,
     is_task_bank: test.isTaskBank ?? false,
     is_generated: test.isGenerated ?? false,
+    requires_auth: test.requiresAuth ?? false,
     topic: test.topic ?? null,
     format: test.format ?? null,
     year: test.year ?? null,
@@ -403,6 +405,19 @@ export async function setPinned(testId, isPinned) {
     return true
   } catch (err) {
     console.error('[testsService.setPinned]', err)
+    throw toError(err)
+  }
+}
+
+// Same narrow-patch reasoning as setPinned above — lets the admin list's
+// quick eye-icon toggle flip requiresAuth without resending the whole test.
+export async function setRequiresAuth(testId, requiresAuth) {
+  try {
+    const { error } = await supabase.from(TABLE).update({ requires_auth: requiresAuth }).eq('id', testId)
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.error('[testsService.setRequiresAuth]', err)
     throw toError(err)
   }
 }

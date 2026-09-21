@@ -144,6 +144,7 @@ function blankTest(exam, preferredFormat) {
     isOfficial: true,
     isModel: false,
     isPinned: false,
+    requiresAuth: false,
     topic: '',
     format: hasPhases(exam) ? preferredFormat || exam.phases[0].value : undefined,
     year: new Date().getFullYear(),
@@ -1014,6 +1015,11 @@ export default function AdminTestEditor({ examKey }) {
             <label className="admin-part-example-toggle">
               <input type="checkbox" checked={!!form.isPinned} onChange={(e) => setField('isPinned', e.target.checked)} />
               Закрепить <em>(всегда показывать первым в списке пробников, независимо от года)</em>
+            </label>
+
+            <label className="admin-part-example-toggle">
+              <input type="checkbox" checked={!!form.requiresAuth} onChange={(e) => setField('requiresAuth', e.target.checked)} />
+              Только для авторизованных <em>(неавторизованным — замок на карточке и заглушка вместо пробника)</em>
             </label>
 
             <label className="admin-field">

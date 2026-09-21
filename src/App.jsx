@@ -62,7 +62,6 @@ export default function App() {
           <Route path="/epm/about" element={<ExamPage key="epm" examKey="epm" initialTab="about" />} />
           <Route path="/epm/probnik/:testId" element={<TestDetailPage key="epm" examKey="epm" />} />
           <Route path="/epm/test/:testId" element={<TestPage key="epm" examKey="epm" />} />
-          <Route path="/epm/practice" element={<PracticeBuilder key="epm" examKey="epm" />} />
           <Route path="/epd" element={<ExamPage key="epd" examKey="epd" />} />
           <Route path="/epd/about" element={<ExamPage key="epd" examKey="epd" initialTab="about" />} />
           <Route path="/epd/probnik/:testId" element={<TestDetailPage key="epd" examKey="epd" />} />

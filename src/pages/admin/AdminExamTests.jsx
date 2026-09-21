@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { exams } from '../../data/examData.js'
-import { listTests, deleteTest, setPinned } from '../../services/testsService.js'
+import { listTests, deleteTest, setPinned, setRequiresAuth } from '../../services/testsService.js'
 import { listTopics } from '../../services/topicsService.js'
 import { pluralizeRu } from '../../utils/pluralize.js'
-import { IconPin, IconPinFilled } from '../../components/Icons.jsx'
+import { IconPin, IconPinFilled, IconEye, IconEyeOff } from '../../components/Icons.jsx'
 import PageLoader from '../../components/PageLoader.jsx'
 import { useDialog } from '../../contexts/DialogContext.jsx'
 
@@ -58,6 +58,17 @@ export default function AdminExamTests({ examKey }) {
       await setPinned(test.id, next)
     } catch (err) {
       await alertMessage(err.message || 'Не удалось закрепить пробник.')
+      reload()
+    }
+  }
+
+  async function handleToggleAuth(test) {
+    const next = !test.requiresAuth
+    setTests((prev) => prev.map((t) => (t.id === test.id ? { ...t, requiresAuth: next } : t)))
+    try {
+      await setRequiresAuth(test.id, next)
+    } catch (err) {
+      await alertMessage(err.message || 'Не удалось изменить доступность пробника.')
       reload()
     }
   }
@@ -145,6 +156,15 @@ export default function AdminExamTests({ examKey }) {
                     title={test.isPinned ? 'Открепить' : 'Закрепить наверху'}
                   >
                     {test.isPinned ? <IconPinFilled size={16} /> : <IconPin size={16} />}
+                  </button>
+                  <button
+                    type="button"
+                    className={'admin-pin-btn lock-btn' + (test.requiresAuth ? ' active' : '')}
+                    onClick={() => handleToggleAuth(test)}
+                    aria-label={test.requiresAuth ? 'Сделать доступным без входа' : 'Сделать доступным только авторизованным'}
+                    title={test.requiresAuth ? 'Только для авторизованных — нажмите, чтобы открыть всем' : 'Доступен всем — нажмите, чтобы скрыть от неавторизованных'}
+                  >
+                    {test.requiresAuth ? <IconEyeOff size={16} /> : <IconEye size={16} />}
                   </button>
                   <Link className="btn btn-outline" to={`/admin/${examKey}/${test.id}`}>Редактировать</Link>
                   <button className="admin-delete-btn" onClick={() => handleDelete(test)} aria-label="Удалить">✕</button>

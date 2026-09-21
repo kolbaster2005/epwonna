@@ -5,11 +5,14 @@ import { getTest } from '../services/testsService.js'
 import ExamIcon from '../components/ExamIcon.jsx'
 import { IconList, IconClock, IconShield, IconCalendar, IconHome, IconChevronRight, IconDownload } from '../components/Icons.jsx'
 import PageLoader from '../components/PageLoader.jsx'
+import LockedTestNotice from '../components/LockedTestNotice.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import { pluralizeRu } from '../utils/pluralize.js'
 
 export default function TestDetailPage({ examKey }) {
   const { testId } = useParams()
   const exam = exams[examKey]
+  const { user } = useAuth()
   const [test, setTest] = useState(undefined) // undefined = loading, null = not found
   const [loading, setLoading] = useState(true)
 
@@ -40,6 +43,10 @@ export default function TestDetailPage({ examKey }) {
         <Link className="btn btn-primary" to={`/${examKey}`}>Вернуться к пробникам</Link>
       </div>
     )
+  }
+
+  if (test.requiresAuth && !user) {
+    return <LockedTestNotice examKey={examKey} />
   }
 
   return (
