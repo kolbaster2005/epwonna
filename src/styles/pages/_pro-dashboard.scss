@@ -1,0 +1,148 @@
+@use '../abstracts' as *;
+
+.pro-dashboard {
+  padding: 28px 0 40px;
+
+  @include mq(sm) {
+    padding: 32px 0 54px;
+  }
+}
+
+.pro-dashboard-greeting {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: $space-6;
+}
+
+.pro-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-5;
+
+  @include mq(sm) {
+    grid-template-columns: 1fr 1fr;
+    gap: $space-6;
+  }
+}
+
+// ---- Виджет «Продолжим?» ------------------------------------------------
+
+.pro-resume-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: $space-4;
+  padding: 14px 16px;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  @include hover-lift;
+}
+
+.pro-resume-link-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.pro-resume-link-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pro-resume-link-exam {
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: $color-gray;
+}
+
+.pro-resume-link-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: $color-ink;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pro-resume-progress {
+  margin-top: $space-4;
+}
+
+.pro-resume-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: $color-bg;
+  overflow: hidden;
+}
+
+.pro-resume-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: $color-primary;
+  transition: width 0.2s ease;
+}
+
+.pro-resume-progress-label {
+  display: block;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: $color-gray;
+}
+
+// ---- Виджет «Прогресс по предметам» -------------------------------------
+
+.pro-subject-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+  margin-top: $space-4;
+}
+
+.pro-subject-progress-row {
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.pro-subject-progress-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: $color-ink;
+}
+
+.pro-subject-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: $color-bg;
+  overflow: hidden;
+}
+
+.pro-subject-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: $color-primary;
+  transition: width 0.2s ease;
+
+  &.blue { background: $color-blue; }
+  &.violet { background: $color-violet; }
+  &.teal { background: $color-teal; }
+  &.green { background: $color-primary; }
+  &.orange { background: $color-amber-dark; }
+}
+
+.pro-subject-progress-count {
+  font-size: 12.5px;
+  color: $color-gray;
+  white-space: nowrap;
+}

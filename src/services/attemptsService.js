@@ -201,6 +201,28 @@ async function getDraftRow(userId, testId) {
   return data
 }
 
+// Самый недавний незавершённый пробник пользователя — вне
+// привязки к конкретному тесту (в отличие от getDraftAttempt выше).
+// Используется на главной странице для виджета «Продолжим?» (pro).
+export async function getLatestDraftAttempt(userId) {
+  if (!userId) return null
+  try {
+    const { data, error } = await supabase
+      .from('test_attempts')
+      .select('*')
+      .eq('user_id', userId)
+      .is('completed_at', null)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error) throw error
+    return data ? rowToAttempt(data) : null
+  } catch (err) {
+    console.error('[attemptsService.getLatestDraftAttempt]', err)
+    return null
+  }
+}
+
 // The in-progress draft for this (user, test) pair, if any — null if
 // there isn't one. Called when TestPage.jsx opens a probnik, to offer
 // "продолжить?" instead of silently starting over.

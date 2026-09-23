@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import ExamIcon from '../components/ExamIcon.jsx'
 import { examList, comingSoonSubjects } from '../data/examData.js'
 import { IconGraduationCap, IconBook } from '../components/Icons.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import ProDashboard from './ProDashboard.jsx'
 import heroIllustration from '../assets/hero-illustration.png'
 
 const HERO_TILES = [
@@ -10,6 +12,12 @@ const HERO_TILES = [
 ]
 
 export default function Home() {
+  const { isPro } = useAuth()
+
+  // Pro-пользователи видят не эту общую главную вообще, а свой личный
+  // кабинет с персонализированными виджетами — см. ProDashboard.jsx.
+  if (isPro) return <ProDashboard />
+
   // Main card grid: the real exams in nav order, with "Биология" pulled
   // out of comingSoonSubjects and slotted in between Химия/Физика so the
   // 3-column grid reads as two clean rows — Немецкий/Математика/
