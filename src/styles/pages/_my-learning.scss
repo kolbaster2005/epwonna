@@ -322,6 +322,17 @@
   white-space: pre-line;
 }
 
+.essay-item-ai-report {
+  margin-top: $space-5;
+  padding-top: $space-5;
+  border-top: 1px dashed $color-border;
+  white-space: normal;
+}
+
+.essay-item-ai-report-panel {
+  margin-top: $space-4;
+}
+
 // ---- Attempt review (past probnik — read-only) -----------------------
 .attempt-review-list {
   display: flex;

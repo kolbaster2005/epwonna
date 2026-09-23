@@ -3,23 +3,29 @@ import { exams } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useDialog } from '../contexts/DialogContext.jsx'
 import { listEssaySubmissions, deleteEssaySubmission } from '../services/essaysService.js'
+import { getLatestEssayReviewsByEssays } from '../services/essayAiService.js'
 import { IconTrash } from '../components/Icons.jsx'
+import EssayAiReview from '../components/EssayAiReview.jsx'
 import PageLoader from '../components/PageLoader.jsx'
 
 function formatShortDate(iso) {
   return new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
 }
 
-// Read-only list of saved essay_choice submissions — just the text as
-// written and saved. AI-checking (see EssayAiReview.jsx) intentionally
-// lives only in TestPage.jsx, not here — per product decision this page
-// stays a plain archive of what was written, nothing more.
+// Список сохранённых essay_choice-сочинений (сам текст, как был
+// написан). Кнопка «Показать ИИ отчёт» под каждым сочинением тоже
+// здесь — временно видна только админу (см. isAdmin ниже), пока
+// фича обкатывается; когда будет готова для всех, достаточно убрать
+// это условие. Сама проверка (запуск) по-прежнему только в
+// TestPage.jsx — здесь только читаем уже готовый результат.
 export default function MyEssays() {
-  const { user } = useAuth()
+  const { user, isAdmin, isPro } = useAuth()
   const { confirm, alertMessage } = useDialog()
   const [essays, setEssays] = useState([])
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState(null)
+  const [reviews, setReviews] = useState(new Map())
+  const [openReviewId, setOpenReviewId] = useState(null)
 
   useEffect(() => {
     if (!user) {
@@ -30,15 +36,19 @@ export default function MyEssays() {
     let cancelled = false
     setLoading(true)
     listEssaySubmissions(user.id).then((list) => {
-      if (!cancelled) {
-        setEssays(list)
-        setLoading(false)
+      if (cancelled) return
+      setEssays(list)
+      setLoading(false)
+      if (isAdmin) {
+        getLatestEssayReviewsByEssays(list).then((map) => {
+          if (!cancelled) setReviews(map)
+        })
       }
     })
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [user, isAdmin])
 
   async function handleDelete(essay) {
     if (!(await confirm('Удалить это сочинение? Действие необратимо.'))) return
@@ -48,6 +58,14 @@ export default function MyEssays() {
     } catch (err) {
       await alertMessage(err.message || 'Не удалось удалить сочинение.')
     }
+  }
+
+  async function handleShowAiReport(essay) {
+    if (!isPro) {
+      await alertMessage('Отчёт ИИ по сочинению доступен только с PRO-подпиской.')
+      return
+    }
+    setOpenReviewId((prev) => (prev === essay.id ? null : essay.id))
   }
 
   return (
@@ -99,7 +117,27 @@ export default function MyEssays() {
                           <IconTrash size={15} />
                         </button>
                       </div>
-                      {isOpen && <div className="essay-item-body">{e.text}</div>}
+                      {isOpen && (
+                        <div className="essay-item-body">
+                          {e.text}
+                          {isAdmin && (
+                            <div className="essay-item-ai-report">
+                              <button type="button" className="btn btn-outline btn-sm" onClick={() => handleShowAiReport(e)}>
+                                {openReviewId === e.id ? 'Скрыть ИИ отчёт' : 'Показать ИИ отчёт'}
+                              </button>
+                              {openReviewId === e.id && isPro && (
+                                <div className="essay-item-ai-report-panel">
+                                  {reviews.has(`${e.questionId}:${e.testId}`) ? (
+                                    <EssayAiReview review={reviews.get(`${e.questionId}:${e.testId}`)} showButton={false} />
+                                  ) : (
+                                    <p className="admin-note">Для этого сочинения ещё нет сохранённой проверки ИИ.</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </li>
                   )
                 })}
