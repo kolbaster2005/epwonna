@@ -66,6 +66,18 @@ import epeSleepPayBlogPost from '../assets/questions/epe-sleep-pay-blog-post.jpg
 import epePetsSchoolBlogPost from '../assets/questions/epe-pets-school-blog-post.jpg'
 import epeOralSample1 from '../assets/oral/epe-oral-sample-1.jpg'
 import epeOralSample2 from '../assets/oral/epe-oral-sample-2.jpg'
+import epeOralMedia1Sample1 from '../assets/oral/epe-oral-media-1-sample1.jpg'
+import epeOralHealth1Sample1 from '../assets/oral/epe-oral-health-1-sample1.jpg'
+import epeOralEnvironment1Sample1 from '../assets/oral/epe-oral-environment-1-sample1.jpg'
+import epeOralFamily1Sample1 from '../assets/oral/epe-oral-family-1-sample1.jpg'
+import epeOralFamily2Sample1 from '../assets/oral/epe-oral-family-2-sample1.jpg'
+import epeOralShopping1Sample1 from '../assets/oral/epe-oral-shopping-1-sample1.jpg'
+import epeOralHobbies1Sample1 from '../assets/oral/epe-oral-hobbies-1-sample1.jpg'
+import epeOralTravel1Sample1 from '../assets/oral/epe-oral-travel-1-sample1.jpg'
+import epeOralHomes1Sample1 from '../assets/oral/epe-oral-homes-1-sample1.jpg'
+import epeOralMedia2Sample1 from '../assets/oral/epe-oral-media-2-sample1.jpg'
+import epeOralWork1Sample1 from '../assets/oral/epe-oral-work-1-sample1.jpg'
+import epeOralEducation1Sample1 from '../assets/oral/epe-oral-education-1-sample1.jpg'
 import epdFortschrittGrafik from '../assets/questions/epd-fortschritt-grafikinterpretation.jpg'
 import epdFortschrittZitat from '../assets/questions/epd-fortschritt-stellungnahme-zitat.jpg'
 import epdAusgabenGrafik from '../assets/questions/epd-ausgaben-oesterreicher-grafik.jpg'
@@ -142,6 +154,18 @@ const REAL_PHOTOS = {
   'epe-pets-school-blog-post': epePetsSchoolBlogPost,
   'epe-oral-sample-1': epeOralSample1,
   'epe-oral-sample-2': epeOralSample2,
+  'epe-oral-media-1-sample1': epeOralMedia1Sample1,
+  'epe-oral-health-1-sample1': epeOralHealth1Sample1,
+  'epe-oral-environment-1-sample1': epeOralEnvironment1Sample1,
+  'epe-oral-family-1-sample1': epeOralFamily1Sample1,
+  'epe-oral-family-2-sample1': epeOralFamily2Sample1,
+  'epe-oral-shopping-1-sample1': epeOralShopping1Sample1,
+  'epe-oral-hobbies-1-sample1': epeOralHobbies1Sample1,
+  'epe-oral-travel-1-sample1': epeOralTravel1Sample1,
+  'epe-oral-homes-1-sample1': epeOralHomes1Sample1,
+  'epe-oral-media-2-sample1': epeOralMedia2Sample1,
+  'epe-oral-work-1-sample1': epeOralWork1Sample1,
+  'epe-oral-education-1-sample1': epeOralEducation1Sample1,
   'epd-fortschritt-grafikinterpretation': epdFortschrittGrafik,
   'epd-fortschritt-stellungnahme-zitat': epdFortschrittZitat,
   'epd-ausgaben-oesterreicher-grafik': epdAusgabenGrafik,
