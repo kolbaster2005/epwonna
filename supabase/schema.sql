@@ -178,6 +178,18 @@ alter table public.tests add column if not exists is_generated boolean not null 
 -- with test.requiresAuth && !user). Independent of any PRO/paid concept —
 -- just "must be logged in", available to every authenticated user.
 alter table public.tests add column if not exists requires_auth boolean not null default false;
+-- Manual display order within the admin's test list / the public exam
+-- page (see AdminExamTests.jsx's ▲▼ buttons and testsService.listTests).
+-- Null until an admin actually reorders that exam's list — untouched
+-- tests keep falling back to the old is_pinned/year/id ordering, so this
+-- never needs a one-off backfill.
+alter table public.tests add column if not exists sort_order integer;
+-- Replaces the old single `topic` column — a test can now belong to
+-- several topics at once, so it shows up under the "Тема" filter for
+-- any of them (see testsService.rowToTest's fallback to `topic` for
+-- rows created before this existed, and ExamPage.jsx's filter matching).
+-- The old `topic` column is left in place, just no longer written to.
+alter table public.tests add column if not exists topics text[];
 
 create index if not exists tests_exam_key_idx on public.tests (exam_key);
 

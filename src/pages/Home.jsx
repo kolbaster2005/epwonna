@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import ExamIcon from '../components/ExamIcon.jsx'
-import { examList, comingSoonSubjects } from '../data/examData.js'
+import { visibleExamList, visibleComingSoonSubjects } from '../data/examData.js'
 import { IconGraduationCap, IconBook } from '../components/Icons.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import ProDashboard from './ProDashboard.jsx'
@@ -12,11 +12,18 @@ const HERO_TILES = [
 ]
 
 export default function Home() {
-  const { isPro } = useAuth()
+  const { isPro, isAdmin } = useAuth()
 
   // Pro-пользователи видят не эту общую главную вообще, а свой личный
   // кабинет с персонализированными виджетами — см. ProDashboard.jsx.
   if (isPro) return <ProDashboard />
+
+  // EPC/EPP/Biologie/Geschichte are adminOnly right now (see
+  // visibleExamList/visibleComingSoonSubjects in examData.js) — an admin
+  // sees the full set below exactly as before, everyone else just gets
+  // the three real exams.
+  const examList = visibleExamList(isAdmin)
+  const comingSoonSubjects = visibleComingSoonSubjects(isAdmin)
 
   // Main card grid: the real exams in nav order, with "Биология" pulled
   // out of comingSoonSubjects and slotted in between Химия/Физика so the
@@ -55,7 +62,7 @@ export default function Home() {
               Всё о EP экзаменах — <span className="accent">бесплатно</span> и в одном месте
             </h1>
             <p className="lead">
-              EP WONNA — это бесплатная онлайн-платформа для подготовки к австрийским EPх экзаменам. У нас ты
+              EP WONNA — это бесплатная онлайн-платформа для подготовки к австрийским EPх экзаменам. Здесь ты
               найдёшь всё необходимое: официальные пробники, материалы для подготовки, информацию об экзаменах и
               многое другое.
             </p>
@@ -88,7 +95,7 @@ export default function Home() {
                 <span className="hero-quicknav-cta">Перейти к материалам →</span>
               </Link>
             ))}
-            <div className="hero-quicknav-divider">Скоро на платформе</div>
+            {comingSoonSubjects.length > 0 && <div className="hero-quicknav-divider">Скоро на платформе</div>}
             {comingSoonSubjects.map((subject) => (
               <Link className={`hero-quicknav-item ${subject.className}`} to={`/${subject.key}`} key={subject.key}>
                 <span className="hero-quicknav-label">{subject.label}</span>

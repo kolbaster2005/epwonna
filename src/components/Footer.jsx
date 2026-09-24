@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom'
-import { examList } from '../data/examData.js'
+import { visibleExamList } from '../data/examData.js'
 import { universities } from '../data/universities.js'
 import { IconTelegram, IconMail } from './Icons.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import logo from '../assets/logo.png'
 
 export default function Footer() {
+  const { isAdmin } = useAuth()
+  const examList = visibleExamList(isAdmin)
+
   return (
     <footer className="site-footer">
       <div className="main-wrapper">
@@ -45,6 +49,8 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* "Вступительные в вузы" temporarily hidden per product decision —
+              delete this comment + the closing one below to bring it back.
           <div>
             <h4>Вступительные в вузы</h4>
             <ul>
@@ -53,11 +59,12 @@ export default function Footer() {
               ))}
             </ul>
           </div>
+          */}
 
           <div>
             <h4>Важно</h4>
             <ul>
-              <li><Link to="/about">О проекте</Link></li>
+              {/* "О проекте" temporarily hidden per product decision. */}
               <li><Link to="/terms">Пользовательское соглашение</Link></li>
               <li><Link to="/privacy">Политика конфиденциальности</Link></li>
             </ul>

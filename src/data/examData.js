@@ -1170,6 +1170,10 @@ export const exams = {
     className: 'green',
     homeTitle: 'Экзамен по химии',
     homeDesc: 'Информация об устном дополнительном экзамене по химии. Пробники скоро появятся.',
+    // Hidden from nav/cards for everyone except admins for now — see
+    // visibleExamList/visibleComingSoonSubjects below. The route/page
+    // itself is untouched, so a direct link still works.
+    adminOnly: true,
     hidePracticeTab: true,
     filters: [],
     about: [
@@ -1260,6 +1264,7 @@ export const exams = {
     className: 'orange',
     homeTitle: 'Экзамен по физике',
     homeDesc: 'Информация об устном дополнительном экзамене по физике. Пробники скоро появятся.',
+    adminOnly: true,
     hidePracticeTab: true,
     filters: [],
     about: [
@@ -1416,6 +1421,7 @@ export const comingSoonSubjects = [
     homeTitle: 'История (Geschichte)',
     homeDesc: 'Раздел в разработке — пробников пока нет, но материалы для подготовки уже можно найти по ссылке.',
     materialsUrl: '#',
+    adminOnly: true,
   },
   {
     key: 'biologie',
@@ -1426,5 +1432,19 @@ export const comingSoonSubjects = [
     homeTitle: 'Биология (Biologie)',
     homeDesc: 'Раздел в разработке — пробников пока нет, но материалы для подготовки уже можно найти по ссылке.',
     materialsUrl: '#',
+    adminOnly: true,
   },
 ]
+
+// Filters examList/comingSoonSubjects down to what a visitor is allowed
+// to see in nav/cards right now — items flagged `adminOnly` (EPC/EPP/
+// Biologie/Geschichte, currently) stay visible to admins only, while
+// everyone else just doesn't see the entry (the page itself is still
+// reachable by direct link — this only hides it from navigation).
+export function visibleExamList(isAdmin) {
+  return isAdmin ? examList : examList.filter((e) => !e.adminOnly)
+}
+
+export function visibleComingSoonSubjects(isAdmin) {
+  return isAdmin ? comingSoonSubjects : comingSoonSubjects.filter((s) => !s.adminOnly)
+}

@@ -89,6 +89,12 @@ function toError(err) {
 function rowToQuestion(row) {
   const base = {
     id: row.id,
+    // Which test this task's row actually lives in — not necessarily the
+    // test it's being viewed/edited from (a task can be linked into other
+    // tests via test_tasks without moving its content there). See
+    // updateTest below: only a task's home test is allowed to replace its
+    // content row on save; everywhere else just keeps its test_tasks link.
+    homeTestId: row.test_id,
     category: row.category ?? undefined,
     type: row.type,
     text: row.text,
@@ -209,7 +215,10 @@ function rowToTest(row) {
     isTaskBank: row.is_task_bank ?? false,
     isGenerated: row.is_generated ?? false,
     requiresAuth: row.requires_auth ?? false,
-    topic: row.topic ?? undefined,
+    sortOrder: row.sort_order ?? null,
+    // Falls back to the old singular `topic` column for rows that predate
+    // the switch to multi-topic — never written back, just read once.
+    topics: row.topics?.length ? row.topics : row.topic ? [row.topic] : [],
     format: row.format ?? undefined,
     year: row.year ?? undefined,
     durationMinutes: row.duration_minutes,
@@ -241,7 +250,8 @@ function testToRow(examKey, test) {
     is_task_bank: test.isTaskBank ?? false,
     is_generated: test.isGenerated ?? false,
     requires_auth: test.requiresAuth ?? false,
-    topic: test.topic ?? null,
+    sort_order: test.sortOrder ?? null,
+    topics: test.topics?.length ? test.topics : null,
     format: test.format ?? null,
     year: test.year ?? null,
     duration_minutes: test.durationMinutes,
@@ -263,8 +273,17 @@ export async function listTests(examKey) {
       .order('is_pinned', { ascending: false })
       .order('year', { ascending: false })
     if (error) throw error
+    // sort_order (set via the admin list's ▲▼ buttons) wins within a
+    // pin group once it's set; a test that was never manually reordered
+    // (sort_order null) just falls back to the old year/id ordering, so
+    // existing exams don't need a one-off backfill to keep working.
     const tests = (data || []).sort((a, b) => {
       if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1
+      if (a.sort_order != null && b.sort_order != null && a.sort_order !== b.sort_order) {
+        return a.sort_order - b.sort_order
+      }
+      if (a.sort_order != null && b.sort_order == null) return -1
+      if (a.sort_order == null && b.sort_order != null) return 1
       if (a.year !== b.year) return (b.year ?? 0) - (a.year ?? 0)
       return naturalCompare(a.id, b.id)
     })
@@ -362,24 +381,28 @@ export async function updateTest(examKey, testId, patch) {
     if (error) throw error
 
     if (patch.questions) {
-      // Full-replace: delete this test's questions and re-insert the
-      // current array. Simpler and safer than diffing add/edit/remove,
-      // and matches how the mock store always replaced the whole array.
-      // Deleting a question cascades away any test_tasks row pointing at
-      // it too (from this test AND from any other test that happened to
-      // be sharing it) — that's expected: editing a task from its home
-      // test is the one place that's allowed to actually change/remove
-      // its content everywhere it's used, not just here.
+      // Full-replace, but only for this test's OWN (home) questions —
+      // editing a task from its home test is the one place that's
+      // allowed to actually change/remove its content everywhere it's
+      // used. A task merely linked in here from another test's home
+      // (q.homeTestId set to a different id — see rowToQuestion) must not
+      // have its content row touched: it still exists at its real home,
+      // so trying to re-insert it here would hit questions_pkey.
+      const homeQuestions = patch.questions.filter((q) => !q.homeTestId || q.homeTestId === testId)
+
       const { error: delError } = await supabase.from('questions').delete().eq('test_id', testId)
       if (delError) throw delError
 
-      if (patch.questions.length) {
-        const qRows = patch.questions.map((q, i) => questionToRow(testId, i, q))
+      if (homeQuestions.length) {
+        const qRows = homeQuestions.map((q, i) => questionToRow(testId, i, q))
         const { error: insError } = await supabase.from('questions').insert(qRows)
         if (insError) throw insError
+      }
 
-        // getTest reads the task list from test_tasks now, not directly
-        // from questions.test_id — needs a matching link row per task.
+      if (patch.questions.length) {
+        // test_tasks links every task shown in this test, whether it's
+        // homed here or borrowed — getTest reads the task list from here,
+        // not from questions.test_id.
         const linkRows = patch.questions.map((q, i) => ({ test_id: testId, task_id: q.id, position: i }))
         const { error: linkError } = await supabase.from('test_tasks').upsert(linkRows, { onConflict: 'test_id,task_id' })
         if (linkError) throw linkError
@@ -418,6 +441,29 @@ export async function setRequiresAuth(testId, requiresAuth) {
     return true
   } catch (err) {
     console.error('[testsService.setRequiresAuth]', err)
+    throw toError(err)
+  }
+}
+
+// Bulk-writes sort_order for a whole (already-reordered) list of test
+// ids at once — the admin list's ▲▼ buttons renumber the entire visible
+// list on every move, not just the two swapped rows, so a later move
+// within the same session still has consistent neighbors to compare
+// against. Plain per-row .update() calls, not upsert: an upsert still
+// builds a full INSERT candidate row to check against ON CONFLICT, so
+// Postgres validates NOT NULL columns (exam_key has no default) before
+// ever reaching the update path — a bare {id, sort_order} row fails that
+// check even though every one of these rows already exists.
+export async function reorderTests(orderedTestIds) {
+  try {
+    const results = await Promise.all(
+      orderedTestIds.map((id, i) => supabase.from(TABLE).update({ sort_order: i }).eq('id', id))
+    )
+    const failed = results.find((r) => r.error)
+    if (failed) throw failed.error
+    return true
+  } catch (err) {
+    console.error('[testsService.reorderTests]', err)
     throw toError(err)
   }
 }

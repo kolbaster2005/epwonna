@@ -145,7 +145,7 @@ function blankTest(exam, preferredFormat) {
     isModel: false,
     isPinned: false,
     requiresAuth: false,
-    topic: '',
+    topics: [],
     format: hasPhases(exam) ? preferredFormat || exam.phases[0].value : undefined,
     year: new Date().getFullYear(),
     durationMinutes: 60,
@@ -232,10 +232,7 @@ export default function AdminTestEditor({ examKey }) {
   }, [examKey, testId, isNew])
 
   useEffect(() => {
-    listTopics(examKey).then((list) => {
-      setTopics(list)
-      setForm((f) => (f && isNew && !f.topic && list[0] ? { ...f, topic: list[0].id } : f))
-    })
+    listTopics(examKey).then(setTopics)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examKey])
 
@@ -1022,17 +1019,6 @@ export default function AdminTestEditor({ examKey }) {
               Только для авторизованных <em>(неавторизованным — замок на карточке и заглушка вместо пробника)</em>
             </label>
 
-            <label className="admin-field">
-              <span>Тема</span>
-              <select value={form.topic} onChange={(e) => setField('topic', e.target.value)}>
-                {topics.length === 0 && <option value="">— тем пока нет —</option>}
-                {topics.map((t) => (
-                  <option key={t.id} value={t.id}>{t.label}</option>
-                ))}
-              </select>
-              <Link className="admin-inline-link" to={`/admin/${examKey}/topics`}>Управлять списком тем →</Link>
-            </label>
-
             {hasPhases(exam) && (
               <label className="admin-field">
                 <span>Часть экзамена</span>
@@ -1048,6 +1034,34 @@ export default function AdminTestEditor({ examKey }) {
               <span>Год</span>
               <input type="number" required value={form.year} onChange={(e) => setField('year', e.target.value)} />
             </label>
+          </div>
+
+          <div className="admin-field">
+            <span>Темы <em>(необязательно, можно несколько — определяет, под какими темами пробник найдётся в фильтре на странице экзамена)</em></span>
+            {topics.length > 0 ? (
+              <div className="admin-topic-checkboxes">
+                {topics.map((t) => {
+                  const checked = (form.topics || []).includes(t.id)
+                  return (
+                    <label className="admin-topic-checkbox" key={t.id}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const current = form.topics || []
+                          const next = e.target.checked ? [...current, t.id] : current.filter((id) => id !== t.id)
+                          setField('topics', next)
+                        }}
+                      />
+                      {t.label}
+                    </label>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="admin-note">Пока нет ни одной темы.</p>
+            )}
+            <Link className="admin-inline-link" to={`/admin/${examKey}/topics`}>Управлять списком тем →</Link>
           </div>
 
           <label className="admin-field">

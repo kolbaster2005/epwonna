@@ -253,6 +253,27 @@
   }
 }
 
+// Manual sort_order ▲▼ pair (see AdminExamTests.jsx handleMove) — two
+// half-height buttons stacked into the same footprint as one .admin-pin-btn,
+// since they're really one control (move within this pin group).
+.admin-reorder-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.admin-reorder-btn {
+  width: 26px;
+  height: 16px;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
 .admin-delete-btn {
   @include button-reset;
   width: 30px;

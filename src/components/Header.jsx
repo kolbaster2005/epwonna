@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { examList } from '../data/examData.js'
+import { visibleExamList } from '../data/examData.js'
 import { universities } from '../data/universities.js'
 import { avatarOptions, avatarSrcById } from '../data/avatars.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -19,10 +19,16 @@ const MY_LEARNING_ITEMS = [
   { to: '/dictionary', label: 'Словарь', desc: 'Слова и выражения для подготовки' },
 ]
 
+// Subject name shown in parens next to the flat EPD/EPM/EPE nav links
+// (non-admin only — see below). Just nav copy, not exam domain data, so
+// it lives here instead of examData.js.
+const EXAM_SUBJECT_NAMES = { epd: 'немецкий', epm: 'математика', epe: 'английский' }
+
 export default function Header({ onBurgerClick }) {
   const { user, profile, isAdmin, isPro, signOut, updateAvatar } = useAuth()
   const { alertMessage } = useDialog()
   const [authOpen, setAuthOpen] = useState(false)
+  const examList = visibleExamList(isAdmin)
   // Which dropdown is open — 'exams' | 'unis' | 'user' | null. Click-driven,
   // not hover: hover made it nearly impossible to actually reach the
   // submenu (the dropdown would close the instant the cursor left the
@@ -92,27 +98,41 @@ export default function Header({ onBurgerClick }) {
             Главная
           </NavLink>
 
-          {/* Group items — no page of their own (see App.jsx), just a
-              click-to-open dropdown listing the pages that already exist. */}
-          <div className="nav-item" ref={examsRef}>
-            <button
-              type="button"
-              className="nav-link"
-              aria-expanded={openMenu === 'exams'}
-              aria-haspopup="true"
-              onClick={() => toggleMenu('exams')}
-            >
-              EP – экзамены <i className={'chev' + (openMenu === 'exams' ? ' open' : '')} />
-            </button>
-            <div className={'dropdown' + (openMenu === 'exams' ? ' open' : '')}>
-              {examList.map((exam) => (
-                <Link to={`/${exam.key}`} key={exam.key} onClick={() => setOpenMenu(null)}>
-                  {exam.label} <span>{exam.homeTitle}</span>
-                </Link>
-              ))}
+          {/* Admin sees the full 5-subject set, so it stays a dropdown
+              (see App.jsx for the pages this groups). Everyone else only
+              has 3 real exams left after the adminOnly filter above —
+              flat top-level links read better than a dropdown for just
+              those three, so the group is disbanded for them. */}
+          {isAdmin ? (
+            <div className="nav-item" ref={examsRef}>
+              <button
+                type="button"
+                className="nav-link"
+                aria-expanded={openMenu === 'exams'}
+                aria-haspopup="true"
+                onClick={() => toggleMenu('exams')}
+              >
+                EP – экзамены <i className={'chev' + (openMenu === 'exams' ? ' open' : '')} />
+              </button>
+              <div className={'dropdown' + (openMenu === 'exams' ? ' open' : '')}>
+                {examList.map((exam) => (
+                  <Link to={`/${exam.key}`} key={exam.key} onClick={() => setOpenMenu(null)}>
+                    {exam.label} <span>{exam.homeTitle}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            examList.map((exam) => (
+              <NavLink to={`/${exam.key}`} key={exam.key} className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
+                {exam.label}{EXAM_SUBJECT_NAMES[exam.key] && ` (${EXAM_SUBJECT_NAMES[exam.key]})`}
+              </NavLink>
+            ))
+          )}
 
+          {/* "Вступительные в вузы" temporarily hidden per product decision —
+              markup/state left in place so it's a one-line revert (delete
+              this comment + the closing one below) to bring it back.
           <div className="nav-item" ref={unisRef}>
             <button
               type="button"
@@ -131,6 +151,7 @@ export default function Header({ onBurgerClick }) {
               ))}
             </div>
           </div>
+          */}
 
           <div className="nav-item" ref={learningRef}>
             <button
@@ -150,9 +171,12 @@ export default function Header({ onBurgerClick }) {
               ))}
             </div>
           </div>
+          {/* "О проекте" temporarily hidden per product decision — see the
+              matching comment above "Вступительные в вузы".
           <NavLink to="/about" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
             О проекте
           </NavLink>
+          */}
         </nav>
 
         <div className="header-actions">

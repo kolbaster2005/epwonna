@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom'
-import { examList } from '../data/examData.js'
+import { visibleExamList } from '../data/examData.js'
 import { universities } from '../data/universities.js'
+import { useAuth } from '../contexts/AuthContext.jsx'
 
 export default function MobileNav({ onClose }) {
+  const { isAdmin } = useAuth()
+  const examList = visibleExamList(isAdmin)
+
   return (
     <div className="mobile-nav">
       <div className="mnav-top">
@@ -23,12 +27,15 @@ export default function MobileNav({ onClose }) {
         ))}
       </div>
 
+      {/* "Вступительные в вузы" temporarily hidden per product decision —
+          delete this comment + the closing one below to bring it back.
       <span className="mnav-group-label">Вступительные в вузы</span>
       <div className="msub">
         {universities.map((uni) => (
           <Link to={`/uni/${uni.key}`} key={uni.key} onClick={onClose}>{uni.label}</Link>
         ))}
       </div>
+      */}
 
       <span className="mnav-group-label">Моё обучение</span>
       <div className="msub">
@@ -37,7 +44,9 @@ export default function MobileNav({ onClose }) {
         <Link to="/dictionary" onClick={onClose}>Словарь</Link>
       </div>
 
+      {/* "О проекте" temporarily hidden per product decision.
       <Link className="mtop-link" to="/about" onClick={onClose}>О проекте</Link>
+      */}
     </div>
   )
 }

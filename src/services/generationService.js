@@ -102,7 +102,7 @@ export async function generateProbnik({ examKey, userId, topicIds = [] }) {
     format: 'written',
     year: new Date().getFullYear(),
     duration_minutes: 180,
-    topic: topicIds[0] ?? null,
+    topics: topicIds.length ? topicIds : null,
   })
   if (testError) throw testError
 

@@ -102,6 +102,10 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
       resolvedFilters.every((f) => {
         const selected = filterValues[f.field]
         if (!selected) return true
+        // A test can belong to several topics now (test.topics) — matches
+        // the filter if the picked topic is any one of them, not just a
+        // single exact value like the other (still scalar) filter fields.
+        if (f.field === 'topic') return (test.topics || []).includes(selected)
         return String(test[f.field]) === selected
       })
     )

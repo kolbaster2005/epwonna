@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { exams } from '../../data/examData.js'
-import { listTests, deleteTest, setPinned, setRequiresAuth } from '../../services/testsService.js'
+import { listTests, deleteTest, setPinned, setRequiresAuth, reorderTests } from '../../services/testsService.js'
 import { listTopics } from '../../services/topicsService.js'
 import { pluralizeRu } from '../../utils/pluralize.js'
-import { IconPin, IconPinFilled, IconEye, IconEyeOff } from '../../components/Icons.jsx'
+import { IconPin, IconPinFilled, IconEye, IconEyeOff, IconChevronUp, IconChevronDown } from '../../components/Icons.jsx'
 import PageLoader from '../../components/PageLoader.jsx'
 import { useDialog } from '../../contexts/DialogContext.jsx'
 
@@ -73,6 +73,46 @@ export default function AdminExamTests({ examKey }) {
     }
   }
 
+  // A pinned test can only trade places with another pinned test (same
+  // for unpinned) — is_pinned still wins over sort_order in listTests,
+  // so letting ▲▼ cross that boundary would look like it worked here and
+  // then silently snap back on the next reload.
+  function canMove(index, direction) {
+    const swapIndex = index + direction
+    if (swapIndex < 0 || swapIndex >= visibleTests.length) return false
+    return visibleTests[index].isPinned === visibleTests[swapIndex].isPinned
+  }
+
+  function compareTestsLocally(a, b) {
+    if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
+    if (a.sortOrder != null && b.sortOrder != null && a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder
+    if (a.sortOrder != null && b.sortOrder == null) return -1
+    if (a.sortOrder == null && b.sortOrder != null) return 1
+    if (a.year !== b.year) return (b.year ?? 0) - (a.year ?? 0)
+    return String(a.id).localeCompare(String(b.id))
+  }
+
+  async function handleMove(index, direction) {
+    if (!canMove(index, direction)) return
+    const reordered = [...visibleTests]
+    const swapIndex = index + direction
+    ;[reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]]
+    const orderedIds = reordered.map((t) => t.id)
+    const orderById = Object.fromEntries(orderedIds.map((id, i) => [id, i]))
+
+    // Optimistic — renumber sort_order locally and re-sort immediately
+    // rather than waiting on a reload.
+    setTests((prev) =>
+      prev.map((t) => (t.id in orderById ? { ...t, sortOrder: orderById[t.id] } : t)).sort(compareTestsLocally)
+    )
+    try {
+      await reorderTests(orderedIds)
+    } catch (err) {
+      await alertMessage(err.message || 'Не удалось изменить порядок пробников.')
+      reload()
+    }
+  }
+
   const newTestLink = phase ? `/admin/${examKey}/new?format=${phase}` : `/admin/${examKey}/new`
 
   return (
@@ -126,8 +166,8 @@ export default function AdminExamTests({ examKey }) {
             {exam.phases && <span>Часть</span>}
             <span />
           </div>
-          {visibleTests.map((test) => {
-            const topic = topics.find((t) => t.id === test.topic)
+          {visibleTests.map((test, index) => {
+            const testTopics = topics.filter((t) => (test.topics || []).includes(t.id))
             const testPhase = exam.phases?.find((p) => p.value === test.format)
             return (
               <div className={'admin-table-row' + (exam.phases ? ' with-phase' : '')} key={test.id}>
@@ -144,10 +184,32 @@ export default function AdminExamTests({ examKey }) {
                 <span className={test.isOfficial ? 'admin-pill official' : 'admin-pill'}>
                   {test.isOfficial ? 'Официальный' : 'Неофициальный'}
                 </span>
-                <span>{topic ? topic.label : '—'}</span>
+                <span>{testTopics.length > 0 ? testTopics.map((t) => t.label).join(', ') : '—'}</span>
                 <span>{test.year}</span>
                 {exam.phases && <span>{testPhase ? testPhase.label : '—'}</span>}
                 <span className="admin-table-actions">
+                  <span className="admin-reorder-btns">
+                    <button
+                      type="button"
+                      className="admin-pin-btn admin-reorder-btn"
+                      onClick={() => handleMove(index, -1)}
+                      disabled={!canMove(index, -1)}
+                      aria-label="Переместить выше"
+                      title="Переместить выше"
+                    >
+                      <IconChevronUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-pin-btn admin-reorder-btn"
+                      onClick={() => handleMove(index, 1)}
+                      disabled={!canMove(index, 1)}
+                      aria-label="Переместить ниже"
+                      title="Переместить ниже"
+                    >
+                      <IconChevronDown size={14} />
+                    </button>
+                  </span>
                   <button
                     type="button"
                     className={'admin-pin-btn' + (test.isPinned ? ' active' : '')}
