@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 
-export default function AuthModal({ onClose }) {
+export default function AuthModal({ onClose, reason }) {
   const { signIn, signUp, requestPasswordReset } = useAuth()
   const [mode, setMode] = useState('signin') // 'signin' | 'signup' | 'reset'
   const [email, setEmail] = useState('')
@@ -11,6 +11,25 @@ export default function AuthModal({ onClose }) {
   const [submitting, setSubmitting] = useState(false)
   const [signedUp, setSignedUp] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+
+  // Locks background scroll while the modal is open, and — via the
+  // `modal-open` class (see _header.scss) — takes .site-header out of
+  // `position: sticky` for the same duration. A sticky header that's
+  // already "stuck" from scrolling can end up composited above a later
+  // `position: fixed` overlay in some browsers regardless of z-index (a
+  // known sticky/fixed stacking quirk); this opened as a full-screen
+  // dark overlay with the header still showing crisp and undimmed on
+  // top of it, on both tablet and phone widths, when triggered from
+  // TestPage's mid-scroll AI-check gate — this fixes both that and the
+  // separate (also missing) background-scroll lock.
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    document.body.classList.add('modal-open')
+    return () => {
+      document.body.style.overflow = ''
+      document.body.classList.remove('modal-open')
+    }
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -78,6 +97,7 @@ export default function AuthModal({ onClose }) {
         ) : (
           <>
             <h3>{mode === 'signin' ? 'Вход' : mode === 'signup' ? 'Регистрация' : 'Восстановление пароля'}</h3>
+            {mode !== 'reset' && reason && <p className="auth-reset-hint">{reason}</p>}
             {mode === 'reset' && <p className="auth-reset-hint">Пришлём ссылку для сброса пароля на вашу почту.</p>}
 
             <form className="auth-form" onSubmit={handleSubmit}>

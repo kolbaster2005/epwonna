@@ -219,9 +219,14 @@
   margin-bottom: $space-4;
   flex-shrink: 0;
 
+  // Stays at the base 44px until the test-detail card actually goes
+  // 2-column at $bp-lg — full 56px before that just looked oversized
+  // sitting above a still-single-column, tablet-width card.
   &.large {
-    width: 56px;
-    height: 56px;
+    @include mq(lg) {
+      width: 56px;
+      height: 56px;
+    }
   }
 }
 
@@ -265,13 +270,13 @@
   }
 
   h4 {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 800;
     margin-bottom: 6px;
   }
 
   p {
-    font-size: 13.5px;
+    font-size: 13px;
     color: $color-ink-soft;
     line-height: 1.55;
     flex: 1; // pushes meta + button to the same baseline across a row
@@ -343,7 +348,7 @@
   margin-top: $space-5;
   padding-top: $space-4;
   border-top: 1px solid $color-border;
-  font-size: 12.5px;
+  font-size: 12px;
   color: $color-gray;
   font-weight: 600;
 
@@ -358,11 +363,11 @@
   display: block;
   text-align: center;
   margin-top: $space-5;
-  padding: 12px;
+  padding: 11px;
   border-radius: $radius-sm;
   color: #fff;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13.5px;
   transition: filter 0.15s ease, transform 0.1s ease;
 }
 

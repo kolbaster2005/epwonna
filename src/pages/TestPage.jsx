@@ -19,6 +19,7 @@ import AudioPlayer from '../components/AudioPlayer.jsx'
 import ReportIssueModal from '../components/ReportIssueModal.jsx'
 import PageLoader from '../components/PageLoader.jsx'
 import LockedTestNotice from '../components/LockedTestNotice.jsx'
+import AuthModal from '../components/AuthModal.jsx'
 import { getVerdictWithSelfGrade, hasAnswer, hasAnyAnswer, isAutoGraded, defaultValue } from '../utils/grading.js'
 import { pluralizeRu } from '../utils/pluralize.js'
 import { formatTime, MICROLABEL_BY_TYPE, groupByCategory } from '../utils/testLayout.js'
@@ -143,6 +144,11 @@ export default function TestPage({ examKey }) {
   // FloatingPassageWindow.jsx. Independent of `view`.
   const [floatingOpen, setFloatingOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  // Gate for both "Проверить с ИИ" buttons below — an unauthenticated
+  // person gets this instead of the check running. Whatever they've
+  // already typed stays put: AuthModal is just an overlay on this same
+  // page, so signing in/up doesn't unmount TestPage or touch `answers`.
+  const [authOpen, setAuthOpen] = useState(false)
   const currentQuestionForView = questions[index]
   const currentPassageIdForView = currentQuestionForView?.passageId || currentQuestionForView?.contentId
 
@@ -176,6 +182,10 @@ export default function TestPage({ examKey }) {
   }, [currentQuestionForView?.id])
 
   async function handleCheckEssayWithAI() {
+    if (!user) {
+      setAuthOpen(true)
+      return
+    }
     if (!hasAnswer(question, value)) {
       setEssayCheckError('Сначала напишите текст сочинения.')
       return
@@ -242,6 +252,10 @@ export default function TestPage({ examKey }) {
   }, [currentQuestionForView?.id])
 
   async function handleCheckQaTableWithAI() {
+    if (!user) {
+      setAuthOpen(true)
+      return
+    }
     if (!hasAnswer(question, value)) {
       setQaTableCheckError('Похоже, вы заполнили не всё — проверьте, не пропустили ли какую-то строку.')
       return
@@ -969,6 +983,10 @@ export default function TestPage({ examKey }) {
           taskNumber={question.taskNumber}
           onClose={() => setReportOpen(false)}
         />
+      )}
+
+      {authOpen && (
+        <AuthModal reason="Чтобы проверить ответ с ИИ, нужно войти или зарегистрироваться." onClose={() => setAuthOpen(false)} />
       )}
     </>
   )

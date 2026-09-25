@@ -10,6 +10,10 @@
   font-size: 14.5px;
   border: 1.5px solid transparent;
   transition: all 0.15s ease;
+  // A button's own label shouldn't wrap mid-word when space runs low —
+  // the flex row it sits in (e.g. .test-actions) should wrap onto a new
+  // line instead (see e.g. the icon/text split "← Назад" used to show).
+  white-space: nowrap;
 
   // Без этого disabled-кнопка выглядела почти как обычная активная
   // (разве что чуть тусклее по умолчанию в браузере) — человеку было

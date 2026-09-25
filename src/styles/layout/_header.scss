@@ -9,6 +9,15 @@
   border-bottom: 1px solid $color-border;
 }
 
+// Set on <body> while any modal that opts into it is open (see
+// AuthModal.jsx) — drops the header out of `position: sticky` for that
+// duration, since an already-scrolled/"stuck" sticky element can end up
+// compositing above a later `position: fixed` overlay in some browsers
+// no matter its z-index. Static positioning has no such quirk.
+body.modal-open .site-header {
+  position: static;
+}
+
 .header-inner {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -75,10 +84,14 @@ nav.main-nav {
   display: none;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: $space-3;
   grid-column: 2;
 
-  @include mq(sm) {
+  // Was mq(sm) (640px) — with EPD/EPM/EPE now flat items (subject name in
+  // parens for non-admins) plus "Моё обучение", that overflowed/wrapped
+  // well before a real laptop width. xl (1220px) is the smallest width
+  // this nav actually fits at without crowding.
+  @include mq(xl) {
     display: flex;
   }
 }
@@ -178,7 +191,7 @@ nav.main-nav {
   align-items: center;
   justify-content: center;
 
-  @include mq(sm) {
+  @include mq(xl) {
     display: none;
   }
 
@@ -237,6 +250,12 @@ nav.main-nav {
     justify-content: space-between;
     align-items: center;
     margin-bottom: $space-5;
+  }
+
+  .mnav-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
   a.mtop-link {

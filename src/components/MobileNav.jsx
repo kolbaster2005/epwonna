@@ -1,19 +1,38 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { visibleExamList } from '../data/examData.js'
 import { universities } from '../data/universities.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import AuthModal from './AuthModal.jsx'
 
 export default function MobileNav({ onClose }) {
-  const { isAdmin } = useAuth()
+  const { user, isAdmin, signOut } = useAuth()
+  const [authOpen, setAuthOpen] = useState(false)
   const examList = visibleExamList(isAdmin)
 
   return (
     <div className="mobile-nav">
       <div className="mnav-top">
         <b style={{ fontFamily: "'Manrope',sans-serif", fontWeight: 800, fontSize: 18 }}>EP WONNA</b>
-        <button className="modal-close" style={{ position: 'static' }} onClick={onClose} aria-label="Закрыть">
-          ✕
-        </button>
+        <div className="mnav-top-actions">
+          {/* The header's own avatar/"Войти" button sits to the left of the
+              burger toggle (see Header.jsx .header-actions) — with the
+              drawer open full-screen over the header, that button becomes
+              unreachable, so the same "Войти"/"Выйти" control gets the
+              same spot here, left of this drawer's own close button. */}
+          {user ? (
+            <button type="button" className="btn btn-outline btn-sm" onClick={signOut}>
+              Выйти
+            </button>
+          ) : (
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => setAuthOpen(true)}>
+              Войти
+            </button>
+          )}
+          <button className="modal-close" style={{ position: 'static' }} onClick={onClose} aria-label="Закрыть">
+            ✕
+          </button>
+        </div>
       </div>
 
       <Link className="mtop-link" to="/" onClick={onClose}>Главная</Link>
@@ -47,6 +66,8 @@ export default function MobileNav({ onClose }) {
       {/* "О проекте" temporarily hidden per product decision.
       <Link className="mtop-link" to="/about" onClick={onClose}>О проекте</Link>
       */}
+
+      {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
     </div>
   )
 }

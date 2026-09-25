@@ -5,6 +5,7 @@
   border-top: 1px solid $color-border;
   padding: $space-9 0 $space-6;
   margin-top: $space-8;
+  flex-shrink: 0; // never gets squeezed by the #root sticky-footer flex column
 }
 
 .footer-grid {

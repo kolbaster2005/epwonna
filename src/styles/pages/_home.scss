@@ -14,8 +14,18 @@
   gap: $space-6;
   align-items: center;
 
-  @include mq(lg) {
+  // Was mq(lg) (960px) — an iPad-width tablet (768px) has plenty of room
+  // for the laptop-style side-by-side layout too; no reason to make it
+  // wait for a much wider screen and sit stacked in the meantime.
+  @include mq(md) {
     grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    // The heading column got tall enough (3-4 lines at this width) that
+    // center-aligning the art against it pushed the picture down instead
+    // of lining it up with the top of the heading.
+    align-items: start;
+  }
+  @include mq(lg) {
     gap: 48px;
   }
 }
@@ -32,8 +42,14 @@
   @include mq(xs) {
     font-size: 27px;
   }
-  @include mq(sm) {
-    font-size: 37px;
+  // Was mq(sm) → 37px, one big jump well before the layout actually
+  // changes. Now stepped: a bit bigger once the 2-column layout kicks in
+  // at md, and the full size only once there's real desktop width at lg.
+  @include mq(md) {
+    font-size: 30px;
+  }
+  @include mq(lg) {
+    font-size: 34px;
   }
 
   .accent {
@@ -48,8 +64,8 @@
   color: $color-ink-soft;
   max-width: 480px;
 
-  @include mq(sm) {
-    font-size: 16px;
+  @include mq(lg) {
+    font-size: 15.5px;
   }
 }
 
@@ -61,6 +77,16 @@
 
   .hero-tiles {
     margin-top: 0;
+  }
+
+  // .hero-grid goes 2-column at md (see above), but the tiles should stay
+  // this — full-width, in their own row below the heading+art row — until
+  // there's real desktop width at lg. Squeezing them into the now-narrow
+  // heading column at md cramped both tiles' text into 2-3 wrapped lines.
+  // grid-column spans both tracks so this renders as a proper separate
+  // block instead of getting auto-placed into a half-width column.
+  @include mq(md) {
+    grid-column: 1 / -1;
   }
 
   @include mq(lg) {
@@ -81,12 +107,22 @@
   grid-template-columns: 1fr;
   gap: 12px;
   margin-top: $space-4;
-  max-width: 580px;
 
   @include mq(sm) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
+}
+
+// The 580px cap only makes sense for the desktop copy of the tiles,
+// which sits in the narrower left column of the 2-column .hero-grid —
+// capping it there keeps the two tiles from stretching too wide next to
+// short heading text. The mobile/tablet copy (.hero-tiles-mobile-only,
+// see Home.jsx) has the full single-column width to itself below $bp-lg;
+// the same cap there just left an ugly patch of empty space to the right
+// of the two tiles instead of using that width.
+.hero-tiles-desktop-only .hero-tiles {
+  max-width: 580px;
 }
 
 .hero-tile {
@@ -137,6 +173,9 @@
   align-items: center;
   justify-content: center;
 
+  @include mq(md) {
+    height: 240px;
+  }
   @include mq(lg) {
     height: 280px;
   }
@@ -153,12 +192,18 @@
 }
 
 // Mobile/tablet-only quick links to EPM/EPD/EPE — see the comment in
-// Home.jsx. Hidden once the hero switches to its 2-column desktop
-// layout, where the header dropdown already covers this need.
+// Home.jsx. Stays visible (as its own full-width row — see the
+// grid-column note on .hero-tiles-mobile-only above, same reasoning)
+// until the hero reaches real desktop width, where the header dropdown
+// already covers this need.
 .hero-quicknav {
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  @include mq(md) {
+    grid-column: 1 / -1;
+  }
 
   @include mq(lg) {
     display: none;
@@ -172,10 +217,13 @@
   gap: 12px;
   padding: 14px 16px;
   border-radius: $radius-md;
-  transition: filter 0.15s ease, transform 0.1s ease;
+  border: 1px solid rgba(18, 32, 61, 0.08);
+  box-shadow: $shadow-resting;
+  transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 
   &:hover {
     filter: brightness(0.96);
+    box-shadow: $shadow-card;
   }
 
   &:active {

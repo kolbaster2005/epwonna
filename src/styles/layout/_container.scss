@@ -7,4 +7,7 @@
 // mixin (in abstracts/_mixins.scss) instead so every page stays in sync.
 .main-wrapper {
   @include container;
+  // Grows to fill the space between header and footer — see the #root
+  // flex column in base/_reset.scss (the sticky-footer setup).
+  flex: 1 0 auto;
 }

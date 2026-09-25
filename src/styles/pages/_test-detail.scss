@@ -39,11 +39,13 @@
   padding: $space-6;
   margin: $space-5 0 $space-10;
 
-  @include mq(sm) {
-    padding: $space-7;
-  }
-
+  // Was mq(sm) (640px) — bumped padding well before there's actually
+  // more room to use it: the card stays single-column all the way to
+  // $bp-lg (960px), so a phone-to-tablet width just got a bigger card
+  // with the exact same cramped single-column layout. Compact now lasts
+  // until the real 2-column desktop split below.
   @include mq(lg) {
+    padding: $space-7;
     grid-template-columns: 1fr 1.3fr;
     gap: $space-8;
   }
@@ -55,7 +57,7 @@
     line-height: 1.25;
     margin-bottom: $space-5;
 
-    @include mq(sm) {
+    @include mq(lg) {
       font-size: 25px;
     }
   }

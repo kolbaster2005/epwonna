@@ -5,6 +5,7 @@
 // onChange={...} checked={...} verdict={...} />.
 
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import QuestionImage from './QuestionImage.jsx'
 import { getVerdictForPartWithSelfGrade, parseCloze, clozeBlankIds, getVerdictForBlank, getVerdictForRow, getVerdictForTfRow } from '../utils/grading.js'
 
@@ -630,7 +631,11 @@ function EssayChoiceInput({ question, value, onChange, checked }) {
         onChange={(e) => onChange({ ...val, text: e.target.value })}
       />
       <p className="free-text-note">
-        Это задание не проверяется автоматически — текст сохранится и будет доступен позже в разделе «Моё обучение».
+        Текст сохранится и будет доступен позже в разделе «
+        <Link className="free-text-note-link" to="/my-learning/essays" target="_blank" rel="noreferrer">
+          Мои сочинения
+        </Link>
+        ».
       </p>
     </div>
   )
