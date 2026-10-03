@@ -1,72 +1,893 @@
 @use '../abstracts' as *;
 
-.pro-dashboard {
-  padding: 28px 0 40px;
+// Раскладка сайта для pro-пользователей (ProLayout.jsx + ProSidebar.jsx)
+// и pro-главная (ProDashboard.jsx). Вместо шапки — левое меню: от $bp-lg
+// оно всегда на экране и сворачивается до иконок, ниже — выезжает по
+// бургеру поверх страницы. Фон у pro-раскладки белый, а не серый.
 
-  @include mq(sm) {
-    padding: 32px 0 54px;
+$pro-hero-dark: #0f4a37;
+$pro-hero-mid: #17684c;
+// Тёмно-зелёная гамма — только у левого меню и баннера «Продолжить
+// обучение». Виджеты сайдбара («Общий прогресс» и т.п.) раньше тоже
+// были в этом тоне и сливались с меню/баннером — теперь у них свои
+// светлые фоны.
+$pro-sidebar-bg: #0c3a2c;
+$pro-sidebar-bg-deep: #082a20;
+$pro-on-dark-soft: rgba(255, 255, 255, 0.72);
+$pro-on-dark-muted: rgba(255, 255, 255, 0.5);
+$pro-countdown-bg: #e8f5ee;
+$pro-countdown-border: #d3ecdf;
+// Тень всех виджетов главной — заметнее $shadow-resting, чтобы карточки
+// не сливались с белым фоном страницы.
+$pro-widget-shadow: 0 2px 6px rgba(18, 32, 61, 0.06), 0 12px 28px -12px rgba(18, 32, 61, 0.22);
+$pro-widget-shadow-hover: 0 4px 10px rgba(18, 32, 61, 0.08), 0 20px 36px -14px rgba(18, 32, 61, 0.3);
+$pro-sidebar-width: 250px;
+$pro-sidebar-collapsed-width: 76px;
+// Та же высота, что у обычной шапки (.header-inner) — на неё завязаны
+// sticky-блоки страниц (`top: 96px` в _test.scss / _exam.scss).
+$pro-topbar-height: 76px;
+
+// ---- Каркас -------------------------------------------------------------
+
+.pro-layout {
+  display: flex;
+  align-items: flex-start;
+  flex: 1 0 auto;
+  min-height: 100vh;
+  background: $color-white;
+}
+
+.pro-layout-body {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+// Подвал pro-раскладки — три варианта оформления, выбираются в
+// «Персонализации» (см. ProLayout.jsx). Светлый — серый фон, чтобы
+// отделить подвал от белой страницы; тёмные — белый текст.
+.pro-layout .site-footer {
+  border-top-color: transparent;
+}
+
+.site-footer--light {
+  background: $color-bg;
+}
+
+@mixin pro-dark-footer($bg, $accent) {
+  background: $bg;
+  color: #fff;
+
+  .logo b,
+  h4 {
+    color: #fff;
+  }
+
+  .footer-grid a {
+    color: rgba(255, 255, 255, 0.72);
+
+    &:hover {
+      color: $accent;
+    }
+  }
+
+  .footer-about p,
+  .foot-bottom {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .foot-bottom {
+    border-top-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .social-row a {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: $accent;
+    }
   }
 }
 
-.pro-dashboard-greeting {
-  font-size: 24px;
-  font-weight: 800;
+.site-footer--green {
+  @include pro-dark-footer($pro-sidebar-bg-deep, #5fd39d);
+}
+
+.site-footer--graphite {
+  @include pro-dark-footer(#1f2630, #5fd39d);
+}
+
+.pro-page-wide {
+  flex: 1 0 auto;
+  padding: $space-5 $container-padding-mobile $space-8;
+
+  @include mq(md) {
+    padding-inline: $container-padding-tablet;
+  }
+
+  @include mq(lg) {
+    padding: $space-6 $space-7 $space-8;
+  }
+}
+
+// ---- Левое меню ---------------------------------------------------------
+
+.pro-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: $z-mobile-nav;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: min(280px, 85vw);
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: $space-5 $space-4;
+  background: linear-gradient(180deg, $pro-sidebar-bg 0%, $pro-sidebar-bg-deep 100%);
+  color: #fff;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease, width 0.2s ease;
+
+  &.drawer-open {
+    transform: translateX(0);
+    box-shadow: $shadow-modal;
+  }
+
+  @include mq(lg) {
+    position: sticky;
+    z-index: auto;
+    width: $pro-sidebar-width;
+    transform: none;
+
+    &.drawer-open {
+      box-shadow: none;
+    }
+  }
+}
+
+.pro-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-mobile-nav - 1;
+  background: rgba(18, 32, 61, 0.35);
+
+  @include mq(lg) {
+    display: none;
+  }
+}
+
+.pro-sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  min-height: 44px;
   margin-bottom: $space-6;
 }
 
-.pro-dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: $space-5;
+.pro-sidebar-logo {
+  padding: 0 $space-2;
+  min-width: 0;
 
-  @include mq(sm) {
-    grid-template-columns: 1fr 1fr;
-    gap: $space-6;
+  .logo-text b {
+    color: #fff;
   }
 }
 
-// ---- Виджет «Продолжим?» ------------------------------------------------
+.pro-sidebar-close {
+  @include button-reset;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 16px;
+  color: $pro-on-dark-soft;
 
-.pro-resume-link {
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  @include mq(lg) {
+    display: none;
+  }
+}
+
+.pro-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pro-sidebar-heading {
+  margin: $space-5 $space-4 $space-2;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: $pro-on-dark-muted;
+  white-space: nowrap;
+}
+
+.pro-sidebar-heading--with-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: $space-2;
+}
+
+.pro-sidebar-heading-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: $pro-on-dark-muted;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.3s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    transform: rotate(45deg);
+  }
+}
+
+.pro-sidebar-link {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: $space-4;
-  padding: 14px 16px;
-  border: 1px solid $color-border;
+  padding: 11px $space-4;
   border-radius: $radius-md;
-  @include hover-lift;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  svg {
+    flex-shrink: 0;
+    color: currentColor;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  &.active {
+    background: $color-primary;
+    color: #fff;
+    box-shadow: 0 8px 20px -10px rgba(34, 160, 107, 0.8);
+  }
 }
 
-.pro-resume-link-icon {
+.pro-sidebar-exam-icon {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+
+  svg {
+    color: #fff;
+  }
 }
 
-.pro-resume-link-body {
+// Свёрнутое меню — только иконки (только на широких экранах; на узких
+// меню и так спрятано и выезжает целиком). Клик по пустому месту
+// разворачивает его (см. ProSidebar.jsx) — отсюда cursor: pointer.
+@include mq(lg) {
+  .pro-sidebar.collapsed {
+    cursor: pointer;
+    width: $pro-sidebar-collapsed-width;
+    padding-inline: $space-3;
+
+    .logo-text,
+    .pro-sidebar-label {
+      display: none;
+    }
+
+    .pro-sidebar-logo {
+      padding: 0;
+      margin-inline: auto;
+    }
+
+    .pro-sidebar-link {
+      justify-content: center;
+      padding-inline: 0;
+    }
+
+    // Заголовки групп превращаются в тонкие разделители.
+    .pro-sidebar-heading {
+      height: 1px;
+      margin: $space-3 $space-2;
+      padding: 0;
+      overflow: hidden;
+      color: transparent;
+      background: rgba(255, 255, 255, 0.14);
+    }
+  }
+}
+
+// ---- Верхняя панель -----------------------------------------------------
+
+.pro-topbar {
+  position: sticky;
+  top: 0;
+  z-index: $z-header;
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  height: $pro-topbar-height;
+  padding: 0 $container-padding-mobile;
+  background: $color-white;
+
+  @include mq(md) {
+    padding-inline: $container-padding-tablet;
+  }
+
+  @include mq(lg) {
+    padding-inline: $space-7;
+  }
+
+  // Меню аккаунта должно быть поверх всего контента страницы.
+  .user-dropdown {
+    z-index: $z-header + 1;
+  }
+}
+
+.pro-topbar-toggle {
+  @include button-reset;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-ink;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: $color-bg;
+  }
+
+  @include mq(lg) {
+    display: none;
+  }
+}
+
+.pro-topbar-logo {
+  @include mq(lg) {
+    display: none;
+  }
+}
+
+.pro-topbar-user {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  margin-left: auto;
+
+  .user-menu-details,
+  .chev {
+    display: none;
+
+    @include mq(sm) {
+      display: flex;
+    }
+  }
+}
+
+// ---- Сетка страницы -----------------------------------------------------
+
+.pro-dashboard {
+  display: grid;
+  gap: $space-6;
+
+  @include mq(xl) {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+}
+
+.pro-dashboard-main {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+  min-width: 0;
+}
+
+.pro-dashboard-side {
+  display: grid;
+  gap: $space-5;
+  align-content: start;
+
+  @include mq(md) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @include mq(xl) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Общая белая карточка правой колонки / «Последних действий».
+.pro-card {
+  position: relative;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-5 $space-6;
+  box-shadow: $pro-widget-shadow;
+  min-width: 0;
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 800;
+  }
+}
+
+// Иконка в цветном квадратике у заголовка карточки.
+.pro-card-icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-primary-light;
+  color: $color-primary-dark;
+}
+
+.pro-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  margin-bottom: $space-4;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 800;
+  }
+}
+
+// ---- Баннер -------------------------------------------------------------
+
+.pro-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-5;
+  padding: $space-7 $space-6;
+  border-radius: $radius-xl;
+  color: #fff;
+  box-shadow: 0 18px 36px -20px rgba(8, 42, 32, 0.85);
+  background:
+    radial-gradient(circle at 85% 30%, rgba(63, 182, 127, 0.35), transparent 55%),
+    linear-gradient(120deg, $pro-hero-dark 0%, $pro-hero-mid 100%);
+
+  @include mq(md) {
+    padding: $space-8 $space-8;
+  }
+}
+
+.pro-hero-text {
+  position: relative;
+  max-width: 460px;
+}
+
+.pro-hero-pill {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: $radius-pill;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pro-hero-title {
+  margin-top: $space-3;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
+
+  @include mq(md) {
+    font-size: 30px;
+  }
+}
+
+.pro-hero-exam {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: $space-4;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.pro-hero-exam-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+}
+
+.pro-hero-when {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pro-hero-progress {
+  margin-top: $space-4;
+  max-width: 380px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+
+  span {
+    display: block;
+    margin-top: 6px;
+  }
+}
+
+.pro-hero-progress-track {
+  height: 8px;
+  border-radius: $radius-pill;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+
+.pro-hero-progress-fill {
+  height: 100%;
+  border-radius: $radius-pill;
+  background: #5fd39d;
+  transition: width 0.3s ease;
+}
+
+.pro-hero-desc {
+  margin-top: $space-3;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.pro-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: $space-5;
+  padding: 13px 24px;
+  border-radius: $radius-pill;
+  background: $color-primary;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 10px 24px -12px rgba(34, 160, 107, 0.9);
+  transition: transform 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    background: #27b377;
+  }
+}
+
+.pro-hero-art {
+  display: none;
+  flex-shrink: 0;
+  width: 280px;
+  height: auto;
+
+  @include mq(sm) {
+    display: block;
+  }
+
+  @include mq(xl) {
+    width: 320px;
+  }
+}
+
+// ---- Мои курсы ----------------------------------------------------------
+
+.pro-courses {
+  scroll-margin-top: $space-5;
+}
+
+.pro-courses-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: $space-4;
+
+  @include mq(xs) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  // Всегда ровно 3 карточки в ряд, растянутые на всю ширину; 4-я и
+  // дальше переносятся на следующий ряд. На узких экранах — 2 / 1.
+  @include mq(md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.pro-course-card {
+  --course-color: #{$color-primary};
+  --course-light: #{$color-primary-light};
+  display: flex;
+  flex-direction: column;
+  padding: $space-5;
+  // Карточка окрашена в тон предмета: светлый оттенок сверху, почти белый
+  // снизу, рамка — тот же оттенок.
+  background: linear-gradient(160deg, var(--course-light) 0%, #{$color-white} 115%);
+  border: 1px solid var(--course-light);
+  border-radius: $radius-lg;
+  box-shadow: $pro-widget-shadow;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $pro-widget-shadow-hover;
+  }
+
+  &.blue { --course-color: #{$color-blue}; --course-light: #{$color-blue-light}; }
+  &.violet { --course-color: #{$color-violet}; --course-light: #{$color-violet-light}; }
+  &.teal { --course-color: #{$color-teal}; --course-light: #{$color-teal-light}; }
+  &.green { --course-color: #{$color-primary}; --course-light: #{$color-primary-light}; }
+  &.orange { --course-color: #{$color-amber-dark}; --course-light: #{$color-amber-light}; }
+}
+
+.pro-course-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: $space-4;
+}
+
+.pro-course-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.7);
+  margin: 5px;
+}
+
+.pro-course-arrow {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-white;
+  color: var(--course-color);
+  box-shadow: $shadow-resting;
+}
+
+.pro-course-label {
+  font-size: 17px;
+  font-weight: 800;
+  color: $color-ink;
+}
+
+.pro-course-sub {
+  margin-top: 4px;
+  min-height: 2.8em;
+  font-size: 13px;
+  line-height: 1.4;
+  color: $color-gray;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pro-course-track {
+  margin-top: $space-4;
+  height: 6px;
+  border-radius: $radius-pill;
+  background: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+}
+
+.pro-course-fill {
+  height: 100%;
+  border-radius: $radius-pill;
+  background: var(--course-color);
+  transition: width 0.3s ease;
+}
+
+.pro-course-percent {
+  margin-top: $space-2;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--course-color);
+}
+
+.pro-course-count {
+  margin-top: 2px;
+  font-size: 12px;
+  color: $color-gray;
+}
+
+// ---- Общий прогресс -----------------------------------------------------
+
+// Plain white card, same as the rest of the sidebar widgets — this used
+// to reuse the dark green @mixin pro-dark-card, the same tone as the
+// sidebar/topbar right next to it, which is exactly what read as
+// everything "blending together". Dark green now stays exclusive to the
+// actual nav chrome (ProSidebar/topbar).
+.pro-overall-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+}
+
+.pro-overall-toggle {
+  @include button-reset;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-gray;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: $color-bg;
+    color: $color-ink;
+  }
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.pro-overall-body {
+  display: flex;
+  align-items: center;
+  gap: $space-6;
+  margin-top: $space-4;
+}
+
+.pro-ring {
+  position: relative;
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    // Дуга должна начинаться сверху, а не справа.
+    transform: rotate(-90deg);
+  }
+}
+
+.pro-ring-track,
+.pro-ring-fill {
+  fill: none;
+  stroke-width: 8;
+}
+
+.pro-ring-track {
+  stroke: $color-bg;
+}
+
+.pro-ring-fill {
+  stroke: $color-primary;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.pro-ring-percent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: $font-display;
+  font-size: 26px;
+  font-weight: 800;
+  color: $color-ink;
+}
+
+.pro-overall-info {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 2px;
+  font-size: 14px;
+  color: $color-ink-soft;
+
+  b {
+    font-size: 18px;
+    color: $color-ink;
+  }
 }
 
-.pro-resume-link-exam {
-  font-size: 11.5px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  color: $color-gray;
+.pro-overall-bar {
+  align-self: stretch;
+  height: 6px;
+  margin-top: $space-3;
+  border-radius: $radius-pill;
+  background: $color-bg;
+  overflow: hidden;
 }
 
-.pro-resume-link-title {
-  font-size: 14.5px;
+.pro-overall-bar-fill {
+  height: 100%;
+  border-radius: $radius-pill;
+  background: $color-primary;
+  transition: width 0.4s ease;
+}
+
+.pro-overall-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: $space-4;
+  padding: 9px 18px;
+  border: 1px solid $color-border;
+  border-radius: $radius-pill;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: $color-primary-dark;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: $color-primary-light;
+  }
+}
+
+// ---- Раскрывающийся список по предметам (стрелка в .pro-overall-head) --
+.pro-overall-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: $space-5;
+  padding-top: $space-4;
+  border-top: 1px solid $color-border;
+}
+
+.pro-overall-breakdown-row {
+  display: grid;
+  grid-template-columns: 84px 1fr 34px;
+  align-items: center;
+  gap: 10px;
+  border-radius: $radius-sm;
+  padding: 4px 6px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: $color-bg;
+  }
+}
+
+.pro-overall-breakdown-label {
+  font-size: 12.5px;
   font-weight: 700;
   color: $color-ink;
   overflow: hidden;
@@ -74,75 +895,114 @@
   white-space: nowrap;
 }
 
-.pro-resume-progress {
-  margin-top: $space-4;
-}
-
-.pro-resume-progress-track {
-  height: 8px;
-  border-radius: 999px;
+.pro-overall-breakdown-track {
+  height: 6px;
+  border-radius: $radius-pill;
   background: $color-bg;
   overflow: hidden;
 }
 
-.pro-resume-progress-fill {
+.pro-overall-breakdown-fill {
   height: 100%;
-  border-radius: 999px;
-  background: $color-primary;
-  transition: width 0.2s ease;
+  border-radius: $radius-pill;
+  transition: width 0.4s ease;
 }
 
-.pro-resume-progress-label {
-  display: block;
-  margin-top: 6px;
-  font-size: 12.5px;
+.pro-overall-breakdown-percent {
+  font-size: 12px;
+  font-weight: 700;
   color: $color-gray;
+  text-align: right;
 }
 
-// ---- Виджет «Прогресс по предметам» -------------------------------------
+// ---- До экзаменов -------------------------------------------------------
 
-.pro-subject-progress-list {
+.pro-countdown {
+  background: $pro-countdown-bg;
+  border-color: $pro-countdown-border;
+
+  .pro-card-icon {
+    background: $color-white;
+  }
+}
+
+.pro-countdown-body {
+  position: relative;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: $space-4;
   margin-top: $space-4;
 }
 
-.pro-subject-progress-row {
-  display: grid;
-  grid-template-columns: 70px 1fr auto;
-  align-items: center;
-  gap: 12px;
-}
-
-.pro-subject-progress-label {
-  font-size: 13px;
+.pro-countdown-days {
+  font-family: $font-display;
+  font-size: 56px;
   font-weight: 800;
-  color: $color-ink;
+  line-height: 1;
+  color: $pro-sidebar-bg;
 }
 
-.pro-subject-progress-track {
-  height: 8px;
-  border-radius: 999px;
-  background: $color-bg;
-  overflow: hidden;
-}
-
-.pro-subject-progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: $color-primary;
-  transition: width 0.2s ease;
-
-  &.blue { background: $color-blue; }
-  &.violet { background: $color-violet; }
-  &.teal { background: $color-teal; }
-  &.green { background: $color-primary; }
-  &.orange { background: $color-amber-dark; }
-}
-
-.pro-subject-progress-count {
-  font-size: 12.5px;
+.pro-countdown-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13.5px;
   color: $color-gray;
-  white-space: nowrap;
+
+  b {
+    font-size: 16px;
+    color: $color-ink;
+  }
+}
+
+// Статус регистрации с цветной точкой: серая — ещё не открыта,
+// зелёная — открыта.
+.pro-countdown-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $color-gray;
+  }
+
+  &.open {
+    color: $color-primary-dark;
+    font-weight: 700;
+
+    &::before {
+      background: $color-primary;
+    }
+  }
+}
+
+// ---- Шестерёнка «Персонализация» рядом с аватаркой ----------------------
+
+.pro-topbar-settings {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-ink-soft;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  svg {
+    transition: transform 0.3s ease;
+  }
+
+  &:hover {
+    background: $color-bg;
+    color: $color-primary-dark;
+
+    svg {
+      transform: rotate(45deg);
+    }
+  }
 }

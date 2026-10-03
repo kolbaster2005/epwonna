@@ -3,14 +3,19 @@ import { visibleExamList } from '../data/examData.js'
 import { universities } from '../data/universities.js'
 import { IconTelegram, IconMail } from './Icons.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { usePersonalization } from '../contexts/PersonalizationContext.jsx'
 import logo from '../assets/logo.png'
 
-export default function Footer() {
+// `className` — модификатор оформления (pro-раскладка передаёт тему
+// подвала из «Персонализации», см. ProLayout.jsx).
+export default function Footer({ className = '' }) {
   const { isAdmin } = useAuth()
-  const examList = visibleExamList(isAdmin)
+  const { filterShownExams } = usePersonalization()
+  // Курсы, выключенные в «Персонализации», не показываем и здесь.
+  const examList = filterShownExams(visibleExamList(isAdmin))
 
   return (
-    <footer className="site-footer">
+    <footer className={`site-footer ${className}`.trim()}>
       <div className="main-wrapper">
         <div className="footer-grid">
           <div className="footer-about">

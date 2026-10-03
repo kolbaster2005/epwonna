@@ -1,0 +1,239 @@
+@use '../abstracts' as *;
+
+// «Персонализация» (Personalization.jsx) — выбор показываемых курсов.
+
+.personalization-section {
+  max-width: 640px;
+
+  h2 {
+    font-size: 18px;
+    font-weight: 800;
+  }
+}
+
+.personalization-hint {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: $color-gray;
+}
+
+.personalization-list {
+  list-style: none;
+  margin: $space-5 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.personalization-item {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  padding: 14px $space-5;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    border-color: $color-primary;
+  }
+
+  &.off .personalization-item-icon,
+  &.off .personalization-item-body {
+    opacity: 0.45;
+  }
+
+  &.locked {
+    cursor: default;
+
+    &:hover {
+      border-color: $color-border;
+    }
+  }
+}
+
+.personalization-item-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease;
+}
+
+.personalization-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: opacity 0.15s ease;
+
+  b {
+    font-size: 15px;
+    color: $color-ink;
+  }
+
+  span {
+    font-size: 13px;
+    color: $color-gray;
+  }
+}
+
+// Чекбокс, нарисованный как переключатель.
+.personalization-switch {
+  appearance: none;
+  flex-shrink: 0;
+  position: relative;
+  width: 44px;
+  height: 26px;
+  margin: 0;
+  border-radius: $radius-pill;
+  background: $color-border;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: $color-white;
+    box-shadow: 0 1px 3px rgba(18, 32, 61, 0.25);
+    transition: transform 0.2s ease;
+  }
+
+  &:checked {
+    background: $color-primary;
+
+    &::after {
+      transform: translateX(18px);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+// ---- Оформление подвала -------------------------------------------------
+
+.personalization-subtitle {
+  margin-top: $space-8;
+}
+
+.personalization-themes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-3;
+  margin-top: $space-5;
+
+  @include mq(sm) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.personalization-theme {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: $space-4;
+  background: $color-white;
+  border: 2px solid $color-border;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: #c7cede;
+  }
+
+  &.active {
+    border-color: $color-primary;
+  }
+
+  // Сама радиокнопка скрыта — выбор виден по рамке карточки.
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+  }
+
+  b {
+    margin-top: $space-2;
+    font-size: 14.5px;
+    color: $color-ink;
+  }
+
+  span {
+    font-size: 12.5px;
+    color: $color-gray;
+  }
+}
+
+// Мини-превью подвала: фон и две «строчки текста».
+.personalization-theme-swatch {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  height: 56px;
+  padding: 0 14px;
+  border-radius: $radius-sm;
+
+  i {
+    display: block;
+    height: 6px;
+    border-radius: $radius-pill;
+    width: 60%;
+
+    & + i {
+      width: 40%;
+    }
+  }
+
+  &.light {
+    background: $color-bg;
+
+    i {
+      background: $color-ink-soft;
+    }
+  }
+
+  &.green {
+    background: #082a20;
+
+    i {
+      background: #fff;
+    }
+  }
+
+  &.graphite {
+    background: #1f2630;
+
+    i {
+      background: #fff;
+    }
+  }
+}

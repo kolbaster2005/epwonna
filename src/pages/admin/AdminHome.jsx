@@ -20,6 +20,9 @@ export default function AdminHome() {
         <Link className="btn btn-outline admin-reports-link" to="/admin/stats">
           Статистика посещений
         </Link>
+        <Link className="btn btn-outline admin-reports-link" to="/admin/exam-countdown">
+          До экзаменов
+        </Link>
       </div>
 
       <div className="admin-section-grid">

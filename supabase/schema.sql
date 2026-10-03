@@ -915,3 +915,27 @@ create policy "qa_table_ai_reviews: own" on public.qa_table_ai_reviews
 
 create index if not exists qa_table_ai_reviews_question_user_test_idx
   on public.qa_table_ai_reviews (question_id, user_id, test_id, created_at desc);
+
+-- ---------------------------------------------------------------------
+-- Виджет «До экзаменов» — дата экзамена и статус регистрации, которые
+-- задаёт админ. См. supabase/exam_countdown.sql для подробных
+-- комментариев.
+-- ---------------------------------------------------------------------
+create table if not exists public.exam_countdown (
+  id smallint primary key default 1 check (id = 1),
+  exam_date date,
+  registration_open boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.exam_countdown enable row level security;
+
+drop policy if exists "exam_countdown: public read" on public.exam_countdown;
+create policy "exam_countdown: public read" on public.exam_countdown
+  for select using (true);
+
+drop policy if exists "exam_countdown: admin write" on public.exam_countdown;
+create policy "exam_countdown: admin write" on public.exam_countdown
+  for all using (public.is_admin()) with check (public.is_admin());
+
+insert into public.exam_countdown (id) values (1) on conflict (id) do nothing;

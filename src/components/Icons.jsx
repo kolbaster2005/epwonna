@@ -364,3 +364,50 @@ export function IconPinFilled(props) {
     </svg>
   )
 }
+
+export function IconArrowRight(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 12h14M13 6l6 6-6 6" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconBarChart(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 20v-6M10 20V9M15 20v-9M20 20V5" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconTarget(props) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="8.5" {...stroke(props)} />
+      <circle cx="12" cy="12" r="4.5" {...stroke(props)} />
+      <path d="M12 12l7-7M16 5h3v3" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconFileText(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M14 3.5H7.5A1.5 1.5 0 0 0 6 5v14a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V7.5l-4-4Z" {...stroke(props)} />
+      <path d="M14 3.5v4h4M9 12.5h6M9 16h4" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconSettings(props) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="3" {...stroke(props)} />
+      <path
+        d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"
+        {...stroke(props)}
+      />
+    </svg>
+  )
+}

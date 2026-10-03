@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { visibleExamList } from '../data/examData.js'
 import { universities } from '../data/universities.js'
-import { avatarOptions, avatarSrcById } from '../data/avatars.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { useDialog } from '../contexts/DialogContext.jsx'
-import { IconNoAvatar } from './Icons.jsx'
 import AuthModal from './AuthModal.jsx'
+import UserMenu from './UserMenu.jsx'
 import logo from '../assets/logo.png'
 
 // "Моё обучение" is a dropdown now, same pattern as EP-экзамены/Вступительные
@@ -24,12 +22,12 @@ const MY_LEARNING_ITEMS = [
 // it lives here instead of examData.js.
 const EXAM_SUBJECT_NAMES = { epd: 'немецкий', epm: 'математика', epe: 'английский' }
 
-export default function Header({ onBurgerClick }) {
-  const { user, profile, isAdmin, isPro, signOut, updateAvatar } = useAuth()
-  const { alertMessage } = useDialog()
+export default function Header({ onBurgerClick, className = '' }) {
+  const { user, isAdmin } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
   const examList = visibleExamList(isAdmin)
-  // Which dropdown is open — 'exams' | 'unis' | 'user' | null. Click-driven,
+  // Which dropdown is open — 'exams' | 'unis' | 'learning' | null (the
+  // account menu manages its own state — see UserMenu.jsx). Click-driven,
   // not hover: hover made it nearly impossible to actually reach the
   // submenu (the dropdown would close the instant the cursor left the
   // trigger). Click to open, click the trigger again / click anywhere
@@ -38,8 +36,7 @@ export default function Header({ onBurgerClick }) {
   const examsRef = useRef(null)
   const unisRef = useRef(null)
   const learningRef = useRef(null)
-  const userRef = useRef(null)
-  const menuRefs = { exams: examsRef, unis: unisRef, learning: learningRef, user: userRef }
+  const menuRefs = { exams: examsRef, unis: unisRef, learning: learningRef }
 
   useEffect(() => {
     if (!openMenu) return undefined
@@ -67,22 +64,8 @@ export default function Header({ onBurgerClick }) {
     setOpenMenu((cur) => (cur === name ? null : name))
   }
 
-  // Falls back to the first letter of the email until a photo is picked
-  // (or if 'avatar_key' is null, i.e. the person explicitly chose "no
-  // photo" from the picker).
-  const avatarLetter = user?.email?.[0]?.toUpperCase() || '?'
-  const avatarSrc = profile?.avatar_key ? avatarSrcById(profile.avatar_key) : null
-
-  async function handlePickAvatar(avatarKey) {
-    try {
-      await updateAvatar(avatarKey)
-    } catch (err) {
-      await alertMessage(err.message || 'Не удалось сохранить аватар.')
-    }
-  }
-
   return (
-    <header className="site-header">
+    <header className={`site-header ${className}`.trim()}>
       <div className="header-inner main-wrapper">
         <Link to="/" className="logo">
           <div className="logo-mark">
@@ -181,56 +164,7 @@ export default function Header({ onBurgerClick }) {
 
         <div className="header-actions">
           {user ? (
-            <div className="nav-item" ref={userRef}>
-              <span className="user-avatar-wrap">
-                <button
-                  type="button"
-                  className="user-avatar"
-                  aria-expanded={openMenu === 'user'}
-                  aria-haspopup="true"
-                  onClick={() => toggleMenu('user')}
-                  aria-label="Аккаунт"
-                >
-                  {avatarSrc ? <img src={avatarSrc} alt="" /> : avatarLetter}
-                </button>
-                {isPro && <span className="pro-badge user-avatar-pro-badge">PRO</span>}
-              </span>
-              <div className={'dropdown user-dropdown' + (openMenu === 'user' ? ' open' : '')}>
-                <div className="user-dropdown-email" title={user.email}>{user.email}</div>
-
-                <div className="avatar-picker">
-                  <button
-                    type="button"
-                    className={'avatar-picker-item avatar-picker-none' + (!profile?.avatar_key ? ' active' : '')}
-                    onClick={() => handlePickAvatar(null)}
-                    aria-label="Без фото"
-                    title="Без фото"
-                  >
-                    <IconNoAvatar size={18} />
-                  </button>
-                  {avatarOptions.map((a) => (
-                    <button
-                      type="button"
-                      key={a.id}
-                      className={'avatar-picker-item' + (profile?.avatar_key === a.id ? ' active' : '')}
-                      onClick={() => handlePickAvatar(a.id)}
-                      aria-label="Выбрать аватар"
-                    >
-                      <img src={a.src} alt="" />
-                    </button>
-                  ))}
-                </div>
-
-                {isAdmin && (
-                  <Link to="/admin" onClick={() => setOpenMenu(null)}>
-                    Админка <span>Управление пробниками и вопросами</span>
-                  </Link>
-                )}
-                <button type="button" className="user-dropdown-signout" onClick={signOut}>
-                  Выйти
-                </button>
-              </div>
-            </div>
+            <UserMenu />
           ) : (
             <button className="btn btn-outline" onClick={() => setAuthOpen(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

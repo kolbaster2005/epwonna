@@ -1374,3 +1374,21 @@
   font-size: 12.5px;
   color: $color-gray;
 }
+
+// ---- До экзаменов (AdminExamCountdown.jsx) --------------------------------
+.admin-countdown-form {
+  max-width: 480px;
+  gap: $space-5;
+}
+
+.admin-countdown-actions {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+}
+
+.admin-countdown-saved {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: $color-primary-dark;
+}
