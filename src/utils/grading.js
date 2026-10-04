@@ -431,6 +431,127 @@ export function getVerdictWithSelfGrade(question, value, selfGrade) {
   return base
 }
 
+// ---------------------------------------------------------------------
+// Points — a question can be worth more than one point: a cloze with 15
+// blanks, a multi_part with 6 parts, a tf_table with 8 rows are each one
+// "question" in the test, but several *points* in a real exam's grading
+// scheme (that's where numbers like "27/35" for a category come from,
+// not the 2 questions it happens to contain). Single-answer types
+// (numeric, short_answer, multiple_choice) stay worth 1 point each.
+//
+// questionMaxPoints(question) — the fixed point value, independent of
+// any answer (the denominator for a category's point total).
+//
+// questionPoints(question, value, verdict, selfGrade) — { earned,
+// possible }: possible is usually questionMaxPoints(question), except
+// 'ungraded' (nothing to count yet — excluded from the total, same as
+// today's ungradedCount) and a numeric self-grade (the scale the person
+// graded themselves on replaces the type's own point value). earned is
+// the actual sub-unit-level count for 'partial', not a flat half.
+// ---------------------------------------------------------------------
+
+export function questionMaxPoints(question) {
+  switch (question.type) {
+    case 'true_false':
+      return question.statements.length
+    case 'cloze':
+      return clozeBlankIds(question.cloze.template).length
+    case 'qa_table': {
+      const rows = qaTableScoredRows(question.qaTable)
+      return rows.length > 0 ? rows.length : question.selfGradeMaxPoints || 1
+    }
+    case 'tf_table':
+      return tfTableGradableRows(question.tfTable).length
+    case 'multi_part':
+      return question.parts.reduce((sum, p) => sum + partMaxPoints(p), 0)
+    case 'heading_match': {
+      const normalize = (s) => s.split(',').map((x) => x.trim().toUpperCase()).filter(Boolean)
+      return normalize(question.correctSequence).length
+    }
+    case 'free_text':
+    case 'essay_choice':
+      return question.selfGradeMaxPoints || 1
+    default:
+      // numeric, short_answer, multiple_choice
+      return 1
+  }
+}
+
+function partMaxPoints(part) {
+  if (part.isExample) return 0
+  if (part.type === 'table') return tableCells(part.table).length
+  return 1
+}
+
+export function questionPoints(question, value, verdict, selfGrade) {
+  if (verdict === 'ungraded') return { earned: 0, possible: 0 }
+
+  // A numeric self-grade (0..selfGradeMaxPoints) replaces the type's own
+  // point value entirely — it's the scale the person graded themselves
+  // on (see getVerdictWithSelfGrade).
+  if (typeof selfGrade === 'number' && question.selfGradeMaxPoints > 0) {
+    return { earned: selfGrade, possible: question.selfGradeMaxPoints }
+  }
+
+  const possible = questionMaxPoints(question)
+  if (verdict === 'correct') return { earned: possible, possible }
+  if (verdict !== 'partial') return { earned: 0, possible } // null | 'unanswered' | 'incorrect'
+
+  switch (question.type) {
+    case 'true_false':
+      return {
+        earned: question.statements.filter((s) => value[s.id] === (s.correct ? 'true' : 'false')).length,
+        possible,
+      }
+    case 'cloze': {
+      const ids = clozeBlankIds(question.cloze.template)
+      return { earned: ids.filter((id) => getVerdictForBlank(question, id, value) === 'correct').length, possible }
+    }
+    case 'qa_table': {
+      const rows = qaTableScoredRows(question.qaTable)
+      return { earned: rows.filter((r) => getVerdictForRow(r, value) === 'correct').length, possible }
+    }
+    case 'tf_table': {
+      const rows = tfTableGradableRows(question.tfTable)
+      return { earned: rows.filter((r) => getVerdictForTfRow(r, value[r.id]) === 'correct').length, possible }
+    }
+    case 'multi_part': {
+      const partGrades = selfGrade && typeof selfGrade === 'object' ? selfGrade : {}
+      let earned = 0
+      question.parts.forEach((p) => {
+        if (p.isExample) return
+        const pv = value?.[p.id]
+        const partVerdict = getVerdictForPartWithSelfGrade(p, pv, partGrades[p.id])
+        if (partVerdict === 'correct') {
+          earned += partMaxPoints(p)
+        } else if (partVerdict === 'partial' && p.type === 'table') {
+          const cells = tableCells(p.table)
+          earned += cells.filter(
+            ({ r, c, cell }) => gradeNumeric(pv?.[`r${r}c${c}`], cell.correctValue, cell.tolerance ?? 1) === 'correct'
+          ).length
+        }
+      })
+      return { earned, possible }
+    }
+    case 'heading_match': {
+      const normalize = (s) => s.split(',').map((x) => x.trim().toUpperCase()).filter(Boolean)
+      const given = normalize(value)
+      const correct = normalize(question.correctSequence)
+      return { earned: given.filter((letter, i) => letter === correct[i]).length, possible }
+    }
+    case 'free_text':
+    case 'essay_choice':
+      // Self-graded 'correct'/'incorrect' (no numeric scale) never
+      // reaches here as 'partial' — only the numeric-selfGrade branch
+      // above can produce 'partial' for these types.
+      return { earned: possible / 2, possible }
+    default:
+      // multiple_choice — no clean per-option point convention to lean
+      // on, half credit like the rest of the app's partial handling.
+      return { earned: possible / 2, possible }
+  }
+}
+
 export function getVerdict(question, value) {
   if (!hasAnswer(question, value)) return null
 

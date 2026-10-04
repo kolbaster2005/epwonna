@@ -5,7 +5,7 @@ import { universities } from '../data/universities.js'
 import { avatarOptions, avatarSrcById } from '../data/avatars.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useDialog } from '../contexts/DialogContext.jsx'
-import { IconNoAvatar } from './Icons.jsx'
+import { IconNoAvatar, IconSettings } from './Icons.jsx'
 import AuthModal from './AuthModal.jsx'
 import logo from '../assets/logo.png'
 
@@ -28,7 +28,12 @@ export default function Header({ onBurgerClick }) {
   const { user, profile, isAdmin, isPro, signOut, updateAvatar } = useAuth()
   const { alertMessage } = useDialog()
   const [authOpen, setAuthOpen] = useState(false)
-  const examList = visibleExamList(isAdmin)
+  // The admin-only dropdown (with the hidden EPC/EPP subjects) is for a
+  // plain admin account — once that account is also pro, the top nav
+  // should look exactly like what a guest sees instead of showing
+  // admin-only chrome on the pro experience.
+  const showExamsDropdown = isAdmin && !isPro
+  const examList = visibleExamList()
   // Which dropdown is open — 'exams' | 'unis' | 'user' | null. Click-driven,
   // not hover: hover made it nearly impossible to actually reach the
   // submenu (the dropdown would close the instant the cursor left the
@@ -98,12 +103,12 @@ export default function Header({ onBurgerClick }) {
             Главная
           </NavLink>
 
-          {/* Admin sees the full 5-subject set, so it stays a dropdown
-              (see App.jsx for the pages this groups). Everyone else only
-              has 3 real exams left after the adminOnly filter above —
-              flat top-level links read better than a dropdown for just
-              those three, so the group is disbanded for them. */}
-          {isAdmin ? (
+          {/* A non-pro admin sees the full 5-subject set, so it stays a
+              dropdown (see App.jsx for the pages this groups). Everyone
+              else — guests, and admins who are also pro — only has 3 real
+              exams after the adminOnly filter above; flat top-level links
+              read better than a dropdown for just those three. */}
+          {showExamsDropdown ? (
             <div className="nav-item" ref={examsRef}>
               <button
                 type="button"
@@ -180,6 +185,11 @@ export default function Header({ onBurgerClick }) {
         </nav>
 
         <div className="header-actions">
+          {isAdmin && (
+            <Link to="/admin" className="header-settings-btn" aria-label="Админка">
+              <IconSettings size={18} />
+            </Link>
+          )}
           {user ? (
             <div className="nav-item" ref={userRef}>
               <span className="user-avatar-wrap">

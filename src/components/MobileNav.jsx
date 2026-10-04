@@ -6,9 +6,9 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import AuthModal from './AuthModal.jsx'
 
 export default function MobileNav({ onClose }) {
-  const { user, isAdmin, signOut } = useAuth()
+  const { user, signOut } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
-  const examList = visibleExamList(isAdmin)
+  const examList = visibleExamList()
 
   return (
     <div className="mobile-nav">

@@ -5,6 +5,7 @@
 // в TestPage.jsx — не здесь.
 
 import { useState } from 'react'
+import EssayAnnotatedText from './EssayAnnotatedText.jsx'
 
 export default function EssayAiReview({ review, onCheck, checking, showButton = true, usage }) {
   const [expanded, setExpanded] = useState(false)
@@ -46,6 +47,18 @@ export default function EssayAiReview({ review, onCheck, checking, showButton = 
           </div>
         )}
       </div>
+
+      {review.submittedText && (
+        <div className="essay-ai-annotated">
+          <h5>Твой текст с пометками ИИ</h5>
+          <EssayAnnotatedText text={review.submittedText} annotations={feedback?.annotations} />
+          {feedback?.annotations?.length > 0 ? (
+            <p className="essay-ai-annotated-hint">Жёлтым выделены ошибки — наведите на отмеченное место, чтобы увидеть комментарий.</p>
+          ) : (
+            <p className="essay-ai-annotated-hint">ИИ не отметил конкретных ошибок в тексте.</p>
+          )}
+        </div>
+      )}
 
       <button type="button" className="essay-ai-toggle" onClick={() => setExpanded((e) => !e)}>
         {expanded ? 'Скрыть подробности' : 'Показать подробности по критериям'}

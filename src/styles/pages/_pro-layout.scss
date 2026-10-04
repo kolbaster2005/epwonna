@@ -1,0 +1,467 @@
+@use '../abstracts' as *;
+
+// Раскладка сайта для pro-пользователей (ProLayout.jsx + ProSidebar.jsx) —
+// как на референсе: вся страница — серый «холст», внутри него слева
+// узкая иконочная полоска (просто иконки на холсте, без своей карточки)
+// и один белый «шелл» (.pro-shell) со всем содержимым страницы — ни
+// отдельной карточки под сайдбар, ни отдельной шапки сверху, всё внутри
+// одного белого блока. Аккаунт (аватар, роль, выход) — в виджете
+// профиля на pro-главной и в сайдбаре, не в отдельной панели.
+
+$pro-canvas-bg: $color-bg;
+$pro-sidebar-width: 76px;
+// Тень белого шелла — чуть заметнее обычной $shadow-resting, карточка
+// должна читаться на сером холсте, а не сливаться с ним.
+$pro-shell-shadow: 0 2px 8px rgba(18, 32, 61, 0.05), 0 20px 40px -22px rgba(18, 32, 61, 0.28);
+// Отступ от верха шелла для sticky-блоков внутри страниц (.test-nav,
+// .test-main, .exam-hero-art) — раньше их `top: 96px` был рассчитан под
+// высоту обычной шапки, которой у pro-раскладки больше нет.
+$pro-shell-sticky-top: $space-5;
+
+// ---- Каркас -------------------------------------------------------------
+
+.pro-layout {
+  display: flex;
+  align-items: flex-start;
+  flex: 1 0 auto;
+  min-height: 100vh;
+  background: $pro-canvas-bg;
+
+  @include mq(lg) {
+    align-items: stretch;
+  }
+}
+
+// Один белый блок со всем содержимым страницы — как на референсе: не
+// отдельная карточка под каждый кусок (сайдбар/шапка/контент), а один
+// общий «шелл». Каждая страница внутри сама задаёт себе вертикальные
+// отступы (.pro-dash, .exam-hero и т. д.) — здесь только каркас.
+.pro-shell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: $color-white;
+
+  @include mq(lg) {
+    margin: $space-4 $space-4 $space-4 0;
+    border-radius: $radius-xl;
+    box-shadow: $pro-shell-shadow;
+  }
+
+  // Раньше под это было рассчитано top: 96px (высота шапки + зазор) —
+  // шапки больше нет, зазор теперь намного меньше.
+  .test-nav,
+  .test-main,
+  .exam-hero-art {
+    @include mq(lg) {
+      top: $pro-shell-sticky-top;
+      max-height: calc(100vh - #{$pro-shell-sticky-top} - #{$space-5});
+    }
+  }
+}
+
+// Бургер + лого — только на узких экранах, где сайдбар спрятан и
+// выезжает по нему; от $bp-lg сайдбар всегда на экране, эта строка не
+// нужна.
+.pro-shell-mobile-bar {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-4 $container-padding-mobile;
+  border-bottom: 1px solid $color-border;
+
+  @include mq(md) {
+    padding-inline: $container-padding-tablet;
+  }
+
+  @include mq(lg) {
+    display: none;
+  }
+}
+
+.pro-shell-toggle {
+  @include button-reset;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-ink;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: $color-bg;
+  }
+}
+
+// Подвал pro-раскладки — вне холста (см. ProLayout.jsx), во всю ширину,
+// как у всех остальных страниц, но всегда графит — выбора темы в
+// «Персонализации» больше нет.
+.site-footer--graphite {
+  background: #1f2630;
+  color: #fff;
+
+  .logo b,
+  h4 {
+    color: #fff;
+  }
+
+  .footer-grid a {
+    color: rgba(255, 255, 255, 0.72);
+
+    &:hover {
+      color: #5fd39d;
+    }
+  }
+
+  .footer-about p,
+  .foot-bottom {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .foot-bottom {
+    border-top-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .social-row a {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #5fd39d;
+    }
+  }
+}
+
+// ---- Левое меню ---------------------------------------------------------
+
+.pro-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: $z-mobile-nav;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: min(280px, 85vw);
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: $space-5 $space-4;
+  background: $color-white;
+  color: $color-ink;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+
+  &.drawer-open {
+    transform: translateX(0);
+    box-shadow: $shadow-modal;
+  }
+
+  // От $bp-lg — узкая полоска только из иконок прямо на сером холсте
+  // (как на референсе), без своей карточки/фона — просто иконки. При
+  // наведении полоска остаётся на том же сером холсте (фон не меняется),
+  // просто становится шире и показывает подписи у всех пунктов — остаётся
+  // position: sticky, поэтому соседний .pro-shell сдвигается вправо вместе
+  // с ней, а не перекрывается ею.
+  @include mq(lg) {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    width: $pro-sidebar-width;
+    height: 100vh;
+    align-items: center;
+    padding: $space-5 $space-2;
+    background: transparent;
+    color: $color-ink-soft;
+    transform: none;
+    transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), padding 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.drawer-open {
+      box-shadow: none;
+    }
+
+    // display: none/block не анимируется — вместо этого подпись всегда в
+    // потоке, но схлопнута до нулевой ширины и прозрачна, пока меню
+    // свёрнуто, и плавно раскрывается/проявляется при наведении вместе с
+    // расширением самого меню.
+    .logo-text,
+    .pro-sidebar-label {
+      display: inline-block;
+      max-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.14s ease;
+    }
+
+    .pro-sidebar-logo {
+      // Тот же эффект, что у .pro-sidebar-link чуть ниже: .logo
+      // (_header.scss) задаёт gap между .logo-mark и .logo-text, который
+      // резервирует место, даже когда .logo-text схлопнут до нулевой
+      // ширины — из-за этого сама иконка-лого стояла не по центру.
+      gap: 0;
+      padding: 0;
+      transition: padding 0.22s cubic-bezier(0.4, 0, 0.2, 1), gap 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .pro-sidebar-link {
+      justify-content: center;
+      // gap между иконкой и подписью (см. базовое правило ниже) резервирует
+      // место, даже когда подпись схлопнута до max-width: 0 — flex gap не
+      // зависит от видимой ширины элемента. Из-за этого иконка стояла не
+      // по центру кнопки, а смещённой на половину gap влево — для мелких
+      // круглых значков почти незаметно, а для залитого .active-пункта
+      // («Главная») хорошо видно. Пока подпись скрыта, gap не нужен.
+      gap: 0;
+      padding-inline: 0;
+      width: 44px;
+      color: $color-ink-soft;
+      // width НЕ анимируем: он переключается на auto при раскрытии, а
+      // браузер не умеет плавно анимировать значение auto — в итоге
+      // активный пункт (с заливкой .active) на полпути анимации
+      // "срывало" в сторону. Ширина пункта просто мгновенно подстраивается
+      // под контент, пока сам сайдбар вокруг него плавно расширяется —
+      // этого достаточно для плавного ощущения в целом.
+      transition: background 0.15s ease, color 0.15s ease, padding-inline 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+        gap 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover {
+        background: $color-white;
+        color: $color-ink;
+      }
+
+      &.active {
+        background: $color-primary;
+        color: #fff;
+      }
+    }
+
+    .pro-sidebar-divider {
+      transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .pro-sidebar-close {
+      display: none;
+    }
+
+    &:hover {
+      width: 240px;
+      align-items: stretch;
+      padding-inline: $space-4;
+
+      .logo-text,
+      .pro-sidebar-label {
+        max-width: 160px;
+        opacity: 1;
+        transition: max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease 0.05s;
+      }
+
+      .pro-sidebar-top {
+        justify-content: flex-start;
+      }
+
+      .pro-sidebar-logo {
+        gap: $space-3;
+        padding: 0 $space-2;
+      }
+
+      .pro-sidebar-link {
+        justify-content: flex-start;
+        gap: 14px;
+        padding-inline: $space-4;
+        width: auto;
+      }
+
+      .pro-sidebar-nav {
+        align-items: stretch;
+      }
+
+      .pro-sidebar-divider {
+        width: 100%;
+      }
+    }
+  }
+}
+
+.pro-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-mobile-nav - 1;
+  background: rgba(18, 32, 61, 0.35);
+
+  @include mq(lg) {
+    display: none;
+  }
+}
+
+.pro-sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  min-height: 44px;
+  margin-bottom: $space-6;
+
+  @include mq(lg) {
+    justify-content: center;
+  }
+}
+
+.pro-sidebar-logo {
+  padding: 0 $space-2;
+  min-width: 0;
+}
+
+.pro-sidebar-close {
+  @include button-reset;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 16px;
+  color: $color-gray;
+
+  &:hover {
+    background: $color-bg;
+  }
+}
+
+.pro-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  @include mq(lg) {
+    align-items: center;
+    width: 100%;
+  }
+}
+
+// Тонкая линия между группами пунктов — на узких экранах их разделяют
+// подписи самих групп (.pro-sidebar-heading), поэтому там не нужна.
+.pro-sidebar-divider {
+  display: none;
+
+  @include mq(lg) {
+    display: block;
+    width: 28px;
+    height: 1px;
+    margin: $space-3 0;
+    background: $color-border;
+  }
+}
+
+.pro-sidebar-heading {
+  display: flex;
+  align-items: center;
+  margin: $space-5 $space-4 $space-2;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: $color-gray;
+  white-space: nowrap;
+
+  @include mq(lg) {
+    display: none;
+  }
+}
+
+.pro-sidebar-heading--with-action {
+  gap: 6px;
+  margin-left: $space-2;
+}
+
+// На узких экранах эта шестерёнка сидит рядом с подписью «Предметы» в
+// общем потоке; на широких — сама подпись скрыта (см. .pro-sidebar-heading
+// выше), так что действие туда не поместить без подписи. Там вместо неё
+// пункт «Персонализация» в группе «Управление» ниже — эта же шестерёнка
+// просто не показывается отдельно.
+.pro-sidebar-heading-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: $color-gray;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.3s ease;
+
+  &:hover {
+    background: $color-bg;
+    color: $color-ink;
+    transform: rotate(45deg);
+  }
+
+  @include mq(lg) {
+    display: none;
+  }
+}
+
+.pro-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px $space-4;
+  border-radius: $radius-md;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: $color-ink-soft;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  svg {
+    flex-shrink: 0;
+    color: currentColor;
+  }
+
+  &:hover {
+    background: $color-bg;
+    color: $color-ink;
+  }
+
+  &.active {
+    background: $color-primary;
+    color: #fff;
+    box-shadow: 0 8px 20px -10px rgba(34, 160, 107, 0.8);
+  }
+}
+
+.pro-sidebar-exam-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    color: #fff;
+  }
+}
+
+// Выход — отдельной кнопкой внизу меню (как на референсе), а не в общем
+// списке пунктов: отталкивается от низа через margin-top: auto на самом
+// сайдбаре (flex-column), а не каким-то спейсером-пустышкой.
+//
+// button-reset обнуляет padding/background — у него та же специфичность
+// (один класс), что и у .pro-sidebar-link, и в компилированном CSS он
+// идёт позже, поэтому без явного повтора паддинга здесь эта кнопка
+// теряла отступы (и поэтому — область hover-подсветки) по сравнению с
+// остальными пунктами меню, которые .pro-sidebar-link не делят с
+// button-reset.
+.pro-sidebar-logout {
+  @include button-reset;
+  padding: 11px $space-4;
+  margin-top: auto;
+  flex-shrink: 0;
+
+  @include mq(lg) {
+    margin-top: $space-4;
+  }
+}

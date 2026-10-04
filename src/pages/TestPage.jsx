@@ -20,9 +20,46 @@ import ReportIssueModal from '../components/ReportIssueModal.jsx'
 import PageLoader from '../components/PageLoader.jsx'
 import LockedTestNotice from '../components/LockedTestNotice.jsx'
 import AuthModal from '../components/AuthModal.jsx'
-import { getVerdictWithSelfGrade, hasAnswer, hasAnyAnswer, isAutoGraded, defaultValue } from '../utils/grading.js'
+import { getVerdictWithSelfGrade, hasAnswer, hasAnyAnswer, isAutoGraded, defaultValue, questionPoints } from '../utils/grading.js'
 import { pluralizeRu } from '../utils/pluralize.js'
 import { formatTime, MICROLABEL_BY_TYPE, groupByCategory } from '../utils/testLayout.js'
+import { IconCheckCircle, IconRefresh, IconList, IconEye, IconArrowRight } from '../components/Icons.jsx'
+
+// Кольцо результата на экране «Тест завершён»: r=34 в viewBox 80×80,
+// как и в ProDashboard.jsx — stroke-dasharray рисует заполненную часть.
+const RING_RADIUS = 34
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
+
+// Цвет кольца и процентов по разделам — по порогам, не по цвету
+// предмета: < 50% красный, 50–70% оранжевый, > 70% зелёный. Те же тона,
+// что у .correct/.partial/.incorrect в _test.scss.
+function scoreColor(percent) {
+  if (percent == null) return '#9aa5b1'
+  if (percent < 50) return '#e3564f'
+  if (percent <= 70) return '#f2a537'
+  return '#22a06b'
+}
+
+// 10 из 15, но 10.5 из 15, если в разделе были частично верные ответы.
+function formatPoints(n) {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1)
+}
+
+// Заголовок/подпись хедера результатов — по тем же порогам, что и цвет.
+function resultHeadline(percent) {
+  if (percent == null) return 'Тест завершён'
+  if (percent >= 85) return 'Отличный результат!'
+  if (percent > 70) return 'Хорошая работа!'
+  if (percent >= 50) return 'Неплохо, есть куда расти'
+  return 'Стоит ещё потренироваться'
+}
+function resultSub(percent) {
+  if (percent == null) return 'Баллы появятся после проверки — часть вопросов ещё не оценена.'
+  if (percent >= 85) return 'Почти всё верно — можно двигаться к следующему пробнику.'
+  if (percent > 70) return 'Хороший результат — посмотрите, что осталось подтянуть.'
+  if (percent >= 50) return 'Половина пути пройдена — разберите ошибки и попробуйте ещё раз.'
+  return 'Посмотрите разбор ошибок ниже и пройдите пробник ещё раз.'
+}
 
 export default function TestPage({ examKey }) {
   const { testId } = useParams()
@@ -624,25 +661,142 @@ export default function TestPage({ examKey }) {
 
   if (finished) {
     const timeSpent = totalSeconds - secondsLeft
+
+    // Баллы, не количество вопросов — questionPoints считает реальные
+    // суб-единицы (пропуски в cloze, строки таблицы, части multi_part и
+    // т. д.), а не 1 очко за вопрос, поэтому раздел вроде «Грамматика»
+    // может законно показывать «27/35», а не «1/2».
+    function pointsFor(q) {
+      return questionPoints(q, answers[q.id] ?? defaultValue(q.type), verdictFor(q), selfGrades[q.id])
+    }
+
+    const totalPoints = questions.reduce(
+      (sum, q) => {
+        const { earned, possible } = pointsFor(q)
+        return { earned: sum.earned + earned, possible: sum.possible + possible }
+      },
+      { earned: 0, possible: 0 }
+    )
+    const scorePercent = totalPoints.possible > 0 ? Math.round((totalPoints.earned / totalPoints.possible) * 100) : null
+    const ringColor = scoreColor(scorePercent)
+
+    // По разделам (category на вопросе, см. groupByCategory) — та же
+    // поточечная сумма, просто на подмножестве вопросов. Раздел без ни
+    // одного проверенного балла (например, «Письмо» без самооценки)
+    // просто не попадает в список.
+    const categoryBreakdown = groupByCategory(questions)
+      .map((group) => {
+        const totals = group.items.reduce(
+          (sum, { question: q }) => {
+            const { earned, possible } = pointsFor(q)
+            return { earned: sum.earned + earned, possible: sum.possible + possible }
+          },
+          { earned: 0, possible: 0 }
+        )
+        const percent = totals.possible > 0 ? Math.round((totals.earned / totals.possible) * 100) : null
+        return { name: group.name, ...totals, percent }
+      })
+      .filter((c) => c.possible > 0)
+
+    const nextSteps = [
+      { icon: IconRefresh, title: 'Пройти ещё раз', desc: 'Начать этот пробник заново', onClick: restart },
+      { icon: IconList, title: 'Вернуться к пробникам', desc: 'Выбрать другой пробник этого предмета', to: `/${examKey}` },
+    ]
+    if (savedAttemptId) {
+      nextSteps.push({
+        icon: IconEye,
+        title: 'Разбор ответов',
+        desc: 'Посмотреть каждый вопрос с объяснением',
+        to: `/my-learning/attempt/${savedAttemptId}`,
+      })
+    }
+
     return (
-      <div className="test-results">
-        <div className="test-results-score" style={{ background: exam.color }}>
-          {correctCount} / {questions.length}
+      <div className="test-results test-results--scored">
+        <div className="test-results-hero">
+          <div className="test-results-hero-text">
+            <span className="test-results-badge">
+              <IconCheckCircle size={14} /> Пробник завершён
+            </span>
+            <h1>{resultHeadline(scorePercent)}</h1>
+            <p>{resultSub(scorePercent)}</p>
+            <div className="test-results-stats">
+              <div className="test-results-stat">
+                <span className="test-results-stat-label">Баллы</span>
+                <span className="test-results-stat-value">
+                  {formatPoints(totalPoints.earned)}/{formatPoints(totalPoints.possible)}
+                </span>
+              </div>
+              <div className="test-results-stat">
+                <span className="test-results-stat-label">Верно</span>
+                <span className="test-results-stat-value">{correctCount}</span>
+              </div>
+              <div className="test-results-stat">
+                <span className="test-results-stat-label">Неверно</span>
+                <span className="test-results-stat-value">{incorrectCount}</span>
+              </div>
+            </div>
+            <p className="test-results-time">Затрачено времени: {formatTime(timeSpent)}</p>
+          </div>
+          <div className="test-results-ring">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle className="test-results-ring-track" cx="40" cy="40" r={RING_RADIUS} />
+              <circle
+                className="test-results-ring-fill"
+                cx="40"
+                cy="40"
+                r={RING_RADIUS}
+                strokeDasharray={RING_CIRCUMFERENCE}
+                strokeDashoffset={RING_CIRCUMFERENCE * (1 - (scorePercent ?? 0) / 100)}
+                style={{ stroke: ringColor }}
+              />
+            </svg>
+            <span className="test-results-ring-percent">{scorePercent != null ? `${scorePercent}%` : '—'}</span>
+          </div>
         </div>
-        <h1>Тест завершён</h1>
-        <p>
-          Верных ответов: <b>{correctCount}</b>, частично верных: <b>{partialCount}</b>, неверных: <b>{incorrectCount}</b>
-          {ungradedCount > 0 && <> , не проверяется автоматически: <b>{ungradedCount}</b></>}
-          {uncheckedCount > 0 && <> , без ответа: <b>{uncheckedCount}</b></>} из {questions.length}.
-          Затрачено времени: <b>{formatTime(timeSpent)}</b>.
-        </p>
-        <div className="test-results-actions">
-          {savedAttemptId ? (
-            <Link className="btn btn-primary" to={`/my-learning/attempt/${savedAttemptId}`}>Посмотреть результаты</Link>
-          ) : (
-            <button className="btn btn-primary" onClick={restart}>Пройти ещё раз</button>
+
+        <div className="test-results-panels">
+          {categoryBreakdown.length > 1 && (
+            <div className="test-results-panel">
+              <h2>Результаты по разделам</h2>
+              <div className="test-results-breakdown">
+                {categoryBreakdown.map((c) => (
+                  <div className="test-results-breakdown-row" key={c.name}>
+                    <div className="test-results-breakdown-head">
+                      <span className="test-results-breakdown-name">{c.name}</span>
+                      <span className="test-results-breakdown-score">
+                        {formatPoints(c.earned)}/{formatPoints(c.possible)}
+                        {c.percent != null && <> · {c.percent}%</>}
+                      </span>
+                    </div>
+                    <div className="test-results-breakdown-track">
+                      <div
+                        className="test-results-breakdown-fill"
+                        style={{ width: `${c.percent ?? 0}%`, background: scoreColor(c.percent) }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
-          <Link className="btn btn-outline" to={`/${examKey}`}>Вернуться к пробникам</Link>
+
+          <div className="test-results-panel">
+            <h2>Что дальше</h2>
+            <div className="test-results-next">
+              {nextSteps.map((step) =>
+                step.to ? (
+                  <Link className="test-results-next-row" to={step.to} key={step.title}>
+                    <NextStepRow step={step} />
+                  </Link>
+                ) : (
+                  <button type="button" className="test-results-next-row" onClick={step.onClick} key={step.title}>
+                    <NextStepRow step={step} />
+                  </button>
+                )
+              )}
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -988,6 +1142,25 @@ export default function TestPage({ examKey }) {
       {authOpen && (
         <AuthModal reason="Чтобы проверить ответ с ИИ, нужно войти или зарегистрироваться." onClose={() => setAuthOpen(false)} />
       )}
+    </>
+  )
+}
+
+// Одна строка в карточке «Что дальше» на экране результатов — иконка,
+// заголовок+описание, стрелка. И <Link>, и <button> в finished-блоке
+// выше рендерят этот же набор детей, просто в разном оборачивающем теге.
+function NextStepRow({ step }) {
+  const Icon = step.icon
+  return (
+    <>
+      <span className="test-results-next-icon">
+        <Icon size={18} />
+      </span>
+      <span className="test-results-next-text">
+        <b>{step.title}</b>
+        <span>{step.desc}</span>
+      </span>
+      <IconArrowRight size={16} className="test-results-next-arrow" />
     </>
   )
 }

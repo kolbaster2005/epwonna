@@ -2,15 +2,19 @@ import { Link } from 'react-router-dom'
 import { visibleExamList } from '../data/examData.js'
 import { universities } from '../data/universities.js'
 import { IconTelegram, IconMail } from './Icons.jsx'
-import { useAuth } from '../contexts/AuthContext.jsx'
+import { usePersonalization } from '../contexts/PersonalizationContext.jsx'
 import logo from '../assets/logo.png'
 
-export default function Footer() {
-  const { isAdmin } = useAuth()
-  const examList = visibleExamList(isAdmin)
+// `className` — модификатор оформления (pro-раскладка передаёт тему
+// подвала из «Персонализации», см. ProLayout.jsx); для всех остальных
+// страниц остаётся пустым, как раньше.
+export default function Footer({ className = '' }) {
+  // Курсы, выключенные в «Персонализации», не показываем и здесь —
+  // по умолчанию (никто ничего не скрыл) список не меняется.
+  const examList = usePersonalization().filterShownExams(visibleExamList())
 
   return (
-    <footer className="site-footer">
+    <footer className={`site-footer ${className}`.trim()}>
       <div className="main-wrapper">
         <div className="footer-grid">
           <div className="footer-about">

@@ -1,47 +1,210 @@
 @use '../abstracts' as *;
 
-.pro-dashboard {
-  padding: 28px 0 40px;
+// Pro-главная (ProDashboard.jsx) — рендерится внутри ProLayout.jsx (левое
+// меню + верхняя панель вместо обычной шапки). Структура: приветствие,
+// затем грид из двух колонок — слева прогресс по предметам, справа
+// профиль/счётчик дней/быстрые ссылки/график.
 
-  @include mq(sm) {
-    padding: 32px 0 54px;
+// Тень виджетов главной — заметнее $shadow-resting, чтобы карточки не
+// сливались с зелёным холстом вокруг (см. _pro-layout.scss).
+$pro-widget-shadow: 0 2px 6px rgba(18, 32, 61, 0.06), 0 12px 28px -12px rgba(18, 32, 61, 0.22);
+
+.pro-dash {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+  // Same page rhythm as .test-page/.exam-hero etc. — without this the
+  // dashboard content sat flush against the sidebar/topbar with zero
+  // breathing room.
+  padding: $space-5 0 $space-10;
+}
+
+// ---- Сетка ------------------------------------------------------------
+
+.pro-dash-grid {
+  display: grid;
+  gap: $space-5;
+
+  @include mq(xl) {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
   }
 }
 
-.pro-dashboard-greeting {
-  font-size: 24px;
-  font-weight: 800;
-  margin-bottom: $space-6;
+.pro-dash-col {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+  min-width: 0;
 }
 
-.pro-dashboard-grid {
+.pro-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  margin-bottom: $space-4;
+
+  h2 {
+    font-size: 16px;
+    font-weight: 800;
+  }
+}
+
+// .pro-dash-block — секция внутри белого шелла (.pro-shell, см.
+// _pro-layout.scss). Сам шелл уже белый, поэтому слева («Мои предметы»,
+// «Мои экзамены») это просто блок без своей рамки/тени — иначе
+// получалась бы белая карточка на белом фоне; отступ между секциями
+// даёт gap у .pro-dash-col.
+
+// ---- Мои пробники (2 карточки: черновик + последний завершённый) ------
+
+.pro-probnik-cards {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: $space-5;
+  gap: $space-4;
 
   @include mq(sm) {
     grid-template-columns: 1fr 1fr;
-    gap: $space-6;
   }
 }
 
-// ---- Виджет «Продолжим?» ------------------------------------------------
-
-.pro-resume-link {
+.pro-probnik-card {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: $space-4;
-  padding: 14px 16px;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  @include hover-lift;
+  flex-direction: column;
+  gap: $space-4;
+  padding: $space-4;
+  background: $color-bg;
+  border-radius: $radius-lg;
+
+  &--empty {
+    align-items: flex-start;
+    justify-content: center;
+    gap: $space-3;
+    min-height: 120px;
+
+    p {
+      font-size: 13.5px;
+      color: $color-gray;
+    }
+  }
 }
 
-.pro-resume-link-icon {
+.pro-probnik-card-top {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.pro-probnik-card-info {
+  flex: 1;
+  min-width: 0;
+
+  b {
+    display: block;
+    font-size: 14px;
+    color: $color-ink;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+// Две колонки по 2 категории в ряд, сколько бы категорий ни было в
+// пробнике — а не один общий flex-ряд, который при 3+ категориях ехал в
+// одну длинную строку на всю ширину карточки.
+.pro-probnik-card-stats {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+
+  span {
+    font-size: 11.5px;
+    color: $color-gray;
+  }
+}
+
+.pro-probnik-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+}
+
+// Полоска заполнения черновика — вместо текста с процентами (см.
+// progressColor() в ProDashboard.jsx: цвет меняется по тому же порогу,
+// что и у кольца/процентов завершённого пробника ниже).
+.pro-probnik-progress {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: $color-border;
+  overflow: hidden;
+}
+
+.pro-probnik-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease, background 0.2s ease;
+}
+
+.pro-probnik-card-percent {
+  font-family: $font-display;
+  font-size: 22px;
+  font-weight: 800;
+  color: $color-ink;
+}
+
+.pro-probnik-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pro-probnik-card-btn {
+  padding: 9px 16px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+// Кольцо прогресса в карточке пробника — такое же, как в списке «Мои
+// предметы» раньше, просто теперь внутри этих карточек.
+.pro-track-ring {
+  position: relative;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+}
+
+.pro-track-ring-bg,
+.pro-track-ring-fill {
+  fill: none;
+  stroke-width: 6;
+}
+
+.pro-track-ring-bg {
+  stroke: $color-bg;
+}
+
+.pro-track-ring-fill {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.pro-track-ring-icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 26px;
+  height: 26px;
+  padding: 5px;
+  box-sizing: border-box;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -49,100 +212,415 @@
   color: #fff;
 }
 
-.pro-resume-link-body {
+// ---- Мои экзамены (мини-меню с вкладками + карточки) -------------------
+
+.pro-examlist-menu {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $space-3;
+  margin-bottom: $space-4;
+}
+
+.pro-examlist-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pro-examlist-tab {
+  @include button-reset;
+  padding: 7px 14px;
+  border-radius: $radius-pill;
+  background: $color-bg;
+  font-size: 13px;
+  font-weight: 700;
+  color: $color-ink-soft;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    color: $color-ink;
+  }
+
+  &.active {
+    background: $color-primary;
+    color: #fff;
+  }
+}
+
+.pro-examlist-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.pro-examlist-action {
+  @include button-reset;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-sm;
+  border: 1px solid $color-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-ink-soft;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    border-color: $color-primary;
+    color: $color-primary-dark;
+  }
+
+  &.active {
+    background: $color-primary-light;
+    border-color: $color-primary;
+    color: $color-primary-dark;
+  }
+}
+
+.pro-examlist-search {
+  width: 100%;
+  margin-bottom: $space-4;
+  padding: 10px 14px;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  font-size: 13.5px;
+  color: $color-ink;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+  }
+}
+
+.pro-examlist {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+// Карточка в стиле референса: иконка — скруглённый квадрат на светлой
+// подложке в тон предмета (--course-color/--course-light — тот же приём,
+// что раньше был у .pro-course-card), не сплошной цветной кружок.
+.pro-examlist-item {
+  --course-color: #{$color-primary};
+  --course-light: #{$color-primary-light};
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  padding: $space-4;
+  // Сама карточка — в тон предмета (не серая), иконка — белый квадрат
+  // поверх неё, чтобы не сливаться.
+  background: var(--course-light);
+  border-radius: $radius-lg;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    filter: brightness(0.97);
+    box-shadow: $pro-widget-shadow;
+  }
+
+  &.blue { --course-color: #{$color-blue}; --course-light: #{$color-blue-light}; }
+  &.violet { --course-color: #{$color-violet}; --course-light: #{$color-violet-light}; }
+  &.teal { --course-color: #{$color-teal}; --course-light: #{$color-teal-light}; }
+  &.green { --course-color: #{$color-primary}; --course-light: #{$color-primary-light}; }
+  &.orange { --course-color: #{$color-amber-dark}; --course-light: #{$color-amber-light}; }
+}
+
+.pro-examlist-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-white;
+  color: var(--course-color);
+}
+
+.pro-examlist-body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
+
+  b {
+    font-size: 15px;
+    color: $color-ink;
+  }
 }
 
-.pro-resume-link-exam {
-  font-size: 11.5px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+.pro-examlist-sub {
+  font-size: 12.5px;
   color: $color-gray;
-}
-
-.pro-resume-link-title {
-  font-size: 14.5px;
-  font-weight: 700;
-  color: $color-ink;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pro-resume-progress {
-  margin-top: $space-4;
+.pro-examlist-meta {
+  margin-top: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2 $space-4;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    color: $color-ink-soft;
+    white-space: nowrap;
+  }
+
+  svg {
+    flex-shrink: 0;
+    color: var(--course-color);
+  }
 }
 
-.pro-resume-progress-track {
-  height: 8px;
-  border-radius: 999px;
-  background: $color-bg;
+// ---- Правая колонка: профиль -------------------------------------------
+
+.pro-dash-col-side {
+  gap: $space-4;
+}
+
+.pro-profile-card {
+  position: relative;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: 0 $space-5 $space-4;
+  box-shadow: $pro-widget-shadow;
   overflow: hidden;
 }
 
-.pro-resume-progress-fill {
-  height: 100%;
-  border-radius: 999px;
+.pro-profile-banner {
+  height: 64px;
+  margin: 0 (-$space-5);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.25), transparent 55%),
+    linear-gradient(120deg, #0f4a37 0%, #22a06b 100%);
+}
+
+// Кнопка, не просто кружок с инициалом — клик открывает пикер аватарок
+// ниже (.pro-profile-picker), раньше это жило в шапке (UserMenu), см.
+// ProLayout.jsx.
+.pro-profile-avatar {
+  @include button-reset;
+  width: 56px;
+  height: 56px;
+  margin-top: -28px;
+  border-radius: 50%;
+  border: 3px solid $color-white;
   background: $color-primary;
-  transition: width 0.2s ease;
+  color: #fff;
+  font-family: $font-display;
+  font-weight: 800;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: filter 0.15s ease;
+
+  &:hover {
+    filter: brightness(0.92);
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
-.pro-resume-progress-label {
-  display: block;
-  margin-top: 6px;
-  font-size: 12.5px;
-  color: $color-gray;
-}
-
-// ---- Виджет «Прогресс по предметам» -------------------------------------
-
-.pro-subject-progress-list {
+.pro-profile-body {
+  margin-top: $space-2;
   display: flex;
   flex-direction: column;
-  gap: $space-4;
+  gap: 1px;
+}
+
+.pro-profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pro-profile-name {
+  font-size: 15px;
+  color: $color-ink;
+  text-transform: capitalize;
+}
+
+.pro-profile-email {
+  font-size: 12px;
+  color: $color-gray;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pro-profile-role {
+  margin-top: 1px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: $color-primary-dark;
+}
+
+// Пикер аватарок — та же сетка, что в выпадающем меню аккаунта
+// (.avatar-picker в _modal.scss), просто раскрывается прямо внутри
+// карточки профиля вместо всплывающего меню.
+.pro-profile-picker {
+  margin-top: $space-3;
+  padding-top: $space-3;
+  border-top: 1px solid $color-border;
+}
+
+.pro-profile-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-3;
   margin-top: $space-4;
 }
 
-.pro-subject-progress-row {
-  display: grid;
-  grid-template-columns: 70px 1fr auto;
-  align-items: center;
-  gap: 12px;
-}
-
-.pro-subject-progress-label {
-  font-size: 13px;
-  font-weight: 800;
-  color: $color-ink;
-}
-
-.pro-subject-progress-track {
-  height: 8px;
-  border-radius: 999px;
+.pro-profile-stat {
+  padding: $space-3;
+  border-radius: $radius-md;
   background: $color-bg;
-  overflow: hidden;
+  text-align: center;
+
+  b {
+    display: block;
+    font-family: $font-display;
+    font-size: 18px;
+    color: $color-ink;
+  }
+
+  span {
+    font-size: 11px;
+    color: $color-gray;
+  }
 }
 
-.pro-subject-progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: $color-primary;
-  transition: width 0.2s ease;
+// ---- До экзаменов ---------------------------------------------------------
 
-  &.blue { background: $color-blue; }
-  &.violet { background: $color-violet; }
-  &.teal { background: $color-teal; }
-  &.green { background: $color-primary; }
-  &.orange { background: $color-amber-dark; }
+.pro-stat-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-3;
+  background: $color-primary-light;
+  border: 1px solid rgba(34, 160, 107, 0.2);
+  border-radius: $radius-lg;
+  padding: $space-4 $space-5;
+  box-shadow: $pro-widget-shadow;
 }
 
-.pro-subject-progress-count {
-  font-size: 12.5px;
+.pro-stat-card-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-white;
+  color: $color-primary-dark;
+}
+
+.pro-stat-card-body {
+  flex: 1;
+  min-width: 0;
+
+  b {
+    display: block;
+    font-family: $font-display;
+    font-size: 22px;
+    color: $color-primary-dark;
+  }
+
+  span {
+    font-size: 12px;
+    color: $color-ink-soft;
+  }
+}
+
+.pro-stat-card-badge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: $radius-pill;
+  background: $color-white;
+  font-size: 11px;
+  font-weight: 700;
   color: $color-gray;
-  white-space: nowrap;
+
+  &.open {
+    color: $color-primary-dark;
+  }
+}
+
+// ---- Быстрые ссылки ---------------------------------------------------
+
+.pro-promo-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-3;
+}
+
+.pro-promo-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: $space-4;
+  border-radius: $radius-lg;
+  box-shadow: $pro-widget-shadow;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  b {
+    margin-top: $space-3;
+    font-size: 13.5px;
+    color: #fff;
+  }
+
+  span {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  &--amber {
+    background: linear-gradient(140deg, $color-amber-dark 0%, #{darken($color-amber-dark, 6%)} 100%);
+  }
+
+  &--violet {
+    background: linear-gradient(140deg, $color-violet 0%, $color-violet-dark 100%);
+  }
+}
+
+.pro-promo-tile-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.pro-promo-tile-arrow {
+  position: absolute;
+  top: $space-4;
+  right: $space-4;
+  color: rgba(255, 255, 255, 0.8);
 }

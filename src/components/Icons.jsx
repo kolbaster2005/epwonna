@@ -364,3 +364,58 @@ export function IconPinFilled(props) {
     </svg>
   )
 }
+
+export function IconArrowRight(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 12h14M13 6l6 6-6 6" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconBarChart(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 20v-6M10 20V9M15 20v-9M20 20V5" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconRefresh(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3" {...stroke(props)} />
+      <path d="M18 3v4h-4M6 21v-4h4" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconLogout(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" {...stroke(props)} />
+      <path d="M16 17l5-5-5-5M21 12H9" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconLogin(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4" {...stroke(props)} />
+      <path d="M10 17l-5-5 5-5M5 12h12" {...stroke(props)} />
+    </svg>
+  )
+}
+
+export function IconSettings(props) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="3" {...stroke(props)} />
+      <path
+        d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1l-.4-2.6h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6Z"
+        {...stroke(props)}
+      />
+    </svg>
+  )
+}

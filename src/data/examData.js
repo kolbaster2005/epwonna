@@ -1436,15 +1436,15 @@ export const comingSoonSubjects = [
   },
 ]
 
-// Filters examList/comingSoonSubjects down to what a visitor is allowed
-// to see in nav/cards right now — items flagged `adminOnly` (EPC/EPP/
-// Biologie/Geschichte, currently) stay visible to admins only, while
-// everyone else just doesn't see the entry (the page itself is still
-// reachable by direct link — this only hides it from navigation).
-export function visibleExamList(isAdmin) {
-  return isAdmin ? examList : examList.filter((e) => !e.adminOnly)
+// Filters examList/comingSoonSubjects down to what shows up in nav/cards
+// right now — items flagged `adminOnly` (EPC/EPP/Biologie/Geschichte,
+// currently) are hidden everywhere, for everyone, admins included; the
+// page itself is still reachable by direct link, this only hides it from
+// navigation.
+export function visibleExamList() {
+  return examList.filter((e) => !e.adminOnly)
 }
 
-export function visibleComingSoonSubjects(isAdmin) {
-  return isAdmin ? comingSoonSubjects : comingSoonSubjects.filter((s) => !s.adminOnly)
+export function visibleComingSoonSubjects() {
+  return comingSoonSubjects.filter((s) => !s.adminOnly)
 }

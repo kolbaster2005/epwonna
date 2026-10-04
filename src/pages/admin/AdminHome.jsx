@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { examList } from '../../data/examData.js'
+import { visibleExamList } from '../../data/examData.js'
 import ExamIcon from '../../components/ExamIcon.jsx'
 
 // No role check yet — see the note in Header.jsx. Once Supabase Auth is
@@ -20,10 +20,13 @@ export default function AdminHome() {
         <Link className="btn btn-outline admin-reports-link" to="/admin/stats">
           Статистика посещений
         </Link>
+        <Link className="btn btn-outline admin-reports-link" to="/admin/exam-countdown">
+          До экзаменов
+        </Link>
       </div>
 
       <div className="admin-section-grid">
-        {examList.map((exam) => (
+        {visibleExamList().map((exam) => (
           <Link className={`admin-section-card ${exam.className}`} to={`/admin/${exam.key}`} key={exam.key}>
             <div className="test-icon-badge large">
               <ExamIcon examKey={exam.key} color={exam.color} size={26} />

@@ -12,32 +12,18 @@ const HERO_TILES = [
 ]
 
 export default function Home() {
-  const { isPro, isAdmin } = useAuth()
+  const { user } = useAuth()
 
-  // Pro-пользователи видят не эту общую главную вообще, а свой личный
-  // кабинет с персонализированными виджетами — см. ProDashboard.jsx.
-  if (isPro) return <ProDashboard />
+  // Залогиненные (любой тариф, не только pro) видят не эту общую
+  // главную вообще, а личный кабинет с персонализированными виджетами
+  // — см. ProDashboard.jsx. Гости — обычный маркетинговый hero ниже.
+  if (user) return <ProDashboard />
 
-  // EPC/EPP/Biologie/Geschichte are adminOnly right now (see
-  // visibleExamList/visibleComingSoonSubjects in examData.js) — an admin
-  // sees the full set below exactly as before, everyone else just gets
-  // the three real exams.
-  const examList = visibleExamList(isAdmin)
-  const comingSoonSubjects = visibleComingSoonSubjects(isAdmin)
-
-  // Main card grid: the real exams in nav order, with "Биология" pulled
-  // out of comingSoonSubjects and slotted in between Химия/Физика so the
-  // 3-column grid reads as two clean rows — Немецкий/Математика/
-  // Английский, then Химия/Биология/Физика — instead of a lone leftover
-  // card on its own row. Geschichte (the only subject left out of that
-  // row) stays below in its own "Скоро на платформе" section.
-  const biologie = comingSoonSubjects.find((s) => s.key === 'biologie')
-  const otherComingSoon = comingSoonSubjects.filter((s) => s.key !== 'biologie')
-  const homeCards = [...examList]
-  if (biologie) {
-    const chemieIndex = homeCards.findIndex((e) => e.key === 'chemie')
-    homeCards.splice(chemieIndex + 1, 0, biologie)
-  }
+  // EPC/EPP/Biologie/Geschichte are adminOnly and hidden everywhere (see
+  // visibleExamList/visibleComingSoonSubjects in examData.js) — everyone
+  // just gets the three real exams.
+  const examList = visibleExamList()
+  const comingSoonSubjects = visibleComingSoonSubjects()
 
   const heroTiles = (
     <div className="hero-tiles">
@@ -108,7 +94,7 @@ export default function Home() {
 
       <div>
         <div className="directions-grid">
-          {homeCards.map((card) => (
+          {examList.map((card) => (
             <Link className={`dir-card ${card.className}`} to={`/${card.key}`} key={card.key}>
               <div className="dir-card-head">
                 <div className="dir-icon"><ExamIcon examKey={card.key} /></div>
@@ -129,11 +115,11 @@ export default function Home() {
           examData.js. Kept in its own section with its own heading so
           it reads as clearly separate from the real exams above, not as
           an equally-ready option. */}
-      {otherComingSoon.length > 0 && (
+      {comingSoonSubjects.length > 0 && (
         <div className="coming-soon-section">
           <h2 className="coming-soon-section-title">Скоро на платформе</h2>
           <div className="directions-grid">
-            {otherComingSoon.map((subject) => (
+            {comingSoonSubjects.map((subject) => (
               <Link className={`dir-card ${subject.className}`} to={`/${subject.key}`} key={subject.key}>
                 <div className="dir-card-head">
                   <div className="dir-icon"><ExamIcon examKey={subject.key} /></div>

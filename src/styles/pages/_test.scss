@@ -1884,6 +1884,8 @@ input:checked + .option-mark.radio::after {
   text-align: center;
 }
 
+// Iconка-бейдж на экране результатов устной части (OralTestPage.jsx) —
+// не ринг с процентом, устная часть пока не оценивается автоматически.
 .test-results-score {
   width: 108px;
   height: 108px;
@@ -1911,6 +1913,271 @@ input:checked + .option-mark.radio::after {
   gap: 12px;
   margin-top: $space-7;
   flex-wrap: wrap;
+}
+
+// ---- Письменный пробник: результаты по баллам (TestPage.jsx) ------------
+// Шире и левовыровненная версия .test-results — градиентный хедер +
+// две панели (разбивка по разделам / что дальше), не просто текст по
+// центру узкой колонки как у .test-results-score/-actions выше.
+.test-results--scored {
+  max-width: 960px;
+  text-align: left;
+  padding: $space-6 0 $space-10;
+}
+
+.test-results-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: $space-6;
+  padding: $space-6 $space-7;
+  border-radius: $radius-xl;
+  color: #fff;
+  background: linear-gradient(135deg, $color-violet 0%, $color-blue 100%);
+  box-shadow: 0 18px 36px -20px rgba(45, 40, 130, 0.5);
+}
+
+.test-results-hero-text {
+  flex: 1 1 320px;
+  min-width: 0;
+
+  h1 {
+    margin-top: $space-3;
+    font-size: 24px;
+    font-weight: 800;
+  }
+
+  p {
+    margin-top: $space-2;
+    max-width: 420px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+.test-results-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: $radius-pill;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.test-results-stats {
+  display: flex;
+  gap: $space-3;
+  margin-top: $space-5;
+  flex-wrap: wrap;
+}
+
+.test-results-stat {
+  padding: 10px 16px;
+  border-radius: $radius-md;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.test-results-stat-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.test-results-stat-value {
+  display: block;
+  margin-top: 2px;
+  font-family: $font-display;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.test-results-hero-text .test-results-time {
+  margin-top: $space-4;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+// Кольцо результата — залито на scorePercent, цвет по порогам (см.
+// scoreColor в TestPage.jsx): <50% красный, 50–70% оранжевый, >70% зелёный.
+.test-results-ring {
+  position: relative;
+  flex-shrink: 0;
+  width: 132px;
+  height: 132px;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    // Дуга должна начинаться сверху, а не справа.
+    transform: rotate(-90deg);
+  }
+}
+
+.test-results-ring-track,
+.test-results-ring-fill {
+  fill: none;
+  stroke-width: 8;
+}
+
+.test-results-ring-track {
+  stroke: rgba(255, 255, 255, 0.2);
+}
+
+.test-results-ring-fill {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease, stroke 0.2s ease;
+}
+
+.test-results-ring-percent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: $font-display;
+  font-weight: 800;
+  font-size: 26px;
+  color: #fff;
+}
+
+.test-results-panels {
+  display: grid;
+  gap: $space-5;
+  margin-top: $space-5;
+
+  @include mq(lg) {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.test-results-panel {
+  padding: $space-5 $space-6;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+
+  h2 {
+    font-size: 15px;
+    font-weight: 800;
+  }
+}
+
+// Разбивка по разделам («Чтение: 10/15 · 60%» и т. п., баллы, не
+// количество вопросов — см. questionPoints в grading.js) — имя+счёт,
+// под ним полоска прогресса цвета того же порога, что и общий ринг.
+.test-results-breakdown {
+  margin-top: $space-4;
+}
+
+.test-results-breakdown-row {
+  padding: $space-3 0;
+
+  & + & {
+    border-top: 1px solid $color-border;
+  }
+}
+
+.test-results-breakdown-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $space-4;
+  font-size: 13.5px;
+}
+
+.test-results-breakdown-name {
+  font-weight: 700;
+  color: $color-ink;
+}
+
+.test-results-breakdown-score {
+  color: $color-ink-soft;
+  white-space: nowrap;
+}
+
+.test-results-breakdown-track {
+  margin-top: 6px;
+  height: 6px;
+  border-radius: $radius-pill;
+  background: $color-bg;
+  overflow: hidden;
+}
+
+.test-results-breakdown-fill {
+  height: 100%;
+  border-radius: $radius-pill;
+  transition: width 0.4s ease, background 0.2s ease;
+}
+
+// «Что дальше» — список из 2-3 реальных следующих шагов (пройти ещё
+// раз / назад к пробникам / разбор ответов), а не выдуманных фич.
+.test-results-next {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  margin-top: $space-4;
+}
+
+.test-results-next-row {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  width: 100%;
+  padding: $space-3;
+  border-radius: $radius-md;
+  text-align: left;
+  color: inherit;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: $color-bg;
+  }
+}
+
+.test-results-next-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-primary-light;
+  color: $color-primary-dark;
+}
+
+.test-results-next-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+
+  b {
+    font-size: 14px;
+    color: $color-ink;
+  }
+
+  span {
+    font-size: 12.5px;
+    color: $color-gray;
+  }
+}
+
+.test-results-next-arrow {
+  flex-shrink: 0;
+  color: $color-gray;
 }
 
 .test-missing {

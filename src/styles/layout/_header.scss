@@ -233,6 +233,25 @@ nav.main-nav {
   }
 }
 
+// Быстрая ссылка в админку для админов — шестерёнка рядом с аватаром.
+.header-settings-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-bg;
+  color: $color-ink-soft;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: $color-border;
+    color: $color-ink;
+  }
+}
+
 // ---- Mobile nav overlay --------------------------------------------
 .mobile-nav {
   position: fixed;

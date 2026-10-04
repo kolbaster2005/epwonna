@@ -129,6 +129,62 @@
 }
 
 // ---- User avatar + account dropdown (header, when logged in) -------------
+// See UserMenu.jsx — used in ProLayout.jsx's top bar. The trigger is the
+// whole button — avatar only by default, avatar + name/role + chevron
+// with `withDetails`.
+.user-menu-trigger {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: $radius-sm;
+  color: $color-ink;
+
+  &:hover .user-avatar {
+    background: $color-primary-dark;
+  }
+}
+
+.user-menu-detailed {
+  .user-menu-trigger {
+    padding: 4px 6px 4px 4px;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: $color-bg;
+    }
+  }
+
+  .user-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    font-size: 17px;
+  }
+}
+
+.user-menu-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.user-menu-name {
+  font-size: 14px;
+  font-weight: 700;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-role {
+  font-size: 12px;
+  color: $color-gray;
+}
+
 .user-avatar-wrap {
   position: relative;
   display: inline-block;
@@ -450,6 +506,106 @@
   font-size: 13.5px;
   color: $color-ink;
   line-height: 1.5;
+}
+
+// Текст сочинения с подсветкой ошибок — см. EssayAnnotatedText.jsx.
+// Своя карточка (белый фон поверх серого .essay-ai-review), чтобы
+// подсветка читалась отдельно от остального отчёта.
+.essay-ai-annotated {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid $color-border;
+
+  h5 {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: $color-ink;
+    margin-bottom: 8px;
+  }
+}
+
+.essay-annotated-text {
+  padding: 12px 14px;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: $color-ink;
+  white-space: pre-line;
+}
+
+.essay-annotation {
+  position: relative;
+  background: rgba($color-amber, 0.35);
+  border-bottom: 2px solid $color-amber-dark;
+  border-radius: 2px;
+  padding: 0 1px;
+  cursor: help;
+  transition: background 0.15s ease;
+
+  &:hover,
+  &:focus {
+    background: rgba($color-amber, 0.6);
+    outline: none;
+  }
+
+  &:hover .essay-annotation-tooltip,
+  &:focus .essay-annotation-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+  }
+}
+
+.essay-annotation-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 9px);
+  transform: translate(-50%, 4px);
+  width: max-content;
+  min-width: 160px;
+  max-width: 240px;
+  padding: 8px 10px;
+  background: $color-ink;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: normal;
+  border-radius: $radius-sm;
+  box-shadow: $shadow-modal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 20;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: $color-ink;
+  }
+}
+
+.essay-annotation-type {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: $color-amber;
+}
+
+.essay-ai-annotated-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: $color-gray;
 }
 
 .essay-ai-toggle {
