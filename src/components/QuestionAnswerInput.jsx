@@ -16,6 +16,14 @@ function renderUnderline(text) {
   return text.split(/__(.+?)__/g).map((part, i) => (i % 2 === 1 ? <u key={i}>{part}</u> : part))
 }
 
+// Same idea, but "**text**" → bold — used in cloze templates to mark
+// group headings (e.g. "Bildungsmesse BeSt" in a Notizen-ergänzen-style
+// text) so they stand out from the surrounding fill-in-the-blank lines
+// instead of blending together as one wall of plain text.
+function renderBold(text) {
+  return text.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part))
+}
+
 function MultipleChoiceInput({ question, value, onChange, checked }) {
   const selected = value || []
   return (
@@ -244,7 +252,7 @@ function ClozeInput({ question, value, onChange, checked }) {
       <ClozeChoiceTable question={question} />
       <div className="cloze-text">
         {segments.map((seg, i) => {
-          if (seg.type === 'text') return <span key={i}>{seg.text}</span>
+          if (seg.type === 'text') return <span key={i}>{renderBold(seg.text)}</span>
           const blank = question.cloze.blanks[seg.id]
           const isChoice = blank?.type === 'choice'
           const blankVerdict = checked ? getVerdictForBlank(question, seg.id, val) : null
