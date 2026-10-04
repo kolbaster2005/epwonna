@@ -35,7 +35,7 @@ const GEMINI_FALLBACK_MODEL = 'gemini-3.5-flash-lite'
 // КАЖДОЕ по отдельности — один дневной счётчик на все грамматические
 // проверки сразу проще для восприятия). Держим в синхроне с
 // DAILY_QA_TABLE_CHECK_LIMIT в src/services/qaTableAiService.js.
-const DAILY_LIMIT = 4
+const DAILY_LIMIT = 3
 // Держим в синхроне со списком в src/contexts/AuthContext.jsx и
 // supabase/functions/generate-practice-test/index.ts.
 const PRO_EMAILS = ['maksimmissuragin@gmail.com']

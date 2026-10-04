@@ -20,6 +20,7 @@ const TestPage = lazy(() => import('./pages/TestPage.jsx'))
 const PracticeBuilder = lazy(() => import('./pages/PracticeBuilder.jsx'))
 const OralTestPage = lazy(() => import('./pages/OralTestPage.jsx'))
 const About = lazy(() => import('./pages/About.jsx'))
+const Pricing = lazy(() => import('./pages/Pricing.jsx'))
 const UniversityPage = lazy(() => import('./pages/UniversityPage.jsx'))
 const MyLearning = lazy(() => import('./pages/MyLearning.jsx'))
 const MyEssays = lazy(() => import('./pages/MyEssays.jsx'))
@@ -101,6 +102,7 @@ export default function App() {
     <Route path="/my-learning/attempt/:attemptId" element={<AttemptReview />} />
     <Route path="/dictionary" element={<Dictionary />} />
     <Route path="/personalization" element={<Personalization />} />
+    <Route path="/pro" element={<Pricing />} />
     <Route path="/about" element={<About />} />
 
     {/* Admin — real enforcement is at the DB level (RLS, see

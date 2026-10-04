@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import ModalOverlay from './ModalOverlay.jsx'
 
 export default function AuthModal({ onClose, reason }) {
   const { signIn, signUp, requestPasswordReset } = useAuth()
@@ -11,25 +11,6 @@ export default function AuthModal({ onClose, reason }) {
   const [submitting, setSubmitting] = useState(false)
   const [signedUp, setSignedUp] = useState(false)
   const [resetSent, setResetSent] = useState(false)
-
-  // Locks background scroll while the modal is open, and — via the
-  // `modal-open` class (see _header.scss) — takes .site-header out of
-  // `position: sticky` for the same duration. A sticky header that's
-  // already "stuck" from scrolling can end up composited above a later
-  // `position: fixed` overlay in some browsers regardless of z-index (a
-  // known sticky/fixed stacking quirk); this opened as a full-screen
-  // dark overlay with the header still showing crisp and undimmed on
-  // top of it, on both tablet and phone widths, when triggered from
-  // TestPage's mid-scroll AI-check gate — this fixes both that and the
-  // separate (also missing) background-scroll lock.
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    document.body.classList.add('modal-open')
-    return () => {
-      document.body.style.overflow = ''
-      document.body.classList.remove('modal-open')
-    }
-  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -62,15 +43,8 @@ export default function AuthModal({ onClose, reason }) {
     setError('')
   }
 
-  // Rendered via a portal straight into <body> — AuthModal is opened
-  // from inside <Header>, and .site-header has `backdrop-filter`, which
-  // (like `transform`/`filter`/`will-change`) creates a new containing
-  // block for any `position: fixed` descendant. Without the portal, this
-  // modal would position itself relative to the ~76px header bar instead
-  // of the viewport — which is exactly the "squished at the top" bug
-  // this fixes.
-  return createPortal(
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+  return (
+    <ModalOverlay onClose={onClose}>
       <div className="modal auth-modal">
         <button className="modal-close" onClick={onClose} aria-label="Закрыть">✕</button>
 
@@ -151,7 +125,6 @@ export default function AuthModal({ onClose, reason }) {
           </>
         )}
       </div>
-    </div>,
-    document.body
+    </ModalOverlay>
   )
 }

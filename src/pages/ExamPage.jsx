@@ -41,7 +41,7 @@ function resolveFilters(exam, tests, topics) {
 
 export default function ExamPage({ examKey, initialTab = 'tests' }) {
   const exam = exams[examKey]
-  const { user, isPro } = useAuth()
+  const { user, isAdmin } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState(initialTab)
   const [tests, setTests] = useState([])
@@ -145,9 +145,9 @@ export default function ExamPage({ examKey, initialTab = 'tests' }) {
           >
             Пробники
           </button>
-          {isPro && !exam.hidePracticeTab && (
+          {isAdmin && !exam.hidePracticeTab && (
             <Link className="exam-tab exam-tab-pro" to={`/${examKey}/practice`}>
-              Тренировка <span className="pro-badge">PRO</span>
+              Тренировка
             </Link>
           )}
           {exam.theory && (

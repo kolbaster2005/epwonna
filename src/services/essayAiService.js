@@ -13,7 +13,7 @@ import { logError } from '../lib/logger.js'
 // supabase/functions/check-essay/index.ts — сервер всё равно является
 // источником правды (это только для отображения "X из N" до того, как
 // придёт первый реальный ответ функции).
-export const DAILY_ESSAY_CHECK_LIMIT = 2
+export const DAILY_ESSAY_CHECK_LIMIT = 1
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Неизвестная ошибка')

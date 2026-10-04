@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { IconTranslate } from './Icons.jsx'
 import { translateText, addWord, updateWord } from '../services/dictionaryService.js'
+import ModalOverlay from './ModalOverlay.jsx'
 
 export default function AddWordModal({ userId, initialWord = '', wordToEdit = null, onClose, onSaved }) {
   const [word, setWord] = useState(wordToEdit?.word ?? initialWord)
@@ -50,7 +51,7 @@ export default function AddWordModal({ userId, initialWord = '', wordToEdit = nu
   }
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <ModalOverlay onClose={onClose}>
       <div className="modal word-modal">
         <button className="modal-close" onClick={onClose} aria-label="Закрыть">✕</button>
 
@@ -101,6 +102,6 @@ export default function AddWordModal({ userId, initialWord = '', wordToEdit = nu
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

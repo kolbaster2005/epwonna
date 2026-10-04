@@ -243,6 +243,12 @@
 
 // ---- Widget: my essays (essay_choice submissions) --------------------------
 .essay-list {
+  // <ul> — браузер по умолчанию даёт спискам padding-left под маркеры
+  // (глобальный ресет в _reset.scss обнуляет только margin у ul, не
+  // padding) — без этого весь список целиком был сдвинут вправо
+  // относительно вкладок фильтра выше, которые на этот паддинг не
+  // натыкаются (это не <ul>).
+  padding-left: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -259,7 +265,10 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 6px 4px 14px;
+  // Левый инсет — ровно тот же, что у .essay-item-body ниже (10px), а
+  // не отдельное число само по себе — так бейдж/заголовок здесь и текст
+  // сочинения внизу начинаются строго на одной вертикальной линии.
+  padding: 4px 6px 4px 10px;
 }
 
 .essay-item-head-toggle {
@@ -269,7 +278,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 4px;
+  // Без левого паддинга — его уже даёт .essay-item-head выше; второй
+  // левый отступ здесь задваивал бы инсет только у этой кнопки.
+  padding: 8px 4px 8px 0;
   border-radius: $radius-sm;
 
   &:hover {
@@ -313,7 +324,9 @@
 }
 
 .essay-item-body {
-  padding: 14px;
+  // Левый инсет 10px — тот же, что у .essay-item-head выше (см.
+  // комментарий там), остальные стороны пошире для комфортного чтения.
+  padding: 14px 14px 14px 10px;
   border-top: 1px solid $color-border;
   background: $color-bg;
   font-size: 13.5px;

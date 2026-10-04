@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useState } from 'react'
+import ModalOverlay from '../components/ModalOverlay.jsx'
 
 const DialogContext = createContext(null)
 
@@ -24,7 +25,7 @@ export function DialogProvider({ children }) {
     <DialogContext.Provider value={{ confirm, alertMessage }}>
       {children}
       {dialog && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && close(dialog.type === 'confirm' ? false : undefined)}>
+        <ModalOverlay onClose={() => close(dialog.type === 'confirm' ? false : undefined)}>
           <div className="modal confirm-modal">
             <div className="confirm-modal-body">
               {lines.map((line, i) => (
@@ -42,7 +43,7 @@ export function DialogProvider({ children }) {
               )}
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </DialogContext.Provider>
   )

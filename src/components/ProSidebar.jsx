@@ -3,7 +3,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { visibleExamList } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { usePersonalization } from '../contexts/PersonalizationContext.jsx'
-import { IconHome, IconBarChart, IconEdit, IconBook, IconShield, IconSettings, IconLogout, IconLogin } from './Icons.jsx'
+import { IconHome, IconBarChart, IconEdit, IconBook, IconShield, IconSettings, IconLogout, IconLogin, IconStar } from './Icons.jsx'
 import ExamIcon from './ExamIcon.jsx'
 import AuthModal from './AuthModal.jsx'
 import logo from '../assets/logo.png'
@@ -88,6 +88,7 @@ export default function ProSidebar({ drawerOpen, onDrawerClose }) {
         <div className="pro-sidebar-divider" />
         <span className="pro-sidebar-heading">Управление</span>
         {item('/personalization', 'Персонализация', <IconSettings size={20} />)}
+        {item('/pro', 'PRO', <IconStar size={20} />)}
         {isAdmin && item('/admin', 'Админка', <IconShield size={20} />)}
       </nav>
 

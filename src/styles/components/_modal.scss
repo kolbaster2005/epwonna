@@ -18,6 +18,12 @@
   max-width: 520px;
   width: 100%;
   padding: $space-6;
+  // Фон за оверлеем не скроллится (см. ModalOverlay.jsx) — если контент
+  // самой модалки выше экрана, скроллиться должен он сам, а не
+  // обрезаться сверху/снизу. $space-5 * 2 — те же отступы, что у
+  // .modal-overlay сверху/снизу.
+  max-height: calc(100vh - #{$space-5} * 2);
+  overflow-y: auto;
 
   @include mq(sm) {
     padding: 34px;
@@ -706,4 +712,81 @@
   margin-top: 10px;
   font-size: 13px;
   color: #b0332c;
+}
+
+// ---- Upsell modal (UpsellModal.jsx) — общая продающая модалка,
+// открывается при дневном лимите ИИ-проверок и попытке открыть
+// транскрипцию без PRO (см. TestPage.jsx). --------------------------
+.upsell-modal {
+  text-align: center;
+
+  h3 {
+    margin-top: $space-4;
+  }
+}
+
+.upsell-modal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: $radius-pill;
+  background: $color-violet;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.upsell-modal-reason {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $color-ink;
+  line-height: 1.5;
+}
+
+.upsell-modal-pitch {
+  margin-top: 8px;
+  font-size: 13px;
+  color: $color-ink-soft;
+  line-height: 1.55;
+}
+
+.upsell-modal-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  margin-top: $space-5;
+}
+
+.upsell-modal-price-new {
+  font-family: $font-display;
+  font-size: 26px;
+  font-weight: 800;
+  color: $color-ink;
+}
+
+.upsell-modal-price-period {
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-gray;
+}
+
+.upsell-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  margin-top: $space-5;
+
+  @include mq(sm) {
+    flex-direction: row;
+  }
+}
+
+.upsell-modal-cta {
+  display: flex;
+  justify-content: center;
+  flex: 1;
 }

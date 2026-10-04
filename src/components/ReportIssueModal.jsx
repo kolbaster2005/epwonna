@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { submitQuestionReport } from '../services/reportsService.js'
+import ModalOverlay from './ModalOverlay.jsx'
 
 export default function ReportIssueModal({ userId, email, taskId, taskNumber, onClose }) {
   const [message, setMessage] = useState('')
@@ -25,7 +26,7 @@ export default function ReportIssueModal({ userId, email, taskId, taskNumber, on
   }
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <ModalOverlay onClose={onClose}>
       <div className="modal report-modal">
         <button type="button" className="modal-close" onClick={onClose} aria-label="Закрыть">✕</button>
         <h3>Нашли ошибку?</h3>
@@ -56,6 +57,6 @@ export default function ReportIssueModal({ userId, email, taskId, taskNumber, on
           </div>
         )}
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

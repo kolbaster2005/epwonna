@@ -7,13 +7,16 @@ import { listTaskTypesForExam, generatePracticeTest } from '../services/practice
 import PageLoader from '../components/PageLoader.jsx'
 import { IconHome, IconChevronRight } from '../components/Icons.jsx'
 
-// Pro-фича — тренировка по конкретной теме и/или конкретному типу
-// задания вместо целого пробника. Доступна только пользователям из
-// PRO_EMAILS (см. AuthContext.jsx) — сама генерация ещё раз проверяет
-// это на сервере, так что случайная прямая ссылка сюда никого не
-// пускает дальше формы.
+// Тренировка по конкретной теме и/или конкретному типу задания вместо
+// целого пробника — пока внутренний инструмент только для админа (см.
+// AuthContext.jsx), не часть pro-версии для обычных пользователей.
+// Сама генерация на сервере всё ещё проверяет PRO_EMAILS (см.
+// generate-practice-test/index.ts) — сейчас это тот же единственный
+// аккаунт, так что ничего не ломает, но если PRO когда-нибудь продастся
+// реальным людям, этот серверный чек тоже надо будет поменять на
+// is_admin, иначе случайная прямая ссылка сюда пустит pro-клиента.
 export default function PracticeBuilder({ examKey }) {
-  const { user, isPro } = useAuth()
+  const { user, isAdmin } = useAuth()
   const navigate = useNavigate()
   const exam = exams[examKey]
 
@@ -56,13 +59,13 @@ export default function PracticeBuilder({ examKey }) {
     </nav>
   )
 
-  if (!user || !isPro) {
+  if (!user || !isAdmin) {
     return (
       <div className="practice-builder-page">
         {breadcrumb}
         <div className="notfound-page">
-          <h1>Доступно в pro-версии</h1>
-          <p>Тренировка по конкретной теме или типу задания — часть pro-версии платформы, которая пока в разработке.</p>
+          <h1>Страница недоступна</h1>
+          <p>Эта страница ещё в разработке.</p>
         </div>
       </div>
     )

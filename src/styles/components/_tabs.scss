@@ -59,3 +59,17 @@
   letter-spacing: 0.03em;
   vertical-align: middle;
 }
+
+// Версия для не-PRO — рядом с ником, кликабельна (ведёт на /pro сравнить
+// тарифы), в отличие от обычного .pro-badge, который просто статус-лейбл.
+a.pro-badge-basic {
+  background: $color-border;
+  color: $color-ink-soft;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    background: $color-gray;
+    color: #fff;
+  }
+}

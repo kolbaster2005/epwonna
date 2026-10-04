@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { pluralizeRu } from '../utils/pluralize.js'
+import ModalOverlay from './ModalOverlay.jsx'
 
 export default function TestModal({ exam, test, onClose }) {
   const navigate = useNavigate()
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <ModalOverlay onClose={onClose}>
       <div className="modal">
         <button className="modal-close" onClick={onClose} aria-label="Закрыть">✕</button>
         <div
@@ -34,6 +35,6 @@ export default function TestModal({ exam, test, onClose }) {
           <button className="btn btn-outline" onClick={onClose}>Закрыть</button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

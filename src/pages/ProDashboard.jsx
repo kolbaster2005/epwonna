@@ -19,8 +19,7 @@ import {
   IconBook,
   IconEdit,
   IconNoAvatar,
-  IconSliders,
-  IconSearch,
+  IconSettings,
   IconList,
   IconCheckCircle,
 } from '../components/Icons.jsx'
@@ -85,7 +84,7 @@ function progressColor(percent) {
 // обычную главную (см. Home.jsx: isPro рендерит этот компонент вместо
 // себя), внутри ProLayout.jsx.
 export default function ProDashboard() {
-  const { user, profile, isAdmin, isPro, updateAvatar } = useAuth()
+  const { user, profile, isAdmin, isPro, trialActive, updateAvatar } = useAuth()
   const { alertMessage } = useDialog()
   const [loading, setLoading] = useState(true)
   const [draft, setDraft] = useState(null)
@@ -99,11 +98,8 @@ export default function ProDashboard() {
   // Пикер аватарки в виджете профиля — раньше жил в шапке (UserMenu),
   // шапки у pro-раскладки больше нет, см. ProLayout.jsx.
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
-  // «Мои экзамены» — вкладка-фильтр («Все» или конкретный предмет) и
-  // поиск по названию, раскрывающийся по иконке лупы в мини-меню.
+  // «Мои экзамены» — вкладка-фильтр («Все» или конкретный предмет).
   const [examFilter, setExamFilter] = useState('all')
-  const [examSearchOpen, setExamSearchOpen] = useState(false)
-  const [examSearch, setExamSearch] = useState('')
 
   const examList = visibleExamList()
   const examListKey = examList.map((e) => e.key).join(',')
@@ -197,7 +193,7 @@ export default function ProDashboard() {
   const displayName = user?.email?.split('@')[0] || ''
   const avatarLetter = user?.email?.[0]?.toUpperCase() || '?'
   const avatarSrc = profile?.avatar_key ? avatarSrcById(profile.avatar_key) : null
-  const roleLabel = isAdmin ? 'Администратор' : isPro ? 'PRO-аккаунт' : 'Студент'
+  const roleLabel = isAdmin ? 'Администратор' : isPro ? `PRO-аккаунт${trialActive ? ' (пробный)' : ''}` : 'Студент'
 
   async function handlePickAvatar(avatarKey) {
     try {
@@ -234,8 +230,10 @@ export default function ProDashboard() {
               <h2>Мои пробники</h2>
             </div>
             <div className="pro-probnik-cards">
-              {/* Карточка 1 — текущий черновик, одна кнопка «Продолжить». */}
-              {draft ? (
+              {/* Карточка 1 — текущий черновик, одна кнопка «Продолжить». Если
+                  черновика нет — карточка просто не рисуется (а не пустая
+                  заглушка), порядок карточек при этом не меняется. */}
+              {draft && (
                 <div className="pro-probnik-card">
                   <div className="pro-probnik-card-top">
                     <div className="pro-track-ring">
@@ -275,11 +273,6 @@ export default function ProDashboard() {
                       Продолжить
                     </Link>
                   </div>
-                </div>
-              ) : (
-                <div className="pro-probnik-card pro-probnik-card--empty">
-                  <p>Незавершённых пробников нет.</p>
-                  <Link to="/my-learning" className="btn btn-outline">Начать пробник</Link>
                 </div>
               )}
 
@@ -365,40 +358,15 @@ export default function ProDashboard() {
                 ))}
               </div>
               <div className="pro-examlist-actions">
-                <button
-                  type="button"
-                  className={'pro-examlist-action' + (examSearchOpen ? ' active' : '')}
-                  onClick={() => setExamSearchOpen((v) => !v)}
-                  aria-label="Поиск по предметам"
-                  title="Поиск по предметам"
-                >
-                  <IconSearch size={16} />
-                </button>
                 <Link to="/personalization" className="pro-examlist-action" aria-label="Персонализация" title="Персонализация">
-                  <IconSliders size={16} />
+                  <IconSettings size={16} />
                 </Link>
               </div>
             </div>
 
-            {examSearchOpen && (
-              <input
-                type="text"
-                className="pro-examlist-search"
-                placeholder="Поиск по названию предмета…"
-                value={examSearch}
-                onChange={(e) => setExamSearch(e.target.value)}
-                autoFocus
-              />
-            )}
-
             <div className="pro-examlist">
               {courses
                 .filter((c) => examFilter === 'all' || examFilter === c.exam.key)
-                .filter((c) => {
-                  const q = examSearch.trim().toLowerCase()
-                  if (!q) return true
-                  return c.exam.label.toLowerCase().includes(q) || c.exam.homeTitle.toLowerCase().includes(q)
-                })
                 .map((c) => {
                   const topics = topicStats[c.exam.key]
                   return (
@@ -439,7 +407,11 @@ export default function ProDashboard() {
             <div className="pro-profile-body">
               <span className="pro-profile-name-row">
                 <b className="pro-profile-name" title={user?.email}>{displayName}</b>
-                {isPro && <span className="pro-badge">PRO</span>}
+                {isPro ? (
+                  <span className="pro-badge">PRO</span>
+                ) : (
+                  <Link to="/pro" className="pro-badge pro-badge-basic">Basic</Link>
+                )}
               </span>
               <span className="pro-profile-email">{user?.email}</span>
               <span className="pro-profile-role">{roleLabel}</span>

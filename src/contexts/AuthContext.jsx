@@ -2,13 +2,16 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { logError } from '../lib/logger.js'
 
-// Pro-версия ещё не продаётся — пока просто список почт, у кого есть
-// доступ к функциям для тренировки по теме/типу задания. Когда дойдёт
-// до реальных платных подписок, это стоит заменить на столбец
-// profiles.is_pro (или отдельную таблицу подписок), проверяемый и
-// здесь, и на сервере в Edge Function — сейчас список специально
-// хранится в двух местах (тут и в generate-practice-test/index.ts),
-// чтобы сервер не доверял слепо тому, что говорит клиент.
+// Pro-версия ещё не продаётся — это просто список почт с постоянным
+// доступом (пока только сам разработчик). Когда дойдёт до реальных
+// платных подписок, это стоит заменить на столбец profiles.is_pro (или
+// отдельную таблицу подписок), проверяемый и здесь, и на сервере в
+// Edge Function — сейчас список специально хранится в двух местах (тут
+// и в generate-practice-test/index.ts), чтобы сервер не доверял слепо
+// тому, что говорит клиент.
+// Второй, независимый путь к isPro — разовый 24-часовой пробный период
+// (trialActive ниже, см. activateProTrial) — не про постоянных PRO, а
+// про "попробовать бесплатно" с сайта, доступен всем.
 const PRO_EMAILS = ['maksimmissuragin@gmail.com']
 
 const AuthContext = createContext(null)
@@ -201,8 +204,48 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Разовая пробная PRO-подписка на 24 часа — см. src/pages/Pricing.jsx
+  // ("Попробовать бесплатно"). Что реально запишется в trial_pro_until
+  // (и что повторная попытка ничего не сделает) решает триггер
+  // enforce_trial_pro_activation в schema.sql, не этот код — здесь
+  // просто шлём запрос и читаем, что БД реально сохранила.
+  // .is('trial_pro_until', null) — чтобы запрос ничего не обновил
+  // (0 строк), если пробный период уже активирован раньше; в этом
+  // случае бросаем понятную ошибку вместо тихого "успеха" без изменений.
+  async function activateProTrial() {
+    if (!user) return
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ trial_pro_until: new Date().toISOString() })
+        .eq('id', user.id)
+        .is('trial_pro_until', null)
+        .select()
+        .single()
+      if (error) {
+        // PGRST116 — .single() got 0 rows: .is('trial_pro_until', null)
+        // excluded the row, т.е. пробный период уже был активирован
+        // раньше (например, в другой вкладке за секунду до этого клика).
+        if (error.code === 'PGRST116') {
+          throw new Error('Пробный период уже был использован.')
+        }
+        throw error
+      }
+      setProfile((prev) => (prev ? { ...prev, trial_pro_until: data.trial_pro_until } : prev))
+      return data.trial_pro_until
+    } catch (err) {
+      throw toError(err)
+    }
+  }
+
   const isAdmin = profile?.role === 'admin'
-  const isPro = !!user?.email && PRO_EMAILS.includes(user.email)
+  const trialProUntil = profile?.trial_pro_until ? new Date(profile.trial_pro_until) : null
+  // Уже когда-либо активировали пробный период — независимо от того,
+  // ещё идёт он или уже закончился; как только trial_pro_until не null,
+  // кнопка "Попробовать бесплатно" больше не нужна (см. Pricing.jsx).
+  const trialUsed = !!trialProUntil
+  const trialActive = !!trialProUntil && trialProUntil > new Date()
+  const isPro = (!!user?.email && PRO_EMAILS.includes(user.email)) || trialActive
 
   return (
     <AuthContext.Provider
@@ -213,6 +256,10 @@ export function AuthProvider({ children }) {
         profileLoading,
         isAdmin,
         isPro,
+        trialUsed,
+        trialActive,
+        trialProUntil,
+        activateProTrial,
         signUp,
         signIn,
         signOut,

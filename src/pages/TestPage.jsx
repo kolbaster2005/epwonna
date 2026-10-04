@@ -17,6 +17,7 @@ import QuestionAnswerInput, { PAGINATE_THRESHOLD } from '../components/QuestionA
 import FloatingPassageWindow from '../components/FloatingPassageWindow.jsx'
 import AudioPlayer from '../components/AudioPlayer.jsx'
 import TranscriptModal from '../components/TranscriptModal.jsx'
+import UpsellModal from '../components/UpsellModal.jsx'
 import ReportIssueModal from '../components/ReportIssueModal.jsx'
 import PageLoader from '../components/PageLoader.jsx'
 import LockedTestNotice from '../components/LockedTestNotice.jsx'
@@ -67,8 +68,12 @@ export default function TestPage({ examKey }) {
   const navigate = useNavigate()
   const exam = exams[examKey]
   const { user, isPro } = useAuth()
-  const { confirm, alertMessage } = useDialog()
+  const { confirm } = useDialog()
   const [transcriptOpen, setTranscriptOpen] = useState(false)
+  // Общая "продающая" модалка — лимит ИИ-проверок исчерпан или попытка
+  // открыть транскрипцию без PRO; null = закрыта, строка = открыта с
+  // этим текстом причины (см. UpsellModal.jsx).
+  const [upsellReason, setUpsellReason] = useState(null)
 
   const [test, setTest] = useState(undefined) // undefined = loading, null = not found
   const [loading, setLoading] = useState(true)
@@ -253,8 +258,16 @@ export default function TestPage({ examKey }) {
       setEssayReview(review)
       if (review.usage) setEssayUsage(review.usage)
     } catch (err) {
-      setEssayCheckError(err.message || 'Не удалось выполнить проверку.')
-      if (err.usage) setEssayUsage(err.usage)
+      // err.usage приходит только вместе с 429 "дневной лимит исчерпан"
+      // (см. check-essay/index.ts) — для него вместо текста ошибки под
+      // кнопкой показываем продающую модалку, остальные ошибки (сеть,
+      // сбой ИИ и т. п.) — как раньше, просто текстом.
+      if (err.usage) {
+        setEssayUsage(err.usage)
+        setUpsellReason(err.message)
+      } else {
+        setEssayCheckError(err.message || 'Не удалось выполнить проверку.')
+      }
     } finally {
       setEssayChecking(false)
     }
@@ -313,8 +326,14 @@ export default function TestPage({ examKey }) {
         setSelfGrade(question.id, review.feedback.totalScore)
       }
     } catch (err) {
-      setQaTableCheckError(err.message || 'Не удалось выполнить проверку.')
-      if (err.usage) setQaTableUsage(err.usage)
+      // Та же логика, что у проверки сочинений выше — err.usage значит
+      // "дневной лимит исчерпан", для него показываем продающую модалку.
+      if (err.usage) {
+        setQaTableUsage(err.usage)
+        setUpsellReason(err.message)
+      } else {
+        setQaTableCheckError(err.message || 'Не удалось выполнить проверку.')
+      }
     } finally {
       setQaTableChecking(false)
     }
@@ -382,6 +401,16 @@ export default function TestPage({ examKey }) {
     latestDraftStateRef.current = { answers, selfGrades, secondsLeft, finished }
   })
 
+  // "Начатый" пробник — хотя бы один вопрос, в который реально что-то
+  // вписано/выбрано (hasAnyAnswer — тот же нестрогий чек, что красит
+  // точку вопроса в "draft" в сайдбаре, см. ниже). Просто открыть и
+  // уйти, ничего не тронув, не должно создавать черновик — иначе
+  // "Продолжить?" в личном кабинете предлагало бы пробники, которые
+  // человек даже не начинал решать.
+  function hasStarted(ans) {
+    return questions.some((q) => hasAnyAnswer(q, ans[q.id] ?? defaultValue(q.type)))
+  }
+
   // Автосохранение черновика — раз в ~2.5с после последнего изменения
   // ответов/самооценок, не на каждое нажатие клавиши в сочинении.
   // Ничего не пишет, пока экран "продолжить?" ещё не закрыт (иначе
@@ -393,6 +422,7 @@ export default function TestPage({ examKey }) {
     if (!user || !test || draftPrompt) return undefined
     const timeoutId = setTimeout(() => {
       if (latestDraftStateRef.current.finished) return
+      if (!hasStarted(answers)) return
       saveDraftAttempt({
         userId: user.id,
         testId: test.id,
@@ -413,6 +443,7 @@ export default function TestPage({ examKey }) {
     function saveNow() {
       const { answers: a, selfGrades: sg, secondsLeft: sl, finished: isFinished } = latestDraftStateRef.current
       if (isFinished) return
+      if (!hasStarted(a)) return
       saveDraftAttempt({
         userId: user.id,
         testId: test.id,
@@ -840,12 +871,12 @@ export default function TestPage({ examKey }) {
   }
 
   // Кнопка видна всем (см. рендер ниже), но саму транскрипцию открывает
-  // только pro — остальным вместо модалки алерт с предложением подписки.
-  // Как и у "Тренировки"/отчёта ИИ по сочинению, ограничение пока только
-  // на уровне интерфейса (см. комментарий у PRO_EMAILS в AuthContext.jsx).
+  // только pro — остальным вместо неё продающая модалка (UpsellModal).
+  // Ограничение пока только на уровне интерфейса (см. комментарий у
+  // PRO_EMAILS в AuthContext.jsx).
   function handleOpenTranscript() {
     if (!isPro) {
-      alertMessage('Транскрипция аудирования доступна только с PRO-подпиской.')
+      setUpsellReason('Транскрипция аудирования доступна только с PRO-подпиской.')
       return
     }
     setTranscriptOpen(true)
@@ -1166,6 +1197,8 @@ export default function TestPage({ examKey }) {
       {transcriptOpen && passage?.transcript && (
         <TranscriptModal title={passage.title} transcript={passage.transcript} onClose={() => setTranscriptOpen(false)} />
       )}
+
+      {upsellReason && <UpsellModal reason={upsellReason} onClose={() => setUpsellReason(null)} />}
     </>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { generateProbnik } from '../services/generationService.js'
+import ModalOverlay from './ModalOverlay.jsx'
 
 export default function GenerateProbnikModal({ examKey, userId, topics, onClose, onGenerated }) {
   const [genTopics, setGenTopics] = useState([])
@@ -33,7 +34,7 @@ export default function GenerateProbnikModal({ examKey, userId, topics, onClose,
   }
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <ModalOverlay onClose={onClose}>
       <div className="modal generate-modal">
         <button type="button" className="modal-close" onClick={onClose} aria-label="Закрыть">✕</button>
 
@@ -85,6 +86,6 @@ export default function GenerateProbnikModal({ examKey, userId, topics, onClose,
           </>
         )}
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

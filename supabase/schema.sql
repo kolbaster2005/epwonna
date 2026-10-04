@@ -33,6 +33,13 @@ create table if not exists public.profiles (
 -- avatar_key existed.
 alter table public.profiles add column if not exists avatar_key text;
 
+-- Разовая пробная PRO-подписка на 24 часа (см. "Попробовать бесплатно"
+-- в src/pages/Pricing.jsx) — null, пока не активирована; после
+-- активации хранит момент истечения. Реальное значение и разовость
+-- контролирует триггер enforce_trial_pro_activation ниже, не клиент —
+-- см. его комментарий.
+alter table public.profiles add column if not exists trial_pro_until timestamptz;
+
 alter table public.profiles enable row level security;
 
 drop policy if exists "profiles: read own" on public.profiles;
@@ -70,6 +77,44 @@ drop trigger if exists profiles_prevent_role_change on public.profiles;
 create trigger profiles_prevent_role_change
   before update on public.profiles
   for each row execute procedure public.prevent_self_role_change();
+
+-- Та же идея, что у role выше — "profiles: update own" разрешает
+-- обновить свою строку целиком, так что клиент технически может
+-- прислать в update-запросе любое значение trial_pro_until (хоть дату
+-- через 100 лет). Реальная длительность и разовость активации решает
+-- только эта функция:
+--   - если trial_pro_until уже был установлен раньше (old не null) —
+--     значение замораживается навсегда, повторная активация невозможна
+--     никаким запросом от обычного клиента;
+--   - на самой первой активации (old null, клиент прислал что угодно
+--     не-null) — игнорируем присланное значение и ставим ровно
+--     now() + 24 часа, а не то, что просил клиент.
+-- Клиентский код просто делает
+--   update profiles set trial_pro_until = now() where id = ... and trial_pro_until is null
+-- — реальное значение подставит эта функция.
+create or replace function public.enforce_trial_pro_activation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if current_user = 'postgres' then
+    return new;
+  end if;
+  if old.trial_pro_until is not null then
+    new.trial_pro_until := old.trial_pro_until;
+  elsif new.trial_pro_until is not null then
+    new.trial_pro_until := now() + interval '24 hours';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_enforce_trial_pro on public.profiles;
+create trigger profiles_enforce_trial_pro
+  before update on public.profiles
+  for each row execute procedure public.enforce_trial_pro_activation();
 
 -- Auto-create a profile row whenever someone signs up through
 -- Supabase Auth, so `profiles` never gets out of sync with `auth.users`.

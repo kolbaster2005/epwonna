@@ -20,7 +20,7 @@ import { logError } from '../lib/logger.js'
 // источник правды, это только для отображения "X из N" до первого
 // реального ответа функции. Общий счётчик на день (не по каждому
 // заданию отдельно) — так понятнее пользователю.
-export const DAILY_QA_TABLE_CHECK_LIMIT = 4
+export const DAILY_QA_TABLE_CHECK_LIMIT = 3
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Неизвестная ошибка')
