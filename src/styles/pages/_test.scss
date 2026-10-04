@@ -370,7 +370,7 @@
 
 // ---- Question groups (categories) ---------------------------------------
 .question-group {
-  margin-bottom: $space-4;
+  margin-bottom: $space-3;
 }
 
 .question-group-label {
@@ -382,21 +382,35 @@
   margin-bottom: 8px;
 }
 
+// Квадратики растягивались на всю ширину колонки (1fr) — на обычной
+// ширине панели получалось ~65-70px каждый, и при тесте с большим
+// числом заданий (как epd-musterpruefung-1, 17 штук в несколько строк)
+// список не помещался по высоте на невысоких экранах/масштабе —
+// .test-nav начинал внутри скроллиться, а на грани высоты это ещё и
+// подёргивалось (см. предыдущий фикс с scrollbar-gutter). max-width
+// ограничивает размер самого квадратика независимо от ширины колонки —
+// компактнее и ощутимо ниже по сумме строк.
 .question-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
+  gap: 5px;
 }
 
 .q-num {
   @include button-reset;
   aspect-ratio: 1;
+  width: 38px;
+  // margin: auto on a grid item switches it from stretch to
+  // content-sized — with an explicit width that's not an issue, but
+  // justify-self: center (not margin) is what actually centers a
+  // fixed-size item within its (wider) 1fr grid cell here.
+  justify-self: center;
   border-radius: $radius-sm;
   border: 1.5px solid $color-border;
   background: #fff;
   color: $color-ink-soft;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
