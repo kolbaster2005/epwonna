@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 // Upserts the latest result for one task. Called from TestPage.jsx
 // whenever a question gets checked (verdict computed then) and again
@@ -23,7 +24,7 @@ export async function upsertTaskAttempt({ userId, taskId, examKey, verdict, answ
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[taskAttemptsService.upsertTaskAttempt]', err)
+    logError('[taskAttemptsService.upsertTaskAttempt]', err)
     return false
   }
 }
@@ -42,7 +43,7 @@ export async function listTaskAttempts(userId, examKey) {
     if (error) throw error
     return Object.fromEntries((data || []).map((row) => [row.task_id, row]))
   } catch (err) {
-    console.error('[taskAttemptsService.listTaskAttempts]', err)
+    logError('[taskAttemptsService.listTaskAttempts]', err)
     return {}
   }
 }
@@ -92,7 +93,7 @@ export async function getTopicProgress(userId, examKey, allTasks, topics) {
 export async function deleteAllTaskAttempts(userId) {
   const { error } = await supabase.from('task_attempts').delete().eq('user_id', userId)
   if (error) {
-    console.error('[taskAttemptsService.deleteAllTaskAttempts]', error)
+    logError('[taskAttemptsService.deleteAllTaskAttempts]', error)
     throw error
   }
 }

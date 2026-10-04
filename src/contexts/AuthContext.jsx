@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 // Pro-версия ещё не продаётся — пока просто список почт, у кого есть
 // доступ к функциям для тренировки по теме/типу задания. Когда дойдёт
@@ -71,7 +72,7 @@ export function AuthProvider({ children }) {
     supabase.auth
       .getSession()
       .then(({ data }) => setUser(data.session?.user ?? null))
-      .catch((err) => console.error('[AuthContext.getSession]', err))
+      .catch((err) => logError('[AuthContext.getSession]', err))
       .finally(() => setLoading(false))
 
     // Keeps `user` in sync across tabs and after token refresh, sign-in,
@@ -114,11 +115,11 @@ export function AuthProvider({ children }) {
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return
-        if (error) console.error('[AuthContext.profile]', error)
+        if (error) logError('[AuthContext.profile]', error)
         setProfile(data ?? null)
       })
       .catch((err) => {
-        if (!cancelled) console.error('[AuthContext.profile]', err)
+        if (!cancelled) logError('[AuthContext.profile]', err)
       })
       .finally(() => {
         if (!cancelled) setProfileLoading(false)

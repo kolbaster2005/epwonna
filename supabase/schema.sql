@@ -598,6 +598,21 @@ create table if not exists public.content (
   created_at timestamptz not null default now()
 );
 
+-- audio_url — ссылка на файл в Storage-бакете listening-audio (см.
+-- supabase/listening_audio_storage.sql); исторически добавлена через
+-- тот отдельный файл, а не здесь — на уже существующей базе ничего не
+-- меняет (if not exists), просто чтобы schema.sql сам по себе тоже
+-- собирал таблицу целиком с нуля.
+-- transcript — текст аудирования (Hörverstehen и т. п.), показывается
+-- студенту по кнопке рядом с плеером (см. TestPage.jsx), но сама кнопка
+-- только для pro — остальным вместо неё алерт с предложением подписки.
+-- Как и весь остальной pro-функционал на сайте сейчас (см. комментарий
+-- у PRO_EMAILS в AuthContext.jsx), ограничение только на уровне
+-- интерфейса — RLS ниже разрешает публичное чтение всей таблицы
+-- content целиком, транскрипция не исключение.
+alter table public.content add column if not exists audio_url text;
+alter table public.content add column if not exists transcript text;
+
 alter table public.content enable row level security;
 
 drop policy if exists "content: public read" on public.content;

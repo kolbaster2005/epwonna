@@ -1,12 +1,12 @@
 // Decorative illustration for the top of the "Об экзамене" tab.
 //
-// EPM has a real illustration now (src/assets/epm-hero.svg — provided by
+// EPM has a real illustration now (src/assets/epm-hero.webp — provided by
 // the person, imported as a static asset so Vite hashes/caches it like
 // any other build asset). EPD/EPE don't have their own images yet, so
 // they still fall back to the generated placeholder scene below
 // (clipboard/checklist, calculator, books, floating doodles) — swap this
 // per-exam mapping for a real `import` once images for those exist too.
-import epmHero from '../assets/epm-hero.svg'
+import epmHero from '../assets/epm-hero.webp'
 
 const REAL_IMAGES = {
   epm: epmHero,
@@ -23,8 +23,6 @@ export default function ExamHeroArt({ examKey, exam }) {
   }
 
   const { color, colorDark } = exam
-  const SUBTITLE_BY_KEY = { epd: 'немецкий', epe: 'английский', chemie: 'химия', physik: 'физика' }
-  const subtitle = SUBTITLE_BY_KEY[examKey] || exam.label
 
   return (
     <div className="exam-hero-art">
@@ -58,10 +56,6 @@ export default function ExamHeroArt({ examKey, exam }) {
         <rect x="160" y="100" width="196" height="244" rx="10" fill="#F7F9FC" />
         <rect x="233" y="80" width="50" height="26" rx="8" fill={colorDark} />
         <circle cx="258" cy="93" r="6" fill="#fff" />
-
-        <text x="258" y="138" textAnchor="middle" fontFamily="'Manrope',sans-serif" fontWeight="800" fontSize="16" fill={colorDark}>
-          {exam.label} — {subtitle}
-        </text>
 
         <path d="M178 188 Q206 148 226 172 T276 158 T326 138" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" />
 

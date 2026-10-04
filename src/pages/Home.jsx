@@ -1,10 +1,17 @@
+import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import ExamIcon from '../components/ExamIcon.jsx'
 import { visibleExamList, visibleComingSoonSubjects } from '../data/examData.js'
 import { IconGraduationCap, IconBook } from '../components/Icons.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import ProDashboard from './ProDashboard.jsx'
-import heroIllustration from '../assets/hero-illustration.png'
+import PageLoader from '../components/PageLoader.jsx'
+import heroIllustration from '../assets/hero-illustration.webp'
+
+// Отдельным чанком: гости (без аккаунта) его вообще не видят, но
+// раньше он всё равно попадал в общий бандл главной страницы через
+// обычный import — самый частый первый визит на сайт платил за JS
+// личного кабинета, которым не пользовался.
+const ProDashboard = lazy(() => import('./ProDashboard.jsx'))
 
 const HERO_TILES = [
   { icon: IconGraduationCap, title: 'Моё обучение', desc: 'Отслеживай свой прогресс', to: '/my-learning' },
@@ -17,7 +24,13 @@ export default function Home() {
   // Залогиненные (любой тариф, не только pro) видят не эту общую
   // главную вообще, а личный кабинет с персонализированными виджетами
   // — см. ProDashboard.jsx. Гости — обычный маркетинговый hero ниже.
-  if (user) return <ProDashboard />
+  if (user) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <ProDashboard />
+      </Suspense>
+    )
+  }
 
   // EPC/EPP/Biologie/Geschichte are adminOnly and hidden everywhere (see
   // visibleExamList/visibleComingSoonSubjects in examData.js) — everyone

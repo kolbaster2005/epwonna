@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------
 
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Неизвестная ошибка')
@@ -19,7 +20,7 @@ export async function getExamCountdown() {
     if (error) throw error
     return { examDate: data?.exam_date ?? null, registrationOpen: data?.registration_open ?? false }
   } catch (err) {
-    console.error('[examCountdownService.getExamCountdown]', err)
+    logError('[examCountdownService.getExamCountdown]', err)
     return null
   }
 }
@@ -34,7 +35,7 @@ export async function saveExamCountdown({ examDate, registrationOpen }) {
     })
     if (error) throw error
   } catch (err) {
-    console.error('[examCountdownService.saveExamCountdown]', err)
+    logError('[examCountdownService.saveExamCountdown]', err)
     throw toError(err)
   }
 }

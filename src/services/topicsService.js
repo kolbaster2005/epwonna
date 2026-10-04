@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------
 
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Неизвестная ошибка')
@@ -26,7 +27,7 @@ export async function listTopics(examKey) {
     if (error) throw error
     return (data || []).map(rowToTopic)
   } catch (err) {
-    console.error('[topicsService.listTopics]', err)
+    logError('[topicsService.listTopics]', err)
     return []
   }
 }
@@ -39,7 +40,7 @@ export async function createTopic({ examKey, id, label, sortOrder }) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[topicsService.createTopic]', err)
+    logError('[topicsService.createTopic]', err)
     throw toError(err)
   }
 }
@@ -57,7 +58,7 @@ export async function updateTopic(examKey, id, patch) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[topicsService.updateTopic]', err)
+    logError('[topicsService.updateTopic]', err)
     throw toError(err)
   }
 }
@@ -68,7 +69,7 @@ export async function deleteTopic(examKey, id) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[topicsService.deleteTopic]', err)
+    logError('[topicsService.deleteTopic]', err)
     throw toError(err)
   }
 }
@@ -94,7 +95,7 @@ export async function listTaskTopicsFor(taskIds) {
     }
     return map
   } catch (err) {
-    console.error('[topicsService.listTaskTopicsFor]', err)
+    logError('[topicsService.listTaskTopicsFor]', err)
     return {}
   }
 }
@@ -115,7 +116,7 @@ export async function setTaskTopics(taskId, topicIds) {
     }
     return true
   } catch (err) {
-    console.error('[topicsService.setTaskTopics]', err)
+    logError('[topicsService.setTaskTopics]', err)
     throw toError(err)
   }
 }

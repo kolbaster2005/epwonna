@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------------
 
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Неизвестная ошибка')
@@ -32,7 +33,7 @@ export async function listWords(userId) {
     if (error) throw error
     return (data || []).map(rowToWord)
   } catch (err) {
-    console.error('[dictionaryService.listWords]', err)
+    logError('[dictionaryService.listWords]', err)
     return []
   }
 }
@@ -53,7 +54,7 @@ export async function addWord({ userId, word, translation, example, category }) 
     if (error) throw error
     return rowToWord(data)
   } catch (err) {
-    console.error('[dictionaryService.addWord]', err)
+    logError('[dictionaryService.addWord]', err)
     throw toError(err)
   }
 }
@@ -73,7 +74,7 @@ export async function updateWord(id, patch) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[dictionaryService.updateWord]', err)
+    logError('[dictionaryService.updateWord]', err)
     throw toError(err)
   }
 }
@@ -84,7 +85,7 @@ export async function deleteWord(id) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[dictionaryService.deleteWord]', err)
+    logError('[dictionaryService.deleteWord]', err)
     throw toError(err)
   }
 }
@@ -107,7 +108,7 @@ export async function translateText(text, { from = 'autodetect', to = 'ru' } = {
     if (!translated) throw new Error('Пустой ответ от сервиса перевода')
     return translated
   } catch (err) {
-    console.error('[dictionaryService.translateText]', err)
+    logError('[dictionaryService.translateText]', err)
     throw toError(err)
   }
 }

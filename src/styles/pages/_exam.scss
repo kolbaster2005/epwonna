@@ -356,7 +356,15 @@
 // .theory-text intentionally has no width cap of its own — the index
 // view's links list and the article view's .about-text prose each set
 // their own appropriate width (see .theory-article-body below for why
-// article bodies specifically need to escape the usual prose cap).
+// article bodies specifically need to escape the usual prose cap). It
+// does need its own bottom padding though (same as .about-text below,
+// which every other tab gets its bottom spacing from) — without it the
+// index view's last section (margin-bottom: 0 below) and the article
+// view (.theory-article-body cancels .about-text's own padding-bottom,
+// see below) both ran flush into the bottom edge of the page.
+.theory-text {
+  padding-bottom: $space-10 - 2;
+}
 
 .theory-section {
   margin-bottom: $space-7;

@@ -29,6 +29,7 @@
 import { supabase } from '../lib/supabaseClient.js'
 import { exams } from '../data/examData.js'
 import { listTaskTopicsFor } from './topicsService.js'
+import { logError } from '../lib/logger.js'
 
 const TABLE = 'tests'
 
@@ -298,7 +299,7 @@ export async function listTests(examKey) {
 
     return tests.map((row) => ({ ...rowToTest(row), questionCount: counts[row.id] ?? 0 }))
   } catch (err) {
-    console.error('[testsService.listTests]', err)
+    logError('[testsService.listTests]', err)
     return []
   }
 }
@@ -339,7 +340,7 @@ export async function getTest(examKey, testId) {
 
     return rowToTest({ ...testRow, questions: orderedQuestions })
   } catch (err) {
-    console.error('[testsService.getTest]', err)
+    logError('[testsService.getTest]', err)
     return null
   }
 }
@@ -366,7 +367,7 @@ export async function createTest(examKey, data) {
 
     return getTest(examKey, id)
   } catch (err) {
-    console.error('[testsService.createTest]', err)
+    logError('[testsService.createTest]', err)
     throw toError(err)
   }
 }
@@ -411,7 +412,7 @@ export async function updateTest(examKey, testId, patch) {
 
     return getTest(examKey, testId)
   } catch (err) {
-    console.error('[testsService.updateTest]', err)
+    logError('[testsService.updateTest]', err)
     throw toError(err)
   }
 }
@@ -427,7 +428,7 @@ export async function setPinned(testId, isPinned) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[testsService.setPinned]', err)
+    logError('[testsService.setPinned]', err)
     throw toError(err)
   }
 }
@@ -440,7 +441,7 @@ export async function setRequiresAuth(testId, requiresAuth) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[testsService.setRequiresAuth]', err)
+    logError('[testsService.setRequiresAuth]', err)
     throw toError(err)
   }
 }
@@ -463,7 +464,7 @@ export async function reorderTests(orderedTestIds) {
     if (failed) throw failed.error
     return true
   } catch (err) {
-    console.error('[testsService.reorderTests]', err)
+    logError('[testsService.reorderTests]', err)
     throw toError(err)
   }
 }
@@ -475,7 +476,7 @@ export async function deleteTest(examKey, testId) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[testsService.deleteTest]', err)
+    logError('[testsService.deleteTest]', err)
     throw toError(err)
   }
 }
@@ -537,7 +538,7 @@ export async function listAllQuestionsForBank(examKey) {
       }
     })
   } catch (err) {
-    console.error('[testsService.listAllQuestionsForBank]', err)
+    logError('[testsService.listAllQuestionsForBank]', err)
     return []
   }
 }
@@ -557,7 +558,7 @@ export async function listTaskShareCounts(taskIds) {
     }
     return Object.fromEntries(Object.entries(testsByTask).map(([taskId, set]) => [taskId, set.size]))
   } catch (err) {
-    console.error('[testsService.listTaskShareCounts]', err)
+    logError('[testsService.listTaskShareCounts]', err)
     return {}
   }
 }

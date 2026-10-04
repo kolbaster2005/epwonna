@@ -168,6 +168,40 @@
   margin: 0;
 }
 
+// Кнопка видна всем, доступна только pro (см. TestPage.jsx
+// handleOpenTranscript) — .pro-badge внутри (см. _tabs.scss) показывает
+// это не-pro без необходимости сначала кликнуть и получить алерт.
+.test-transcript-btn {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 $space-6;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: $color-ink-soft;
+  background: $color-bg;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    color: $color-ink;
+    background: darken($color-bg, 3%);
+  }
+}
+
+.transcript-modal-text {
+  margin-top: 14px;
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: $color-ink-soft;
+  white-space: pre-line;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
 // Standalone full-width reading view (view === 'text') — flows with the
 // page like any other content, no fixed height/scrollbar.
 .test-passage-full {

@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------
 
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 function rowToAttempt(row) {
   return {
@@ -73,7 +74,7 @@ export async function saveAttempt({
     if (error) throw error
     return data.id
   } catch (err) {
-    console.error('[attemptsService.saveAttempt]', err)
+    logError('[attemptsService.saveAttempt]', err)
     return null
   }
 }
@@ -93,7 +94,7 @@ export async function listAttempts(userId) {
     if (error) throw error
     return (data || []).map(rowToAttempt)
   } catch (err) {
-    console.error('[attemptsService.listAttempts]', err)
+    logError('[attemptsService.listAttempts]', err)
     return []
   }
 }
@@ -105,7 +106,7 @@ export async function listAttempts(userId) {
 export async function deleteAttempt(attemptId) {
   const { error } = await supabase.from('test_attempts').delete().eq('id', attemptId)
   if (error) {
-    console.error('[attemptsService.deleteAttempt]', error)
+    logError('[attemptsService.deleteAttempt]', error)
     throw error
   }
 }
@@ -115,7 +116,7 @@ export async function deleteAttempt(attemptId) {
 export async function deleteAllAttempts(userId) {
   const { error } = await supabase.from('test_attempts').delete().eq('user_id', userId)
   if (error) {
-    console.error('[attemptsService.deleteAllAttempts]', error)
+    logError('[attemptsService.deleteAllAttempts]', error)
     throw error
   }
 }
@@ -129,7 +130,7 @@ export async function getAttempt(attemptId) {
     if (error) throw error
     return data ? rowToAttempt(data) : null
   } catch (err) {
-    console.error('[attemptsService.getAttempt]', err)
+    logError('[attemptsService.getAttempt]', err)
     return null
   }
 }
@@ -185,7 +186,7 @@ export async function saveDraftAttempt({ userId, testId, examKey, testTitle, ans
       if (error) throw error
     }
   } catch (err) {
-    console.error('[attemptsService.saveDraftAttempt]', err)
+    logError('[attemptsService.saveDraftAttempt]', err)
   }
 }
 
@@ -218,7 +219,7 @@ export async function getLatestDraftAttempt(userId) {
     if (error) throw error
     return data ? rowToAttempt(data) : null
   } catch (err) {
-    console.error('[attemptsService.getLatestDraftAttempt]', err)
+    logError('[attemptsService.getLatestDraftAttempt]', err)
     return null
   }
 }
@@ -238,7 +239,7 @@ export async function getDraftAttempt(userId, testId) {
     if (error) throw error
     return data ? rowToAttempt(data) : null
   } catch (err) {
-    console.error('[attemptsService.getDraftAttempt]', err)
+    logError('[attemptsService.getDraftAttempt]', err)
     return null
   }
 }
@@ -256,6 +257,6 @@ export async function deleteDraftAttempt(userId, testId) {
       .is('completed_at', null)
     if (error) throw error
   } catch (err) {
-    console.error('[attemptsService.deleteDraftAttempt]', err)
+    logError('[attemptsService.deleteDraftAttempt]', err)
   }
 }

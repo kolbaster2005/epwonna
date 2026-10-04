@@ -122,7 +122,7 @@ export default function ProDashboard() {
       Promise.all(examList.map((e) => listTests(e.key))),
       getExamCountdown(),
     ])
-      .then(async ([latestDraft, attemptsList, testsLists, countdownData]) => {
+      .then(([latestDraft, attemptsList, testsLists, countdownData]) => {
         if (cancelled) return
 
         setCountdown(countdownData)
@@ -136,7 +136,14 @@ export default function ProDashboard() {
         const visibleLastAttempt = attemptsList.find((a) => byExam[a.examKey]) || null
         setLastAttempt(visibleLastAttempt)
 
-        const [draftTestFull, lastTestFull, topicStatsEntries] = await Promise.all([
+        // Этим можно уже отрисовать карточки пробников и список предметов
+        // с числом пройденных пробников — не ждём более медленную
+        // разбивку по темам/баллам ниже (на каждый предмет ещё по 3
+        // запроса), она дозагрузится следом и обновит экран сама по
+        // себе через отдельные setState, без общего спиннера.
+        setLoading(false)
+
+        Promise.all([
           visibleDraft ? getTest(visibleDraft.examKey, visibleDraft.testId) : null,
           visibleLastAttempt ? getTest(visibleLastAttempt.examKey, visibleLastAttempt.testId) : null,
           Promise.all(
@@ -152,12 +159,12 @@ export default function ProDashboard() {
               return [e.key, { done, total }]
             })
           ),
-        ])
-        if (cancelled) return
-        setDraftTest(draftTestFull)
-        setLastAttemptTest(lastTestFull)
-        setTopicStats(Object.fromEntries(topicStatsEntries))
-        setLoading(false)
+        ]).then(([draftTestFull, lastTestFull, topicStatsEntries]) => {
+          if (cancelled) return
+          setDraftTest(draftTestFull)
+          setLastAttemptTest(lastTestFull)
+          setTopicStats(Object.fromEntries(topicStatsEntries))
+        })
       })
       .catch(() => {
         if (!cancelled) setLoading(false)

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 // Fetches content rows by id and reshapes them to exactly the shape
 // TestPage.jsx already expects for a passage ({id, title, text,
@@ -19,9 +20,10 @@ export async function listContentByIds(ids) {
       text: row.body ?? undefined,
       category: row.category ?? undefined,
       audioUrl: row.audio_url ?? undefined,
+      transcript: row.transcript ?? undefined,
     }))
   } catch (err) {
-    console.error('[contentService.listContentByIds]', err)
+    logError('[contentService.listContentByIds]', err)
     return []
   }
 }
@@ -35,13 +37,13 @@ export async function listContentForExam(examKey) {
   try {
     const { data, error } = await supabase
       .from('content')
-      .select('id, title, category, audio_url, body')
+      .select('id, title, category, audio_url, body, transcript')
       .eq('exam_key', examKey)
       .order('created_at', { ascending: false })
     if (error) throw error
     return data || []
   } catch (err) {
-    console.error('[contentService.listContentForExam]', err)
+    logError('[contentService.listContentForExam]', err)
     return []
   }
 }
@@ -63,7 +65,7 @@ export async function uploadListeningAudio(file) {
   return data.publicUrl
 }
 
-export async function createContent({ examKey, title, category, audioUrl, body }) {
+export async function createContent({ examKey, title, category, audioUrl, body, transcript }) {
   const { data, error } = await supabase
     .from('content')
     .insert({
@@ -72,7 +74,23 @@ export async function createContent({ examKey, title, category, audioUrl, body }
       category: category || null,
       audio_url: audioUrl || null,
       body: body || null,
+      transcript: transcript || null,
     })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+// Правка уже существующей записи банка — пока только транскрипция
+// (аудио/название задаются один раз при создании, см. createContent
+// выше; транскрипцию же обычно дописывают позже, когда уже выбрали
+// существующее аудио в ContentAudioPicker.jsx).
+export async function updateContent({ id, transcript }) {
+  const { data, error } = await supabase
+    .from('content')
+    .update({ transcript: transcript || null })
+    .eq('id', id)
     .select()
     .single()
   if (error) throw error

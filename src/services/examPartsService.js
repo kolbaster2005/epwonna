@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------
 
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Неизвестная ошибка')
@@ -27,7 +28,7 @@ export async function listExamParts(examKey) {
     if (error) throw error
     return (data || []).map(rowToExamPart)
   } catch (err) {
-    console.error('[examPartsService.listExamParts]', err)
+    logError('[examPartsService.listExamParts]', err)
     return []
   }
 }
@@ -40,7 +41,7 @@ export async function createExamPart({ examKey, id, label, sortOrder }) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[examPartsService.createExamPart]', err)
+    logError('[examPartsService.createExamPart]', err)
     throw toError(err)
   }
 }
@@ -58,7 +59,7 @@ export async function updateExamPart(examKey, id, patch) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[examPartsService.updateExamPart]', err)
+    logError('[examPartsService.updateExamPart]', err)
     throw toError(err)
   }
 }
@@ -69,7 +70,7 @@ export async function deleteExamPart(examKey, id) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[examPartsService.deleteExamPart]', err)
+    logError('[examPartsService.deleteExamPart]', err)
     throw toError(err)
   }
 }

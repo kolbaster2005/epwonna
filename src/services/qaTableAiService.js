@@ -13,6 +13,7 @@
 // ---------------------------------------------------------------------
 
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 // Держим в синхроне со значением DAILY_LIMIT в
 // supabase/functions/check-qa-table/index.ts — сервер всё равно
@@ -50,7 +51,7 @@ export async function getTodayQaTableCheckUsage(userId) {
     if (error) throw error
     return { used: count ?? 0, limit: DAILY_QA_TABLE_CHECK_LIMIT }
   } catch (err) {
-    console.error('[qaTableAiService.getTodayQaTableCheckUsage]', toError(err))
+    logError('[qaTableAiService.getTodayQaTableCheckUsage]', toError(err))
     return { used: 0, limit: DAILY_QA_TABLE_CHECK_LIMIT }
   }
 }
@@ -107,7 +108,7 @@ export async function getLatestQaTableReview(questionId, testId) {
     if (error) throw error
     return data ? rowToReview(data) : null
   } catch (err) {
-    console.error('[qaTableAiService.getLatestQaTableReview]', toError(err))
+    logError('[qaTableAiService.getLatestQaTableReview]', toError(err))
     return null
   }
 }

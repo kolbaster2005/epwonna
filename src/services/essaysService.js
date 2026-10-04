@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------
 
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Неизвестная ошибка')
@@ -50,7 +51,7 @@ export async function saveEssaySubmission({ userId, testId, questionId, examKey,
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[essaysService.saveEssaySubmission]', err)
+    logError('[essaysService.saveEssaySubmission]', err)
     throw toError(err)
   }
 }
@@ -68,7 +69,7 @@ export async function listEssaySubmissions(userId) {
     if (error) throw error
     return (data || []).map(rowToSubmission)
   } catch (err) {
-    console.error('[essaysService.listEssaySubmissions]', err)
+    logError('[essaysService.listEssaySubmissions]', err)
     return []
   }
 }
@@ -79,7 +80,7 @@ export async function deleteEssaySubmission(id) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[essaysService.deleteEssaySubmission]', err)
+    logError('[essaysService.deleteEssaySubmission]', err)
     throw toError(err)
   }
 }

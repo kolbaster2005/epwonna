@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Не удалось загрузить статистику.')
@@ -80,7 +81,7 @@ export async function getVisitStats(days = 14) {
       },
     }
   } catch (err) {
-    console.error('[statsService.getVisitStats]', toError(err))
+    logError('[statsService.getVisitStats]', toError(err))
     return null
   }
 }
@@ -104,7 +105,7 @@ export async function getMostAttemptedTests(limit = 10) {
     }
     return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, limit)
   } catch (err) {
-    console.error('[statsService.getMostAttemptedTests]', toError(err))
+    logError('[statsService.getMostAttemptedTests]', toError(err))
     return []
   }
 }

@@ -42,6 +42,16 @@ $pro-shell-sticky-top: $space-5;
   display: flex;
   flex-direction: column;
   background: $color-white;
+  // Сайдбар слева (.pro-sidebar) раздвигается на ховере, анимируя
+  // width — это flex-свойство, не transform, поэтому браузер честно
+  // пересчитывает раскладку на каждый кадр. Без containment это
+  // пересчитывает вообще всё содержимое страницы внутри .pro-shell
+  // (каждую карточку, каждую сетку) — на длинных страницах это и давало
+  // ощущение "подтормаживания" при скролле рядом с меню. contain: layout
+  // style не трогает overflow/clipping (sticky-блоки ниже по-прежнему
+  // работают), просто изолирует пересчёт раскладки внутри .pro-shell от
+  // остальной страницы и наоборот.
+  contain: layout style;
 
   @include mq(lg) {
     margin: $space-4 $space-4 $space-4 0;

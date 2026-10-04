@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js'
+import { logError } from './logger.js'
 
 const VISITOR_ID_KEY = 'epwonna-visitor-id'
 // Set once, manually, from the "Не учитывать мои визиты" button on the
@@ -60,9 +61,9 @@ export function recordPageView(path, userId) {
       .from('page_views')
       .insert({ visitor_id: getVisitorId(), user_id: userId ?? null, path })
       .then(({ error }) => {
-        if (error) console.error('[visits.recordPageView]', error)
+        if (error) logError('[visits.recordPageView]', error)
       })
   } catch (err) {
-    console.error('[visits.recordPageView]', err)
+    logError('[visits.recordPageView]', err)
   }
 }

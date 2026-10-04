@@ -1,38 +1,44 @@
 import { Routes, Route } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import ProLayout from './components/ProLayout.jsx'
 import Home from './pages/Home.jsx'
-import ExamPage from './pages/ExamPage.jsx'
-import TestDetailPage from './pages/TestDetailPage.jsx'
-import TestPage from './pages/TestPage.jsx'
-import PracticeBuilder from './pages/PracticeBuilder.jsx'
-import OralTestPage from './pages/OralTestPage.jsx'
-import About from './pages/About.jsx'
-import UniversityPage from './pages/UniversityPage.jsx'
-import MyLearning from './pages/MyLearning.jsx'
-import MyEssays from './pages/MyEssays.jsx'
-import Personalization from './pages/Personalization.jsx'
-import AttemptReview from './pages/AttemptReview.jsx'
-import Dictionary from './pages/Dictionary.jsx'
 import ComingSoonSubject from './components/ComingSoonSubject.jsx'
-import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
-import TermsOfUse from './pages/TermsOfUse.jsx'
-import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
 import { comingSoonSubjects } from './data/examData.js'
-import NotFound from './pages/NotFound.jsx'
-import AdminHome from './pages/admin/AdminHome.jsx'
-import AdminReports from './pages/admin/AdminReports.jsx'
-import AdminStats from './pages/admin/AdminStats.jsx'
-import AdminExamTests from './pages/admin/AdminExamTests.jsx'
-import AdminTestEditor from './pages/admin/AdminTestEditor.jsx'
-import AdminTopics from './pages/admin/AdminTopics.jsx'
-import AdminExamParts from './pages/admin/AdminExamParts.jsx'
-import AdminTaskBank from './pages/admin/AdminTaskBank.jsx'
-import AdminExamCountdown from './pages/admin/AdminExamCountdown.jsx'
 import RequireAdmin from './components/RequireAdmin.jsx'
 import SelectionPopup from './components/SelectionPopup.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
 import VisitTracker from './components/VisitTracker.jsx'
-import { useEffect, useState } from 'react'
+import PageLoader from './components/PageLoader.jsx'
+
+// Всё, кроме главной (Home — самая частая первая загрузка, остаётся в
+// основном чанке), грузится отдельными чанками по требованию —
+// особенно важно для админки (9 страниц), которую видит только один
+// человек, но раньше её JS утекал в общий бандл абсолютно всем гостям.
+const ExamPage = lazy(() => import('./pages/ExamPage.jsx'))
+const TestDetailPage = lazy(() => import('./pages/TestDetailPage.jsx'))
+const TestPage = lazy(() => import('./pages/TestPage.jsx'))
+const PracticeBuilder = lazy(() => import('./pages/PracticeBuilder.jsx'))
+const OralTestPage = lazy(() => import('./pages/OralTestPage.jsx'))
+const About = lazy(() => import('./pages/About.jsx'))
+const UniversityPage = lazy(() => import('./pages/UniversityPage.jsx'))
+const MyLearning = lazy(() => import('./pages/MyLearning.jsx'))
+const MyEssays = lazy(() => import('./pages/MyEssays.jsx'))
+const Personalization = lazy(() => import('./pages/Personalization.jsx'))
+const AttemptReview = lazy(() => import('./pages/AttemptReview.jsx'))
+const Dictionary = lazy(() => import('./pages/Dictionary.jsx'))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage.jsx'))
+const TermsOfUse = lazy(() => import('./pages/TermsOfUse.jsx'))
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy.jsx'))
+const NotFound = lazy(() => import('./pages/NotFound.jsx'))
+const AdminHome = lazy(() => import('./pages/admin/AdminHome.jsx'))
+const AdminReports = lazy(() => import('./pages/admin/AdminReports.jsx'))
+const AdminStats = lazy(() => import('./pages/admin/AdminStats.jsx'))
+const AdminExamTests = lazy(() => import('./pages/admin/AdminExamTests.jsx'))
+const AdminTestEditor = lazy(() => import('./pages/admin/AdminTestEditor.jsx'))
+const AdminTopics = lazy(() => import('./pages/admin/AdminTopics.jsx'))
+const AdminExamParts = lazy(() => import('./pages/admin/AdminExamParts.jsx'))
+const AdminTaskBank = lazy(() => import('./pages/admin/AdminTaskBank.jsx'))
+const AdminExamCountdown = lazy(() => import('./pages/admin/AdminExamCountdown.jsx'))
 
 export default function App() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -49,6 +55,7 @@ export default function App() {
   }, [mobileNavOpen])
 
   const routes = (
+  <Suspense fallback={<PageLoader />}>
   <Routes>
     <Route path="/" element={<Home />} />
     <Route path="/epm" element={<ExamPage key="epm" examKey="epm" />} />
@@ -127,6 +134,7 @@ export default function App() {
     <Route path="/privacy" element={<PrivacyPolicy />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
+  </Suspense>
   )
 
   // Левое меню (ProLayout) вместо старой верхней шапки — теперь общая

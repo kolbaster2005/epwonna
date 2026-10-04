@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------
 
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 // Держим в синхроне со значением DAILY_LIMIT в
 // supabase/functions/check-essay/index.ts — сервер всё равно является
@@ -48,7 +49,7 @@ export async function getTodayEssayCheckUsage(userId) {
     if (error) throw error
     return { used: count ?? 0, limit: DAILY_ESSAY_CHECK_LIMIT }
   } catch (err) {
-    console.error('[essayAiService.getTodayEssayCheckUsage]', toError(err))
+    logError('[essayAiService.getTodayEssayCheckUsage]', toError(err))
     return { used: 0, limit: DAILY_ESSAY_CHECK_LIMIT }
   }
 }
@@ -117,7 +118,7 @@ export async function getLatestEssayReview(questionId, testId) {
     if (error) throw error
     return data ? rowToReview(data) : null
   } catch (err) {
-    console.error('[essayAiService.getLatestEssayReview]', toError(err))
+    logError('[essayAiService.getLatestEssayReview]', toError(err))
     return null
   }
 }
@@ -150,7 +151,7 @@ export async function getLatestEssayReviewsByEssays(essays) {
     }
     return map
   } catch (err) {
-    console.error('[essayAiService.getLatestEssayReviewsByEssays]', toError(err))
+    logError('[essayAiService.getLatestEssayReviewsByEssays]', toError(err))
     return new Map()
   }
 }

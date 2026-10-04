@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------
 
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 function toError(err) {
   return err instanceof Error ? err : new Error(err?.message || 'Не удалось выполнить запрос.')
@@ -29,7 +30,7 @@ export async function listTaskTypesForExam(examKey) {
     unique.sort((a, b) => a.localeCompare(b))
     return unique
   } catch (err) {
-    console.error('[practiceService.listTaskTypesForExam]', toError(err))
+    logError('[practiceService.listTaskTypesForExam]', toError(err))
     return []
   }
 }

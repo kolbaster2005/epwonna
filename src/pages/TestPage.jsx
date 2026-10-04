@@ -16,6 +16,7 @@ import QuestionImage from '../components/QuestionImage.jsx'
 import QuestionAnswerInput, { PAGINATE_THRESHOLD } from '../components/QuestionAnswerInput.jsx'
 import FloatingPassageWindow from '../components/FloatingPassageWindow.jsx'
 import AudioPlayer from '../components/AudioPlayer.jsx'
+import TranscriptModal from '../components/TranscriptModal.jsx'
 import ReportIssueModal from '../components/ReportIssueModal.jsx'
 import PageLoader from '../components/PageLoader.jsx'
 import LockedTestNotice from '../components/LockedTestNotice.jsx'
@@ -66,7 +67,8 @@ export default function TestPage({ examKey }) {
   const navigate = useNavigate()
   const exam = exams[examKey]
   const { user, isPro } = useAuth()
-  const { confirm } = useDialog()
+  const { confirm, alertMessage } = useDialog()
+  const [transcriptOpen, setTranscriptOpen] = useState(false)
 
   const [test, setTest] = useState(undefined) // undefined = loading, null = not found
   const [loading, setLoading] = useState(true)
@@ -837,6 +839,18 @@ export default function TestPage({ examKey }) {
     lockCurrentIfComplete()
   }
 
+  // Кнопка видна всем (см. рендер ниже), но саму транскрипцию открывает
+  // только pro — остальным вместо модалки алерт с предложением подписки.
+  // Как и у "Тренировки"/отчёта ИИ по сочинению, ограничение пока только
+  // на уровне интерфейса (см. комментарий у PRO_EMAILS в AuthContext.jsx).
+  function handleOpenTranscript() {
+    if (!isPro) {
+      alertMessage('Транскрипция аудирования доступна только с PRO-подпиской.')
+      return
+    }
+    setTranscriptOpen(true)
+  }
+
   const isLast = index === questions.length - 1
   const progressPct = Math.round((answeredCount / questions.length) * 100)
 
@@ -853,6 +867,12 @@ export default function TestPage({ examKey }) {
       <h1 className="test-question-text">{question.text}</h1>
 
       {passage?.audioUrl && <AudioPlayer src={passage.audioUrl} color={exam.color} />}
+
+      {passage?.transcript && (
+        <button type="button" className="test-transcript-btn" onClick={handleOpenTranscript}>
+          Транскрипция {!isPro && <span className="pro-badge">PRO</span>}
+        </button>
+      )}
 
       {question.explanation && <p className="test-explanation">{question.explanation}</p>}
 
@@ -1141,6 +1161,10 @@ export default function TestPage({ examKey }) {
 
       {authOpen && (
         <AuthModal reason="Чтобы проверить ответ с ИИ, нужно войти или зарегистрироваться." onClose={() => setAuthOpen(false)} />
+      )}
+
+      {transcriptOpen && passage?.transcript && (
+        <TranscriptModal title={passage.title} transcript={passage.transcript} onClose={() => setTranscriptOpen(false)} />
       )}
     </>
   )

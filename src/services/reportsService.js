@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient.js'
+import { logError } from '../lib/logger.js'
 
 export async function submitQuestionReport({ userId, email, taskId, taskNumber, message }) {
   try {
@@ -12,7 +13,7 @@ export async function submitQuestionReport({ userId, email, taskId, taskNumber, 
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[reportsService.submitQuestionReport]', err)
+    logError('[reportsService.submitQuestionReport]', err)
     throw err instanceof Error ? err : new Error(err?.message || 'Не удалось отправить обращение.')
   }
 }
@@ -31,7 +32,7 @@ export async function listQuestionReports() {
       createdAt: row.created_at,
     }))
   } catch (err) {
-    console.error('[reportsService.listQuestionReports]', err)
+    logError('[reportsService.listQuestionReports]', err)
     return []
   }
 }
@@ -42,7 +43,7 @@ export async function setReportStatus(id, status) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('[reportsService.setReportStatus]', err)
+    logError('[reportsService.setReportStatus]', err)
     return false
   }
 }
