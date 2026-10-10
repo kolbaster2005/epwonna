@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './AuthContext.jsx'
 
 // Персонализация (страница /personalization) — какие курсы пользователь
@@ -36,43 +36,50 @@ export function PersonalizationProvider({ children }) {
     setPrefs(readPrefs(userId))
   }, [userId])
 
-  function updatePrefs(patch) {
-    setPrefs((prev) => {
-      const next = { ...prev, ...patch(prev) }
-      if (userId) {
-        try {
-          localStorage.setItem(storageKey(userId), JSON.stringify(next))
-        } catch {
-          // без localStorage выбор живёт только до перезагрузки
+  const updatePrefs = useCallback(
+    (patch) => {
+      setPrefs((prev) => {
+        const next = { ...prev, ...patch(prev) }
+        if (userId) {
+          try {
+            localStorage.setItem(storageKey(userId), JSON.stringify(next))
+          } catch {
+            // без localStorage выбор живёт только до перезагрузки
+          }
         }
-      }
-      return next
-    })
-  }
+        return next
+      })
+    },
+    [userId]
+  )
 
-  function setExamHidden(examKey, hidden) {
-    updatePrefs((prev) => ({
-      hiddenExams: hidden ? [...new Set([...prev.hiddenExams, examKey])] : prev.hiddenExams.filter((k) => k !== examKey),
-    }))
-  }
+  const setExamHidden = useCallback(
+    (examKey, hidden) => {
+      updatePrefs((prev) => ({
+        hiddenExams: hidden ? [...new Set([...prev.hiddenExams, examKey])] : prev.hiddenExams.filter((k) => k !== examKey),
+      }))
+    },
+    [updatePrefs]
+  )
 
   // Отфильтровать список предметов (обычно visibleExamList()) до тех,
   // которые пользователь не скрыл.
-  function filterShownExams(list) {
-    return list.filter((e) => !prefs.hiddenExams.includes(e.key))
-  }
+  const filterShownExams = useCallback((list) => list.filter((e) => !prefs.hiddenExams.includes(e.key)), [prefs.hiddenExams])
 
-  return (
-    <PersonalizationContext.Provider
-      value={{
-        hiddenExams: prefs.hiddenExams,
-        setExamHidden,
-        filterShownExams,
-      }}
-    >
-      {children}
-    </PersonalizationContext.Provider>
+  // ProSidebar/ProDashboard/Footer читают этот контекст — value ниже в
+  // useMemo по той же причине, что и в AuthContext.jsx: без него любой
+  // рендер провайдера (не только реальная смена prefs) рассылал бы новый
+  // объект всем потребителям разом.
+  const value = useMemo(
+    () => ({
+      hiddenExams: prefs.hiddenExams,
+      setExamHidden,
+      filterShownExams,
+    }),
+    [prefs.hiddenExams, setExamHidden, filterShownExams]
   )
+
+  return <PersonalizationContext.Provider value={value}>{children}</PersonalizationContext.Provider>
 }
 
 export function usePersonalization() {

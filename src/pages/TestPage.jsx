@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { exams } from '../data/examData.js'
 import { getTest } from '../services/testsService.js'
@@ -464,6 +464,28 @@ export default function TestPage({ examKey }) {
     }
   }, [user, test, draftPrompt])
 
+  // Эти три — выше ранних return'ов ниже специально: это хуки
+  // (useMemo/useCallback), а их нельзя вызывать условно — иначе React
+  // падает с "Rendered more hooks than during the previous render" на
+  // первом рендере, где loading/!test ещё не пройдены. questions ===
+  // test.questions — стабильная ссылка, пока сам test не меняется, так
+  // что groups реально пересчитывается один раз на загрузку пробника, а
+  // sidebarStatus/goTo — только когда действительно меняются ответы или
+  // число вопросов, а не каждую секунду от тика таймера (см. ниже и
+  // TestQuestionNav, React.memo-компонент, которому они идут пропами —
+  // аудит производительности).
+  const groups = useMemo(() => groupByCategory(questions), [questions])
+  const sidebarStatus = useCallback(
+    (q) => {
+      if (checkedIds.has(q.id)) return verdictFor(q)
+      const v = answers[q.id] ?? defaultValue(q.type)
+      return hasAnyAnswer(q, v) ? 'draft' : 'unanswered'
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [checkedIds, answers, selfGrades]
+  )
+  const goTo = useCallback((i) => setIndex(Math.min(Math.max(i, 0), questions.length - 1)), [questions.length])
+
   if (loading || !draftChecked) {
     return <PageLoader />
   }
@@ -523,7 +545,6 @@ export default function TestPage({ examKey }) {
   const value = answers[question.id] ?? defaultValue(question.type)
   const isChecked = checkedIds.has(question.id)
   const verdict = isChecked ? getVerdictWithSelfGrade(question, value, selfGrades[question.id]) : null
-  const groups = groupByCategory(questions)
   // The shared reading/listening passage this question belongs to, if
   // any — looked up by id, never embedded in the question itself, so it
   // stays on screen across every question that points at it. Two
@@ -537,16 +558,6 @@ export default function TestPage({ examKey }) {
   function verdictFor(q) {
     if (!checkedIds.has(q.id)) return 'unanswered'
     return getVerdictWithSelfGrade(q, answers[q.id] ?? defaultValue(q.type), selfGrades[q.id])
-  }
-
-  // For the sidebar dots specifically — same as verdictFor, but a
-  // question with something typed in that just hasn't been submitted
-  // via "Ответить" yet shows as 'draft' instead of blending in with
-  // truly untouched ones.
-  function sidebarStatus(q) {
-    if (checkedIds.has(q.id)) return verdictFor(q)
-    const v = answers[q.id] ?? defaultValue(q.type)
-    return hasAnyAnswer(q, v) ? 'draft' : 'unanswered'
   }
 
   // Whole-question self-grading (free_text, essay_choice, an
@@ -615,10 +626,6 @@ export default function TestPage({ examKey }) {
       return true
     }
     return false
-  }
-
-  function goTo(i) {
-    setIndex(Math.min(Math.max(i, 0), questions.length - 1))
   }
 
   async function handleFinish() {
@@ -1039,22 +1046,7 @@ export default function TestPage({ examKey }) {
               </div>
               {paused && <div className="test-paused-note">Таймер на паузе</div>}
 
-              {groups.map((group) => (
-                <div className="question-group" key={group.name}>
-                  <div className="question-group-label">{group.name}</div>
-                  <div className="question-grid">
-                    {group.items.map(({ question: q, index: i }) => {
-                      const classes = ['q-num', sidebarStatus(q)]
-                      if (i === index) classes.push('current')
-                      return (
-                        <button key={q.id} className={classes.join(' ')} onClick={() => goTo(i)}>
-                          {i + 1}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
+              <TestQuestionNav groups={groups} currentIndex={index} sidebarStatus={sidebarStatus} onGoTo={goTo} />
 
               <button className="btn btn-outline test-finish-btn" onClick={handleFinish}>
                 Завершить тест
@@ -1221,3 +1213,35 @@ function NextStepRow({ step }) {
     </>
   )
 }
+
+// Список кружков с номерами вопросов в сайдбаре — вынесен из TestPage и
+// обёрнут в memo, потому что это самая тяжёлая часть разметки на
+// странице теста (до ~90 кнопок на длинном пробнике). Таймер тикает раз
+// в секунду через стейт в TestPage, и без этой границы весь список
+// перерисовывался бы вместе с остальной страницей на каждый тик, хотя
+// реально меняется только при ответе на вопрос или переключении между
+// ними — см. аудит производительности. groups/sidebarStatus/onGoTo
+// должны быть стабильными ссылками (useMemo/useCallback в TestPage),
+// иначе memo ничего не даёт.
+const TestQuestionNav = memo(function TestQuestionNav({ groups, currentIndex, sidebarStatus, onGoTo }) {
+  return (
+    <>
+      {groups.map((group) => (
+        <div className="question-group" key={group.name}>
+          <div className="question-group-label">{group.name}</div>
+          <div className="question-grid">
+            {group.items.map(({ question: q, index: i }) => {
+              const classes = ['q-num', sidebarStatus(q)]
+              if (i === currentIndex) classes.push('current')
+              return (
+                <button key={q.id} className={classes.join(' ')} onClick={() => onGoTo(i)}>
+                  {i + 1}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </>
+  )
+})

@@ -35,6 +35,11 @@
   border: 1px solid $color-border;
   border-radius: $radius-lg;
   padding: 16px 18px;
+  // Личный словарь растёт со временем и ничем не ограничен (в отличие
+  // от списка пробников) — та же защита на будущее, что и у .test-card:
+  // не тратить рендер на карточки слов, которых сейчас не видно.
+  content-visibility: auto;
+  contain-intrinsic-size: auto 90px;
 }
 
 .dict-word-term {

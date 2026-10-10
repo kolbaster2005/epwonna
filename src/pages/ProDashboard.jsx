@@ -188,6 +188,20 @@ export default function ProDashboard() {
     [testsByExam, attempts, examListKey]
   )
 
+  // Раньше вызывались прямо в теле рендера — пересчитывались на каждый
+  // рендер страницы (в т.ч. из-за чужих изменений, например открытия
+  // пикера аватарки), хотя реально зависят только от черновика/последней
+  // попытки. На пробнике с большим числом вопросов это заметная лишняя
+  // работа на ровном месте.
+  const draftBreakdown = useMemo(
+    () => draftCategoryBreakdown(draftTest, draft?.answersSnapshot?.answers),
+    [draftTest, draft]
+  )
+  const completedBreakdown = useMemo(
+    () => completedCategoryBreakdown(lastAttemptTest, lastAttempt?.answersSnapshot),
+    [lastAttemptTest, lastAttempt]
+  )
+
   if (loading) return <PageLoader />
 
   const displayName = user?.email?.split('@')[0] || ''
@@ -213,12 +227,9 @@ export default function ProDashboard() {
   const daysLeft = countdown?.examDate ? daysUntil(countdown.examDate) : null
   const showCountdown = daysLeft !== null && daysLeft >= 0
 
-  const draftBreakdown = draftCategoryBreakdown(draftTest, draft?.answersSnapshot?.answers)
   const draftAnswered = draftBreakdown.reduce((sum, c) => sum + c.answered, 0)
   const draftTotalQuestions = draftBreakdown.reduce((sum, c) => sum + c.total, 0)
   const draftPercent = draftTotalQuestions > 0 ? Math.round((draftAnswered / draftTotalQuestions) * 100) : 0
-
-  const completedBreakdown = completedCategoryBreakdown(lastAttemptTest, lastAttempt?.answersSnapshot)
 
   return (
     <div className="pro-dash">

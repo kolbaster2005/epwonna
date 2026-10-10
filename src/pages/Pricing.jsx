@@ -35,10 +35,6 @@ export default function Pricing() {
   const [activating, setActivating] = useState(false)
   const [trialResult, setTrialResult] = useState(null) // Date|null — модалка-поздравление открыта, если не null
 
-  function handleProCta() {
-    alertMessage('PRO-подписка пока в разработке — приём оплаты ещё не подключён. Скоро здесь можно будет оформить подписку.')
-  }
-
   async function handleTryFree() {
     if (!user) {
       setAuthOpen(true)
@@ -98,13 +94,14 @@ export default function Pricing() {
                   {activating ? 'Активируем…' : 'Попробовать бесплатно'}
                 </button>
               )}
-              <button
-                type="button"
+              <a
+                href="https://t.me/wuw0nna"
+                target="_blank"
+                rel="noreferrer"
                 className={'btn' + (trialUsed ? ' btn-primary' : ' btn-outline')}
-                onClick={handleProCta}
               >
                 Купить
-              </button>
+              </a>
             </div>
           )}
         </div>
@@ -132,7 +129,8 @@ export default function Pricing() {
       </div>
 
       <p className="pricing-note">
-        PRO-подписка пока в разработке — реальной оплаты ещё нет, это предварительное сравнение возможностей.
+        Автоматическая оплата пока не подключена — кнопка «Купить» ведёт в Telegram, там же оформляем подписку
+        вручную.
       </p>
 
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}

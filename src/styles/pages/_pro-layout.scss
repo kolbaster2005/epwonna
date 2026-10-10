@@ -10,6 +10,9 @@
 
 $pro-canvas-bg: $color-bg;
 $pro-sidebar-width: 76px;
+// Ширина .pro-sidebar-panel при наведении (на ноуте) — см. комментарий
+// у .pro-sidebar-panel ниже.
+$pro-sidebar-expanded-width: 240px;
 // Тень белого шелла — чуть заметнее обычной $shadow-resting, карточка
 // должна читаться на сером холсте, а не сливаться с ним.
 $pro-shell-shadow: 0 2px 8px rgba(18, 32, 61, 0.05), 0 20px 40px -22px rgba(18, 32, 61, 0.28);
@@ -172,136 +175,178 @@ $pro-shell-sticky-top: $space-5;
     box-shadow: $shadow-modal;
   }
 
-  // От $bp-lg — узкая полоска только из иконок прямо на сером холсте
-  // (как на референсе), без своей карточки/фона — просто иконки. При
-  // наведении полоска остаётся на том же сером холсте (фон не меняется),
-  // просто становится шире и показывает подписи у всех пунктов — остаётся
-  // position: sticky, поэтому соседний .pro-shell сдвигается вправо вместе
-  // с ней, а не перекрывается ею.
+  // От $bp-lg — узкая полоска только из иконок прямо на сером холсте (как
+  // на референсе). Раньше раскрытие по наведению анимировало сам width
+  // сайдбара (и padding/gap/max-width у кучи пунктов внутри) — это
+  // layout-свойства, браузер честно пересчитывал раскладку на каждом
+  // кадре анимации. Трейсом в DevTools на 6 наведениях подряд это давало
+  // ~440мс Layout + ~4.8с RasterTask — ощутимо дороже, чем вообще всё
+  // остальное на странице. Теперь ширина самого .pro-sidebar — ВСЕГДА
+  // $pro-sidebar-width, не анимируется и никогда не двигает .pro-shell
+  // рядом. Раскрытие — это .pro-sidebar-panel ниже: отдельный слой
+  // поверх контента (position: absolute), сам всегда разложен на полную
+  // ширину, а то, что видно снаружи, регулирует clip-path — чисто
+  // композитное свойство, без влияния на layout.
   @include mq(lg) {
     position: sticky;
     top: 0;
     z-index: 5;
     width: $pro-sidebar-width;
     height: 100vh;
-    align-items: center;
-    padding: $space-5 $space-2;
+    padding: 0;
     background: transparent;
     color: $color-ink-soft;
     transform: none;
-    transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), padding 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-    // Сам сайдбар — overflow-y: auto (выше) на фиксированной высоте
-    // 100vh: если список иконок предметов впритык по высоте, его
-    // собственный скроллбар то появляется, то пропадает — а в узкой
-    // 76px-колонке это заметно сдвигает/сжимает иконки при каждом
-    // появлении. Держим место под скроллбар зарезервированным всегда,
-    // чтобы это не двигало контент независимо от того, нужен он в
-    // моменте или нет (тот же приём, что в _reset.scss для html).
-    scrollbar-gutter: stable;
+    transition: none;
+    // В покое — hidden, как и раньше: иначе зелёная box-shadow-обводка
+    // активного пункта (.pro-sidebar-link.active) начинает "протекать"
+    // тонкой полоской за левый край экрана, ничем больше не обрезанная.
+    // На visible переключаем только на сам момент наведения — ровно
+    // тогда панели ниже и нужно вылезти за 76px, overflow не анимируется
+    // и не участвует в transition, так что переключение мгновенное.
+    overflow: hidden;
+
+    &:hover {
+      overflow: visible;
+    }
 
     &.drawer-open {
       box-shadow: none;
     }
 
-    // display: none/block не анимируется — вместо этого подпись всегда в
-    // потоке, но схлопнута до нулевой ширины и прозрачна, пока меню
-    // свёрнуто, и плавно раскрывается/проявляется при наведении вместе с
-    // расширением самого меню.
+    .pro-sidebar-close {
+      display: none;
+    }
+  }
+}
+
+// Сама раскрывающаяся часть — см. комментарий у .pro-sidebar выше.
+// Разложена на полную (раскрытую) ширину всегда, поэтому у неё самой
+// внутри ничего не реflow-ится между состояниями; "свёрнутый" вид — это
+// просто clip-path, прячущий всё правее $pro-sidebar-width. Подписи
+// прячутся через opacity (тоже композитное), а не схлопыванием width.
+.pro-sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  @include mq(lg) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: $pro-sidebar-expanded-width;
+    padding: $space-5 $space-4;
+    background: $pro-canvas-bg;
+    border-radius: 0 $radius-lg $radius-lg 0;
+    align-items: stretch;
+    overflow-y: auto;
+    overflow-x: hidden;
+    // Тот же приём, что раньше был на самом .pro-sidebar — без этого
+    // свой скроллбар панели (если пунктов много) то появляется, то
+    // пропадает и сдвигает контент внутри неё.
+    scrollbar-gutter: stable;
+    clip-path: inset(0 #{$pro-sidebar-expanded-width - $pro-sidebar-width} 0 0);
+    transition: clip-path 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s ease;
+
     .logo-text,
     .pro-sidebar-label {
-      display: inline-block;
-      max-width: 0;
       opacity: 0;
-      overflow: hidden;
       white-space: nowrap;
-      transition: max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.14s ease;
+      transition: opacity 0.14s ease;
     }
 
-    .pro-sidebar-logo {
-      // Тот же эффект, что у .pro-sidebar-link чуть ниже: .logo
-      // (_header.scss) задаёт gap между .logo-mark и .logo-text, который
-      // резервирует место, даже когда .logo-text схлопнут до нулевой
-      // ширины — из-за этого сама иконка-лого стояла не по центру.
-      gap: 0;
-      padding: 0;
-      transition: padding 0.22s cubic-bezier(0.4, 0, 0.2, 1), gap 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    .pro-sidebar-top {
+      justify-content: flex-start;
     }
 
     .pro-sidebar-link {
-      justify-content: center;
-      // gap между иконкой и подписью (см. базовое правило ниже) резервирует
-      // место, даже когда подпись схлопнута до max-width: 0 — flex gap не
-      // зависит от видимой ширины элемента. Из-за этого иконка стояла не
-      // по центру кнопки, а смещённой на половину gap влево — для мелких
-      // круглых значков почти незаметно, а для залитого .active-пункта
-      // («Главная») хорошо видно. Пока подпись скрыта, gap не нужен.
-      gap: 0;
-      padding-inline: 0;
-      width: 44px;
+      justify-content: flex-start;
+      gap: 14px;
+      padding-inline: $space-4;
       color: $color-ink-soft;
-      // width НЕ анимируем: он переключается на auto при раскрытии, а
-      // браузер не умеет плавно анимировать значение auto — в итоге
-      // активный пункт (с заливкой .active) на полпути анимации
-      // "срывало" в сторону. Ширина пункта просто мгновенно подстраивается
-      // под контент, пока сам сайдбар вокруг него плавно расширяется —
-      // этого достаточно для плавного ощущения в целом.
-      transition: background 0.15s ease, color 0.15s ease, padding-inline 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-        gap 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: color 0.15s ease;
 
+      // На ноуте заливка — не здесь (см. ::before ниже), а то, что
+      // .pro-sidebar-link.active задаёт background/box-shadow сама на
+      // себе (ниже по файлу — нужно для мобильной шторки), иначе и
+      // продолжало бы применяться поверх плашки.
       &:hover {
-        background: $color-white;
+        background: none;
         color: $color-ink;
       }
 
       &.active {
-        background: $color-primary;
+        background: none;
+        box-shadow: none;
         color: #fff;
       }
+
+      // Подложка под иконкой/подписью — отдельным слоем, а не прямо
+      // background на самой ссылке: в свёрнутом виде видна только левая
+      // часть пункта (clip-path у .pro-sidebar-panel), и если заливка —
+      // это background на ссылке шириной во всю (240px) строку, в окне
+      // в 76px торчит плоским прямоугольником, который явно шире иконки
+      // (см. скриншот пользователя). ::before — отдельный абсолютно
+      // спозиционированный элемент, сам width которого можно спокойно
+      // анимировать: он не влияет на раскладку соседей (вне потока), в
+      // отличие от анимации width самого сайдбара, которую чинили выше.
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        // Иконка сидит не впритык к краю ссылки, а дальше внутрь (на
+        // ширину padding-inline), так что просто left: $space-4 клало
+        // плашку мимо центра иконки — измерил DevTools: центр иконки на
+        // ~26-27px от левого края ссылки, а не на 16+18=34px, как было
+        // здесь раньше. 10px/32px — плашка по центру именно иконки
+        // (22px — иконки предметов, самые крупные из всех).
+        left: 10px;
+        width: 32px; // снаружи видно только это — компактная плашка под иконку
+        border-radius: $radius-md;
+        background: transparent;
+        z-index: -1;
+        transition: background 0.15s ease, width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      &:hover::before {
+        background: $color-white;
+      }
+
+      &.active::before {
+        background: $color-primary;
+      }
+    }
+
+    // Раскрыто (наведение на весь сайдбар) — плашка дорастает на всю
+    // строку, как и было задумано изначально для развёрнутого вида.
+    // & здесь — .pro-sidebar-panel (это правило — сосед .pro-sidebar-link
+    // выше, не вложено в него), поэтому дописываем потомка явно.
+    .pro-sidebar:hover & .pro-sidebar-link::before {
+      left: 0;
+      width: 100%;
+    }
+
+    .pro-sidebar-nav {
+      align-items: stretch;
+      width: 100%;
     }
 
     .pro-sidebar-divider {
-      transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 100%;
     }
+  }
+}
 
-    .pro-sidebar-close {
-      display: none;
-    }
+.pro-sidebar:hover .pro-sidebar-panel {
+  @include mq(lg) {
+    clip-path: inset(0 0 0 0);
+    box-shadow: $pro-shell-shadow;
 
-    &:hover {
-      width: 240px;
-      align-items: stretch;
-      padding-inline: $space-4;
-
-      .logo-text,
-      .pro-sidebar-label {
-        max-width: 160px;
-        opacity: 1;
-        transition: max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease 0.05s;
-      }
-
-      .pro-sidebar-top {
-        justify-content: flex-start;
-      }
-
-      .pro-sidebar-logo {
-        gap: $space-3;
-        padding: 0 $space-2;
-      }
-
-      .pro-sidebar-link {
-        justify-content: flex-start;
-        gap: 14px;
-        padding-inline: $space-4;
-        width: auto;
-      }
-
-      .pro-sidebar-nav {
-        align-items: stretch;
-      }
-
-      .pro-sidebar-divider {
-        width: 100%;
-      }
+    .logo-text,
+    .pro-sidebar-label {
+      opacity: 1;
+      transition: opacity 0.2s ease 0.05s;
     }
   }
 }
@@ -317,6 +362,7 @@ $pro-shell-sticky-top: $space-5;
   }
 }
 
+// justify-content на ноуте — в .pro-sidebar-panel выше.
 .pro-sidebar-top {
   display: flex;
   align-items: center;
@@ -324,10 +370,6 @@ $pro-shell-sticky-top: $space-5;
   gap: $space-3;
   min-height: 44px;
   margin-bottom: $space-6;
-
-  @include mq(lg) {
-    justify-content: center;
-  }
 }
 
 .pro-sidebar-logo {
@@ -348,25 +390,23 @@ $pro-shell-sticky-top: $space-5;
   }
 }
 
+// align-items/width на ноуте задаёт .pro-sidebar-panel .pro-sidebar-nav
+// в блоке .pro-sidebar-panel выше — панель теперь всегда разложена на
+// полную ширину, тут отдельный mq(lg)-вариант не нужен.
 .pro-sidebar-nav {
   display: flex;
   flex-direction: column;
   gap: 4px;
-
-  @include mq(lg) {
-    align-items: center;
-    width: 100%;
-  }
 }
 
 // Тонкая линия между группами пунктов — на узких экранах их разделяют
 // подписи самих групп (.pro-sidebar-heading), поэтому там не нужна.
+// Ширина на ноуте (100%) — в .pro-sidebar-panel выше.
 .pro-sidebar-divider {
   display: none;
 
   @include mq(lg) {
     display: block;
-    width: 28px;
     height: 1px;
     margin: $space-3 0;
     background: $color-border;
@@ -421,6 +461,7 @@ $pro-shell-sticky-top: $space-5;
 }
 
 .pro-sidebar-link {
+  position: relative; // containing block for the ::before badge on desktop
   display: flex;
   align-items: center;
   gap: 14px;

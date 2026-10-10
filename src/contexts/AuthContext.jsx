@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { logError } from '../lib/logger.js'
 
@@ -134,7 +134,12 @@ export function AuthProvider({ children }) {
     }
   }, [user])
 
-  async function signUp(email, password) {
+  // Обёрнуты в useCallback, чтобы value у провайдера ниже оставался
+  // стабильным между рендерами (см. комментарий над ним) — без этого
+  // каждая такая функция была бы новой на каждый рендер AuthProvider и
+  // сама по себе ломала бы мемоизацию value, даже если остальные поля
+  // (user/profile/...) не менялись.
+  const signUp = useCallback(async (email, password) => {
     try {
       const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) throw error
@@ -142,9 +147,9 @@ export function AuthProvider({ children }) {
     } catch (err) {
       throw toAuthError(err)
     }
-  }
+  }, [])
 
-  async function signIn(email, password) {
+  const signIn = useCallback(async (email, password) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
@@ -152,22 +157,22 @@ export function AuthProvider({ children }) {
     } catch (err) {
       throw toAuthError(err)
     }
-  }
+  }, [])
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
     } catch (err) {
       throw toAuthError(err)
     }
-  }
+  }, [])
 
   // Отправляет письмо со ссылкой сброса пароля. redirectTo обязательно
   // должен быть в списке разрешённых Redirect URLs в настройках
   // Supabase (Authentication → URL Configuration) — иначе Supabase
   // сам молча отклонит переход по ссылке.
-  async function requestPasswordReset(email) {
+  const requestPasswordReset = useCallback(async (email) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}reset-password`,
@@ -176,26 +181,26 @@ export function AuthProvider({ children }) {
     } catch (err) {
       throw toAuthError(err)
     }
-  }
+  }, [])
 
   // Вызывается со страницы, на которую ведёт ссылка из письма (см.
   // ResetPasswordPage.jsx) — к этому моменту у Supabase уже есть
   // временная recovery-сессия (устанавливается автоматически по
   // токену из URL), так что новый пароль просто обновляет её.
-  async function updatePassword(newPassword) {
+  const updatePassword = useCallback(async (newPassword) => {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (error) throw error
     } catch (err) {
       throw toAuthError(err)
     }
-  }
+  }, [])
 
   // avatarKey is one of avatarOptions' ids (src/data/avatars.js) or null
   // for "no avatar". Updates the DB and local state together so the
   // circle in the header reflects the pick immediately, without waiting
   // for a re-fetch.
-  async function updateAvatar(avatarKey) {
+  const updateAvatar = useCallback(async (avatarKey) => {
     if (!user) return
     try {
       const { error } = await supabase.from('profiles').update({ avatar_key: avatarKey }).eq('id', user.id)
@@ -204,7 +209,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       throw toError(err)
     }
-  }
+  }, [user])
 
   // Разовая пробная PRO-подписка на 24 часа — см. src/pages/Pricing.jsx
   // ("Попробовать бесплатно"). Что реально запишется в trial_pro_until
@@ -214,7 +219,7 @@ export function AuthProvider({ children }) {
   // .is('trial_pro_until', null) — чтобы запрос ничего не обновил
   // (0 строк), если пробный период уже активирован раньше; в этом
   // случае бросаем понятную ошибку вместо тихого "успеха" без изменений.
-  async function activateProTrial() {
+  const activateProTrial = useCallback(async () => {
     if (!user) return
     try {
       const { data, error } = await supabase
@@ -238,45 +243,53 @@ export function AuthProvider({ children }) {
     } catch (err) {
       throw toError(err)
     }
-  }
+  }, [user])
 
-  const isAdmin = profile?.role === 'admin'
-  const trialProUntil = profile?.trial_pro_until ? new Date(profile.trial_pro_until) : null
-  // Уже когда-либо активировали пробный период — независимо от того,
-  // ещё идёт он или уже закончился; как только trial_pro_until не null,
-  // кнопка "Попробовать бесплатно" больше не нужна (см. Pricing.jsx).
-  const trialUsed = !!trialProUntil
-  const trialActive = !!trialProUntil && trialProUntil > new Date()
-  // Выдан вручную админом (/admin/users) — независимо от пробника выше.
-  const adminProUntil = profile?.admin_pro_until ? new Date(profile.admin_pro_until) : null
-  const adminProActive = !!adminProUntil && adminProUntil > new Date()
-  const isPro = (!!user?.email && PRO_EMAILS.includes(user.email)) || trialActive || adminProActive
+  // AuthProvider оборачивает всё приложение — useAuth() вызывается почти
+  // на каждой странице. Раньше value ниже был новым объектом литералом
+  // на каждый рендер провайдера, из-за чего при любом его рендере (даже
+  // вызванном чем-то выше по дереву, никак не связанным с auth) ВСЕ
+  // потребители контекста по всему приложению ре-рендерились. isAdmin/
+  // isPro/trialActive/... — тоже внутри useMemo, а не снаружи: иначе
+  // new Date(...) на каждой строке пересоздавался бы на каждый рендер и
+  // сам по себе каждый раз "ломал" бы память по зависимостям ниже.
+  const value = useMemo(() => {
+    const isAdmin = profile?.role === 'admin'
+    const trialProUntil = profile?.trial_pro_until ? new Date(profile.trial_pro_until) : null
+    // Уже когда-либо активировали пробный период — независимо от того,
+    // ещё идёт он или уже закончился; как только trial_pro_until не
+    // null, кнопка "Попробовать бесплатно" больше не нужна (см.
+    // Pricing.jsx).
+    const trialUsed = !!trialProUntil
+    const trialActive = !!trialProUntil && trialProUntil > new Date()
+    // Выдан вручную админом (/admin/users) — независимо от пробника выше.
+    const adminProUntil = profile?.admin_pro_until ? new Date(profile.admin_pro_until) : null
+    const adminProActive = !!adminProUntil && adminProUntil > new Date()
+    const isPro = (!!user?.email && PRO_EMAILS.includes(user.email)) || trialActive || adminProActive
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        profile,
-        profileLoading,
-        isAdmin,
-        isPro,
-        trialUsed,
-        trialActive,
-        trialProUntil,
-        adminProActive,
-        activateProTrial,
-        signUp,
-        signIn,
-        signOut,
-        updateAvatar,
-        requestPasswordReset,
-        updatePassword,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
+    return {
+      user,
+      loading,
+      profile,
+      profileLoading,
+      isAdmin,
+      isPro,
+      trialUsed,
+      trialActive,
+      trialProUntil,
+      adminProActive,
+      activateProTrial,
+      signUp,
+      signIn,
+      signOut,
+      updateAvatar,
+      requestPasswordReset,
+      updatePassword,
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading, profile, profileLoading, activateProTrial, signUp, signIn, signOut, updateAvatar, requestPasswordReset, updatePassword])
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

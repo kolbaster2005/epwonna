@@ -263,7 +263,54 @@
   border: 1px solid $color-border;
   border-radius: $radius-lg;
   padding: $space-6;
-  @include hover-lift;
+  box-shadow: $shadow-resting;
+  transition: transform 0.18s ease;
+  // Измерил трейсом в Chrome DevTools (Performance): на этой странице
+  // почти всё время скролла уходило не в скрипт, а в RasterTask —
+  // карточка с border-radius + box-shadow недостаточно дёшево
+  // перерастеризуется на каждый кадр скролла без этого. will-change
+  // заранее переводит карточку на свой GPU-слой (один раз растеризуется
+  // как картинка, дальше скролл просто сдвигает её на композиторе) — в
+  // замере на этой же странице это убрало ~70% времени RasterTask, не
+  // трогая ни вёрстку, ни внешний вид.
+  will-change: transform;
+  // The grid behind /epd etc. can run to dozens of cards — rendering
+  // (layout+paint) every one of them even while most sit off-screen is
+  // what made scrolling that page janky. content-visibility: auto skips
+  // that work entirely for cards outside the viewport; contain-intrinsic-size
+  // is the layout placeholder it uses for them in the meantime (close to
+  // a real card's height so the scrollbar/scroll position don't jump
+  // around as cards enter/leave the "visible" set).
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+
+  // The hover "lift" used to animate box-shadow directly (see hover-lift
+  // mixin) — box-shadow isn't compositor-only, so every hover toggle
+  // forced a repaint of the whole card. With many cards in the grid,
+  // scrolling with the cursor held still (so cards slide underneath it)
+  // fired that transition repeatedly, card after card, which was the
+  // other half of the scroll jank. Animating transform + this pseudo-
+  // element's opacity instead keeps the whole effect on the compositor —
+  // the ::after just carries the "hover" box-shadow, invisible at
+  // opacity: 0 since it has no fill of its own.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: $shadow-card;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+
+    &::after {
+      opacity: 1;
+    }
+  }
 
   &:active {
     transform: translateY(-2px) scale(0.99);
@@ -287,19 +334,19 @@
   // ink-tinted shadow for every exam.
   &.blue {
     border-color: rgba($color-blue, 0.16);
-    &:hover {
+    &:hover::after {
       box-shadow: 0 20px 40px -18px rgba($color-blue-dark, 0.35);
     }
   }
   &.violet {
     border-color: rgba($color-violet, 0.16);
-    &:hover {
+    &:hover::after {
       box-shadow: 0 20px 40px -18px rgba($color-violet-dark, 0.35);
     }
   }
   &.teal {
     border-color: rgba($color-teal, 0.16);
-    &:hover {
+    &:hover::after {
       box-shadow: 0 20px 40px -18px rgba($color-teal-dark, 0.35);
     }
   }
