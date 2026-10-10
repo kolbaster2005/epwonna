@@ -14,12 +14,12 @@ function formatShortDate(iso) {
 
 // Список сохранённых essay_choice-сочинений (сам текст, как был
 // написан). Кнопка «Показать ИИ отчёт» под каждым сочинением тоже
-// здесь — временно видна только админу (см. isAdmin ниже), пока
-// фича обкатывается; когда будет готова для всех, достаточно убрать
-// это условие. Сама проверка (запуск) по-прежнему только в
-// TestPage.jsx — здесь только читаем уже готовый результат.
+// здесь — видна всем, но сам отчёт доступен только PRO (см.
+// handleShowAiReport ниже); не-PRO при клике видит алерт вместо
+// отчёта. Сама проверка (запуск) по-прежнему только в TestPage.jsx —
+// здесь только читаем уже готовый результат.
 export default function MyEssays() {
-  const { user, isAdmin, isPro } = useAuth()
+  const { user, isPro } = useAuth()
   const { confirm, alertMessage } = useDialog()
   const [essays, setEssays] = useState([])
   const [loading, setLoading] = useState(true)
@@ -45,16 +45,14 @@ export default function MyEssays() {
       if (cancelled) return
       setEssays(list)
       setLoading(false)
-      if (isAdmin) {
-        getLatestEssayReviewsByEssays(list).then((map) => {
-          if (!cancelled) setReviews(map)
-        })
-      }
+      getLatestEssayReviewsByEssays(list).then((map) => {
+        if (!cancelled) setReviews(map)
+      })
     })
     return () => {
       cancelled = true
     }
-  }, [user, isAdmin])
+  }, [user])
 
   // Вкладки — все предметы сразу (а не только те, где уже есть
   // сочинения) — так они не прыгают местами и не пропадают при
@@ -152,22 +150,20 @@ export default function MyEssays() {
                   {isOpen && (
                     <div className="essay-item-body">
                       {e.text}
-                      {isAdmin && (
-                        <div className="essay-item-ai-report">
-                          <button type="button" className="btn btn-outline btn-sm" onClick={() => handleShowAiReport(e)}>
-                            {openReviewId === e.id ? 'Скрыть ИИ отчёт' : 'Показать ИИ отчёт'}
-                          </button>
-                          {openReviewId === e.id && isPro && (
-                            <div className="essay-item-ai-report-panel">
-                              {reviews.has(`${e.questionId}:${e.testId}`) ? (
-                                <EssayAiReview review={reviews.get(`${e.questionId}:${e.testId}`)} showButton={false} />
-                              ) : (
-                                <p className="admin-note">Для этого сочинения ещё нет сохранённой проверки ИИ.</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      <div className="essay-item-ai-report">
+                        <button type="button" className="btn btn-outline btn-sm" onClick={() => handleShowAiReport(e)}>
+                          {openReviewId === e.id ? 'Скрыть ИИ отчёт' : 'Показать ИИ отчёт'}
+                        </button>
+                        {openReviewId === e.id && isPro && (
+                          <div className="essay-item-ai-report-panel">
+                            {reviews.has(`${e.questionId}:${e.testId}`) ? (
+                              <EssayAiReview review={reviews.get(`${e.questionId}:${e.testId}`)} showButton={false} />
+                            ) : (
+                              <p className="admin-note">Для этого сочинения ещё нет сохранённой проверки ИИ.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </li>

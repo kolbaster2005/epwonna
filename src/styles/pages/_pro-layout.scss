@@ -478,8 +478,26 @@ $pro-shell-sticky-top: $space-5;
   padding: 11px $space-4;
   margin-top: auto;
   flex-shrink: 0;
+}
+
+// Две копии одной и той же кнопки (см. authButton в ProSidebar.jsx) —
+// .pro-sidebar-authbtn-lg сидит в общем потоке пунктов меню сразу под
+// «Главная» и видна только на ноуте (узкая иконка-полоска, от $bp-lg);
+// .pro-sidebar-authbtn-mobile — старое место внизу шторки, видна только
+// на мобильном/узком экране. margin-top: auto выше относится к ней: она
+// остаётся прямым ребёнком .pro-sidebar (flex-column, height: 100vh) и
+// поэтому по-прежнему прижимается к самому низу меню.
+.pro-sidebar-authbtn-lg {
+  display: none;
+  margin-top: 0;
 
   @include mq(lg) {
-    margin-top: $space-4;
+    display: flex;
+  }
+}
+
+.pro-sidebar-authbtn-mobile {
+  @include mq(lg) {
+    display: none;
   }
 }

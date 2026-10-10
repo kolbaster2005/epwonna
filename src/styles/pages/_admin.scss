@@ -207,6 +207,12 @@
     color: $color-amber-dark;
     border-color: transparent;
   }
+
+  &.pro {
+    background: $color-violet;
+    color: #fff;
+    border-color: transparent;
+  }
 }
 
 .admin-table-title .admin-pill {

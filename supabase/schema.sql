@@ -40,6 +40,13 @@ alter table public.profiles add column if not exists avatar_key text;
 -- см. его комментарий.
 alter table public.profiles add column if not exists trial_pro_until timestamptz;
 
+-- PRO, выданный вручную админом из /admin/users (кнопка "Выдать PRO") —
+-- независимо от trial_pro_until выше (разовый самостоятельный пробник)
+-- и от PRO_EMAILS (аккаунт разработчика). null — не выдан; дата —
+-- выдан до этого момента (при выдаче через админку ставится далёкая
+-- дата, см. INDEFINITE_PRO_UNTIL в src/services/profilesService.js).
+alter table public.profiles add column if not exists admin_pro_until timestamptz;
+
 alter table public.profiles enable row level security;
 
 drop policy if exists "profiles: read own" on public.profiles;
@@ -116,6 +123,33 @@ create trigger profiles_enforce_trial_pro
   before update on public.profiles
   for each row execute procedure public.enforce_trial_pro_activation();
 
+-- admin_pro_until — PRO, выданный вручную из /admin/users (в отличие
+-- от trial_pro_until выше, это НЕ разовое самостоятельное действие
+-- пользователя, а ручное решение админа). "profiles: update own"
+-- позволяет обновить свою же строку целиком, так что обычный
+-- пользователь мог бы прислать себе admin_pro_until с любой датой —
+-- этот триггер замораживает поле, если его меняет не админ (ссылка на
+-- is_admin() ниже по файлу работает, т.к. все функции в этом скрипте
+-- резолвятся при вызове, а не при создании триггера).
+create or replace function public.prevent_self_admin_pro_grant()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if current_user <> 'postgres' and not public.is_admin() and new.admin_pro_until is distinct from old.admin_pro_until then
+    new.admin_pro_until := old.admin_pro_until;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_prevent_self_admin_pro on public.profiles;
+create trigger profiles_prevent_self_admin_pro
+  before update on public.profiles
+  for each row execute procedure public.prevent_self_admin_pro_grant();
+
 -- Auto-create a profile row whenever someone signs up through
 -- Supabase Auth, so `profiles` never gets out of sync with `auth.users`.
 create or replace function public.handle_new_user()
@@ -151,6 +185,20 @@ as $$
     where id = auth.uid() and role = 'admin'
   );
 $$;
+
+-- Админу нужно видеть и обновлять чужие строки profiles для
+-- /admin/users (список пользователей + выдача/забор PRO). Колонки типа
+-- role и trial_pro_until всё равно замораживаются триггерами выше вне
+-- зависимости от того, какая политика разрешила сам update — так что
+-- эта широкая по колонкам политика не открывает самостоятельное
+-- админ-повышение/пробник через чужую строку.
+drop policy if exists "profiles: admin read all" on public.profiles;
+create policy "profiles: admin read all" on public.profiles
+  for select using (public.is_admin());
+
+drop policy if exists "profiles: admin update any" on public.profiles;
+create policy "profiles: admin update any" on public.profiles
+  for update using (public.is_admin());
 
 -- ---------------------------------------------------------------------
 -- 2. tests — one row per пробник. Column names are the snake_case

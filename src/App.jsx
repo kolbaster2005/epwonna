@@ -32,6 +32,7 @@ const TermsOfUse = lazy(() => import('./pages/TermsOfUse.jsx'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy.jsx'))
 const NotFound = lazy(() => import('./pages/NotFound.jsx'))
 const AdminHome = lazy(() => import('./pages/admin/AdminHome.jsx'))
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers.jsx'))
 const AdminReports = lazy(() => import('./pages/admin/AdminReports.jsx'))
 const AdminStats = lazy(() => import('./pages/admin/AdminStats.jsx'))
 const AdminExamTests = lazy(() => import('./pages/admin/AdminExamTests.jsx'))
@@ -109,6 +110,7 @@ export default function App() {
         supabase/schema.sql); RequireAdmin here just keeps
         non-admins from seeing the panel at all. */}
     <Route path="/admin" element={<RequireAdmin><AdminHome /></RequireAdmin>} />
+    <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
     <Route path="/admin/reports" element={<RequireAdmin><AdminReports /></RequireAdmin>} />
     <Route path="/admin/stats" element={<RequireAdmin><AdminStats /></RequireAdmin>} />
     <Route path="/admin/exam-countdown" element={<RequireAdmin><AdminExamCountdown /></RequireAdmin>} />

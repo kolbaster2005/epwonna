@@ -163,7 +163,20 @@ Deno.serve(async (req: Request) => {
     } = await userClient.auth.getUser()
     if (userErr || !user) return jsonResponse({ error: 'Не авторизован.' }, 401)
 
-    const isPro = !!user.email && PRO_EMAILS.includes(user.email)
+    // PRO не только по PRO_EMAILS — ещё разовый пробный период
+    // (trial_pro_until, см. activateProTrial в AuthContext.jsx) и
+    // ручная выдача админом (admin_pro_until, см. /admin/users) — без
+    // этого запроса сервер продолжал бы резать лимит тем, кому клиент
+    // уже показывает безлимит.
+    const { data: profileRow } = await userClient
+      .from('profiles')
+      .select('trial_pro_until, admin_pro_until')
+      .eq('id', user.id)
+      .maybeSingle()
+    const now = Date.now()
+    const trialActive = !!profileRow?.trial_pro_until && new Date(profileRow.trial_pro_until).getTime() > now
+    const adminProActive = !!profileRow?.admin_pro_until && new Date(profileRow.admin_pro_until).getTime() > now
+    const isPro = (!!user.email && PRO_EMAILS.includes(user.email)) || trialActive || adminProActive
 
     let usedCount = 0
     if (!isPro) {

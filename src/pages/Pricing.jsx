@@ -91,14 +91,21 @@ export default function Pricing() {
             <div className="pricing-card-current">
               Ваш текущий тариф{trialActive && ' (пробный)'}
             </div>
-          ) : trialUsed ? (
-            <button type="button" className="btn btn-primary" onClick={handleProCta}>
-              Скоро
-            </button>
           ) : (
-            <button type="button" className="btn btn-primary" onClick={handleTryFree} disabled={activating}>
-              {activating ? 'Активируем…' : 'Попробовать бесплатно'}
-            </button>
+            <div className="pricing-card-actions">
+              {!trialUsed && (
+                <button type="button" className="btn btn-primary" onClick={handleTryFree} disabled={activating}>
+                  {activating ? 'Активируем…' : 'Попробовать бесплатно'}
+                </button>
+              )}
+              <button
+                type="button"
+                className={'btn' + (trialUsed ? ' btn-primary' : ' btn-outline')}
+                onClick={handleProCta}
+              >
+                Купить
+              </button>
+            </div>
           )}
         </div>
       </div>

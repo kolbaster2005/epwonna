@@ -39,6 +39,25 @@ export default function ProSidebar({ drawerOpen, onDrawerClose }) {
     )
   }
 
+  // Рендерится дважды ниже — под «Главная» для узкой иконки-полоски на
+  // ноуте (от $bp-lg), и отдельно внизу меню для мобильной шторки (там
+  // не из чего собирать "под Главная" — список пунктов там длиннее и
+  // идёт с заголовками групп). className переключает, какая из двух
+  // копий видна на каком экране — см. _pro-layout.scss.
+  function authButton(className) {
+    return user ? (
+      <button type="button" className={'pro-sidebar-link pro-sidebar-logout ' + className} onClick={signOut} title="Выйти">
+        <IconLogout size={20} />
+        <span className="pro-sidebar-label">Выйти</span>
+      </button>
+    ) : (
+      <button type="button" className={'pro-sidebar-link pro-sidebar-logout ' + className} onClick={() => setAuthOpen(true)} title="Войти">
+        <IconLogin size={20} />
+        <span className="pro-sidebar-label">Войти</span>
+      </button>
+    )
+  }
+
   return (
     <aside className={'pro-sidebar' + (drawerOpen ? ' drawer-open' : '')}>
       <div className="pro-sidebar-top">
@@ -57,6 +76,7 @@ export default function ProSidebar({ drawerOpen, onDrawerClose }) {
 
       <nav className="pro-sidebar-nav">
         {item('/', 'Главная', <IconHome size={20} />, true)}
+        {authButton('pro-sidebar-authbtn-lg')}
 
         <div className="pro-sidebar-divider" />
         <span className="pro-sidebar-heading pro-sidebar-heading--with-action">
@@ -92,18 +112,10 @@ export default function ProSidebar({ drawerOpen, onDrawerClose }) {
         {isAdmin && item('/admin', 'Админка', <IconShield size={20} />)}
       </nav>
 
-      {/* Выход (или вход для гостя) — внизу меню, как на референсе. */}
-      {user ? (
-        <button type="button" className="pro-sidebar-link pro-sidebar-logout" onClick={signOut} title="Выйти">
-          <IconLogout size={20} />
-          <span className="pro-sidebar-label">Выйти</span>
-        </button>
-      ) : (
-        <button type="button" className="pro-sidebar-link pro-sidebar-logout" onClick={() => setAuthOpen(true)} title="Войти">
-          <IconLogin size={20} />
-          <span className="pro-sidebar-label">Войти</span>
-        </button>
-      )}
+      {/* Выход (или вход для гостя) — внизу меню, как на референсе.
+          Только мобильная шторка — на ноуте эта же кнопка уже показана
+          выше, сразу под «Главная» (см. pro-sidebar-authbtn-lg). */}
+      {authButton('pro-sidebar-authbtn-mobile')}
 
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
     </aside>

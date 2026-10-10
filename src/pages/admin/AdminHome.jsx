@@ -14,6 +14,9 @@ export default function AdminHome() {
       </div>
 
       <div className="admin-reports-link-row">
+        <Link className="btn btn-outline admin-reports-link" to="/admin/users">
+          Пользователи
+        </Link>
         <Link className="btn btn-outline admin-reports-link" to="/admin/reports">
           Обращения по вопросам
         </Link>

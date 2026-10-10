@@ -108,6 +108,16 @@
   }
 }
 
+.pricing-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+
+  .btn {
+    justify-content: center;
+  }
+}
+
 .pricing-card-current {
   display: inline-flex;
   align-items: center;

@@ -12,7 +12,9 @@ import { logError } from '../lib/logger.js'
 // Второй, независимый путь к isPro — разовый 24-часовой пробный период
 // (trialActive ниже, см. activateProTrial) — не про постоянных PRO, а
 // про "попробовать бесплатно" с сайта, доступен всем.
-const PRO_EMAILS = ['maksimmissuragin@gmail.com']
+// Третий путь — admin_pro_until, выданный вручную из /admin/users (см.
+// adminProActive ниже и src/services/profilesService.js).
+export const PRO_EMAILS = ['maksimmissuragin@gmail.com']
 
 const AuthContext = createContext(null)
 
@@ -245,7 +247,10 @@ export function AuthProvider({ children }) {
   // кнопка "Попробовать бесплатно" больше не нужна (см. Pricing.jsx).
   const trialUsed = !!trialProUntil
   const trialActive = !!trialProUntil && trialProUntil > new Date()
-  const isPro = (!!user?.email && PRO_EMAILS.includes(user.email)) || trialActive
+  // Выдан вручную админом (/admin/users) — независимо от пробника выше.
+  const adminProUntil = profile?.admin_pro_until ? new Date(profile.admin_pro_until) : null
+  const adminProActive = !!adminProUntil && adminProUntil > new Date()
+  const isPro = (!!user?.email && PRO_EMAILS.includes(user.email)) || trialActive || adminProActive
 
   return (
     <AuthContext.Provider
@@ -259,6 +264,7 @@ export function AuthProvider({ children }) {
         trialUsed,
         trialActive,
         trialProUntil,
+        adminProActive,
         activateProTrial,
         signUp,
         signIn,
