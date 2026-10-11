@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useDialog } from '../contexts/DialogContext.jsx'
 import { listWords, deleteWord, wordsToAnkiText, downloadTextFile } from '../services/dictionaryService.js'
 import AddWordModal from '../components/AddWordModal.jsx'
+import GuestNotice from '../components/GuestNotice.jsx'
 import { IconDownload, IconPlus, IconEdit, IconTrash, IconBook } from '../components/Icons.jsx'
 import PageLoader from '../components/PageLoader.jsx'
 
@@ -83,7 +84,7 @@ export default function Dictionary() {
       </div>
 
       {!user ? (
-        <p className="admin-note">Войдите, чтобы вести свой словарь.</p>
+        <GuestNotice message="Войдите, чтобы вести свой словарь." />
       ) : loading ? (
         <PageLoader />
       ) : words.length === 0 ? (

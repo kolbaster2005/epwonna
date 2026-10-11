@@ -2,6 +2,7 @@ import { visibleExamList } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { usePersonalization } from '../contexts/PersonalizationContext.jsx'
 import ExamIcon from '../components/ExamIcon.jsx'
+import GuestNotice from '../components/GuestNotice.jsx'
 
 // «Персонализация» — выбор курсов, которые показываются в левом меню, на
 // главной и в подвале. Скрыть можно любой курс, кроме последнего
@@ -22,7 +23,7 @@ export default function Personalization() {
       </div>
 
       {!user ? (
-        <p className="admin-note">Войдите, чтобы настроить кабинет.</p>
+        <GuestNotice message="Войдите, чтобы настроить кабинет." />
       ) : (
         <section className="personalization-section">
           <h2>Мои курсы</h2>

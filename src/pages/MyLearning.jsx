@@ -10,6 +10,7 @@ import { listTopics } from '../services/topicsService.js'
 import ExamIcon from '../components/ExamIcon.jsx'
 import { IconClock, IconChevronRight } from '../components/Icons.jsx'
 import PageLoader from '../components/PageLoader.jsx'
+import GuestNotice from '../components/GuestNotice.jsx'
 
 // Общий процент по теме (сумма решённых из суммы всех доступных across
 // Чтение/Грамматика/Письмо) — и цветовая метка к нему. Пороги — то, что
@@ -199,7 +200,7 @@ export default function MyLearning() {
       </div>
 
       {!user ? (
-        <p className="admin-note">Войдите, чтобы видеть свой прогресс по пробникам.</p>
+        <GuestNotice message="Войдите, чтобы видеть свой прогресс по пробникам." />
       ) : loading ? (
         <PageLoader />
       ) : (

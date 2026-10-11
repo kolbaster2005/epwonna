@@ -1,0 +1,129 @@
+@use '../abstracts' as *;
+
+// ---- /auth — полноценная страница входа/регистрации ---------------------
+// (в отличие от AuthModal.jsx — та модалка всё ещё используется в
+// TestPage.jsx, см. комментарий в AuthPage.jsx).
+
+.auth-page {
+  display: flex;
+  justify-content: center;
+  padding: $space-6 0 $space-10;
+
+  @include mq(sm) {
+    padding: $space-8 0 $space-10;
+  }
+}
+
+.auth-page-card {
+  width: 100%;
+  max-width: 920px;
+  display: grid;
+  grid-template-columns: 1fr;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  overflow: hidden;
+
+  @include mq(md) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.auth-page-form-col {
+  padding: $space-7 $space-5;
+
+  @include mq(sm) {
+    padding: $space-8;
+  }
+
+  h1 {
+    font-size: 24px;
+
+    @include mq(sm) {
+      font-size: 27px;
+    }
+  }
+}
+
+.auth-page-lead {
+  margin-top: $space-2;
+  color: $color-ink-soft;
+  font-size: 14px;
+}
+
+.auth-page-tabs {
+  width: 100%;
+  margin: $space-6 0 2px;
+
+  .phase-switch-btn {
+    flex: 1;
+
+    &.active {
+      background: $color-primary;
+    }
+  }
+}
+
+.auth-page-submit {
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.auth-page-back {
+  display: inline-block;
+  margin-top: $space-6;
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-gray;
+
+  &:hover {
+    color: $color-ink;
+  }
+}
+
+// Правая колонка — только от $bp-md: на телефоне/планшете в портрете
+// карточке со всей сутью (форма) важнее, чем иллюстрация.
+.auth-page-art-col {
+  display: none;
+  flex-direction: column;
+  padding: $space-8 $space-7;
+  background: $color-primary-light;
+
+  @include mq(md) {
+    display: flex;
+  }
+}
+
+.auth-page-art-img {
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto $space-7;
+}
+
+.auth-page-benefits {
+  h2 {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: $space-4;
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+    padding-left: 0;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: $color-ink-soft;
+
+    svg {
+      flex-shrink: 0;
+      color: $color-primary;
+    }
+  }
+}

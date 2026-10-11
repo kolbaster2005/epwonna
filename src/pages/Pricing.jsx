@@ -1,8 +1,8 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useDialog } from '../contexts/DialogContext.jsx'
 import { IconCheckCircle, IconLock, IconStar } from '../components/Icons.jsx'
-import AuthModal from '../components/AuthModal.jsx'
 import ProTrialModal from '../components/ProTrialModal.jsx'
 
 // Реальные отличия PRO от бесплатного тарифа на сегодня — ровно те, что
@@ -31,13 +31,13 @@ function FeatureCell({ value }) {
 export default function Pricing() {
   const { user, isPro, trialUsed, trialActive, activateProTrial } = useAuth()
   const { alertMessage } = useDialog()
-  const [authOpen, setAuthOpen] = useState(false)
+  const navigate = useNavigate()
   const [activating, setActivating] = useState(false)
   const [trialResult, setTrialResult] = useState(null) // Date|null — модалка-поздравление открыта, если не null
 
   async function handleTryFree() {
     if (!user) {
-      setAuthOpen(true)
+      navigate('/auth', { state: { from: '/pro', reason: 'Чтобы активировать пробный период, нужно войти или зарегистрироваться.' } })
       return
     }
     setActivating(true)
@@ -65,7 +65,11 @@ export default function Pricing() {
             <div className="pricing-card-price">Бесплатно</div>
           </div>
           {!user ? (
-            <button type="button" className="btn btn-outline" onClick={() => setAuthOpen(true)}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => navigate('/auth', { state: { from: '/pro', mode: 'signup' } })}
+            >
               Зарегистрироваться
             </button>
           ) : (
@@ -133,7 +137,6 @@ export default function Pricing() {
         вручную.
       </p>
 
-      {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
       {trialResult && <ProTrialModal until={trialResult} onClose={() => setTrialResult(null)} />}
     </div>
   )

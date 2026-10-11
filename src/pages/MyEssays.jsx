@@ -7,6 +7,7 @@ import { getLatestEssayReviewsByEssays } from '../services/essayAiService.js'
 import { IconTrash } from '../components/Icons.jsx'
 import EssayAiReview from '../components/EssayAiReview.jsx'
 import PageLoader from '../components/PageLoader.jsx'
+import GuestNotice from '../components/GuestNotice.jsx'
 
 function formatShortDate(iso) {
   return new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
@@ -96,7 +97,7 @@ export default function MyEssays() {
       </div>
 
       {!user ? (
-        <p className="admin-note">Войдите, чтобы увидеть свои сохранённые сочинения.</p>
+        <GuestNotice message="Войдите, чтобы увидеть свои сохранённые сочинения." />
       ) : loading ? (
         <PageLoader />
       ) : essays.length === 0 ? (

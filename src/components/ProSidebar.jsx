@@ -1,11 +1,9 @@
-import { useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { visibleExamList } from '../data/examData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { usePersonalization } from '../contexts/PersonalizationContext.jsx'
 import { IconHome, IconBarChart, IconEdit, IconBook, IconShield, IconSettings, IconLogout, IconLogin, IconStar } from './Icons.jsx'
 import ExamIcon from './ExamIcon.jsx'
-import AuthModal from './AuthModal.jsx'
 import logo from '../assets/logo.png'
 
 // Разделы «Моё обучение» — те же, что в дропдауне шапки (Header.jsx),
@@ -28,7 +26,13 @@ function navClass({ isActive }) {
 export default function ProSidebar({ drawerOpen, onDrawerClose }) {
   const { user, isAdmin, signOut } = useAuth()
   const { filterShownExams } = usePersonalization()
-  const [authOpen, setAuthOpen] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  function goToAuth() {
+    onDrawerClose()
+    navigate('/auth', { state: { from: location.pathname } })
+  }
 
   function item(to, label, iconNode, end) {
     return (
@@ -51,7 +55,7 @@ export default function ProSidebar({ drawerOpen, onDrawerClose }) {
         <span className="pro-sidebar-label">Выйти</span>
       </button>
     ) : (
-      <button type="button" className={'pro-sidebar-link pro-sidebar-logout ' + className} onClick={() => setAuthOpen(true)} title="Войти">
+      <button type="button" className={'pro-sidebar-link pro-sidebar-logout ' + className} onClick={goToAuth} title="Войти">
         <IconLogin size={20} />
         <span className="pro-sidebar-label">Войти</span>
       </button>
@@ -125,8 +129,6 @@ export default function ProSidebar({ drawerOpen, onDrawerClose }) {
           её у низа самого .pro-sidebar (flex-column, 100vh), это не
           должно зависеть от раскрывающегося слоя. */}
       {authButton('pro-sidebar-authbtn-mobile')}
-
-      {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
     </aside>
   )
 }
