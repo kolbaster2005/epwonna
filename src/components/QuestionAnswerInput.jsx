@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import QuestionImage from './QuestionImage.jsx'
 import { getVerdictForPartWithSelfGrade, parseCloze, clozeBlankIds, getVerdictForBlank, getVerdictForRow, getVerdictForTfRow } from '../utils/grading.js'
+import { isExpressionReadable } from '../utils/mathExpression.js'
 
 // Renders "__word__" as an underline — used in qa_table prompts to mark
 // which word in the sentence the question is actually about (matching
@@ -153,6 +154,43 @@ function ShortAnswerInput({ question, value, onChange, checked, verdict }) {
       />
       {checked && verdict === 'incorrect' && (
         <p className="short-answer-hint">Правильный ответ: {question.acceptedAnswers?.[0]}</p>
+      )}
+    </div>
+  )
+}
+
+// Поле для формулы (part.type === 'expression'), например первообразной.
+// Ответ проверяется не как строка, а по значениям в контрольных точках (mathExpression.js),
+// поэтому «+C», пробелы и разная форма записи не мешают. Под полем — короткая памятка по
+// записи и предупреждение, если запись не удаётся разобрать.
+function ExpressionInput({ part, value, onChange, checked, verdict }) {
+  const entered = value || ''
+  const isUnreadable = entered.trim() !== '' && !isExpressionReadable(entered)
+  return (
+    <div className="short-answer-answer">
+      <input
+        type="text"
+        className={
+          'short-answer-input expression-input' +
+          (checked ? ' locked' : '') +
+          (checked && verdict === 'correct' ? ' correct' : '') +
+          (checked && verdict === 'incorrect' ? ' wrong' : '')
+        }
+        value={entered}
+        disabled={checked}
+        placeholder="Введите формулу…"
+        spellCheck={false}
+        autoComplete="off"
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {!checked && isUnreadable && <p className="expression-error">Не удаётся разобрать запись — проверьте скобки и знаки.</p>}
+      {!checked && (
+        <p className="short-answer-hint">
+          Запись: 3x, x^2, e^(1-2x), ln|x|, sqrt(x), (x^3+7)^(4/3). Натуральный логарифм — ln. «+C» писать не обязательно.
+        </p>
+      )}
+      {checked && verdict === 'incorrect' && part.answerDisplay && (
+        <p className="short-answer-hint">Правильный ответ: {part.answerDisplay}</p>
       )}
     </div>
   )
@@ -761,7 +799,33 @@ function SingleChoicePartInput({ part, value, onChange, checked }) {
 // parts) and the paginated layout (many parts, see MultiPartInput below).
 function MultiPartItem({ part, exampleLabel, value, onChange, checked, selfGrade, onSelfGrade }) {
   const partVerdict = checked ? getVerdictForPartWithSelfGrade(part, value, selfGrade) : null
-  const showSelfGrade = checked && !part.isExample && part.type === 'free_text' && partVerdict === 'ungraded'
+  // Текстовый пункт, который нельзя проверить автоматически (например, эскиз графика),
+  // может иметь эталон — текст и/или картинку. Эталон прячется за кнопкой
+  // «Показать правильный ответ», а кнопки «Верно / Неверно» появляются только после неё.
+  // Пункт без эталона работает как раньше: кнопки самооценки сразу после «Ответить».
+  const hasAnswerKey = part.type === 'free_text' && !!(part.sampleAnswer || part.answerImage)
+  // «Самопроверка» (part.selfCheck, галочка в админке): задание делается на бумаге, поля ввода нет,
+  // эталон и самооценка доступны сразу, не дожидаясь «Ответить».
+  const isSelfCheck = part.type === 'free_text' && !!part.selfCheck
+  const [answerRevealed, setAnswerRevealed] = useState(false)
+  // Если человек уже поставил себе оценку (или открыл попытку в разборе) — эталон остаётся виден.
+  const answerKeyVisible = answerRevealed || typeof selfGrade === 'string'
+  const awaitingSelfGrade = isSelfCheck
+    ? getVerdictForPartWithSelfGrade(part, value, selfGrade) === 'ungraded'
+    : checked && partVerdict === 'ungraded'
+  const showSelfGrade = !part.isExample && part.type === 'free_text' && awaitingSelfGrade && (!hasAnswerKey || answerKeyVisible)
+  const canOpenAnswerKey = isSelfCheck || checked
+  const showAnswerButton = canOpenAnswerKey && hasAnswerKey && !answerKeyVisible
+  const answerKeyBlock = canOpenAnswerKey && hasAnswerKey && answerKeyVisible && (
+    <div className="multi-part-sample-answer">
+      {part.sampleAnswer && (
+        <p>
+          <span className="multi-part-sample-answer-label">Правильный ответ:</span> {part.sampleAnswer}
+        </p>
+      )}
+      {part.answerImage && <QuestionImage name={part.answerImage} />}
+    </div>
+  )
   return (
     <div className="multi-part-item">
       <div className="multi-part-label">
@@ -776,22 +840,33 @@ function MultiPartItem({ part, exampleLabel, value, onChange, checked, selfGrade
         <TableInput table={part.table} value={value} onChange={onChange} checked={checked} />
       ) : part.type === 'free_text' ? (
         <>
-          <textarea
-            className="multi-part-freetext"
-            rows={4}
-            value={value || ''}
-            disabled={checked}
-            placeholder="Введите ваш ответ…"
-            onChange={(e) => onChange(e.target.value)}
-          />
-          {checked && part.sampleAnswer && (
-            <div className="multi-part-sample-answer">
-              <span className="multi-part-sample-answer-label">Примерный ответ:</span> {part.sampleAnswer}
-            </div>
+          {isSelfCheck ? (
+            // После показа ответа подсказка пропадает — остаётся один блок
+            answerKeyVisible ? null : <p className="multi-part-selfcheck-note">
+              Это задание выполняется на бумаге — вводить ответ здесь не нужно. Сделайте его сами, затем посмотрите
+              правильный ответ и отметьте, получилось ли у вас верно.
+            </p>
+          ) : (
+            <textarea
+              className="multi-part-freetext"
+              rows={4}
+              value={value || ''}
+              disabled={checked}
+              placeholder="Введите ваш ответ…"
+              onChange={(e) => onChange(e.target.value)}
+            />
           )}
+          {showAnswerButton && (
+            <button type="button" className="btn btn-outline multi-part-show-answer" onClick={() => setAnswerRevealed(true)}>
+              Показать правильный ответ
+            </button>
+          )}
+          {answerKeyBlock}
         </>
       ) : part.type === 'short_answer' ? (
         <ShortAnswerInput question={part} value={value} onChange={onChange} checked={checked} verdict={partVerdict} />
+      ) : part.type === 'expression' ? (
+        <ExpressionInput part={part} value={value} onChange={onChange} checked={checked} verdict={partVerdict} />
       ) : part.type === 'single_choice' ? (
         <SingleChoicePartInput part={part} value={value} onChange={onChange} checked={checked} />
       ) : (
@@ -808,7 +883,7 @@ function MultiPartItem({ part, exampleLabel, value, onChange, checked, selfGrade
           </button>
         </div>
       )}
-      {checked && part.type === 'free_text' && typeof selfGrade === 'string' && (
+      {(checked || isSelfCheck) && part.type === 'free_text' && typeof selfGrade === 'string' && (
         <p className="self-grade-note">Отмечено вами как «{selfGrade === 'correct' ? 'верно' : 'неверно'}».</p>
       )}
     </div>
@@ -821,6 +896,12 @@ function MultiPartItem({ part, exampleLabel, value, onChange, checked, selfGrade
 // hard to read against the reading passage next to it. Past a threshold,
 // show one part at a time with a compact number-navigator instead.
 export const PAGINATE_THRESHOLD = 3
+
+// Пункты показываются по одному, если их много ИЛИ если в админке у вопроса
+// включено «Показывать пункты по одному» (question.paginateParts).
+export function isPaginatedMultiPart(question) {
+  return question.type === 'multi_part' && !!question.parts && (!!question.paginateParts || question.parts.length > PAGINATE_THRESHOLD)
+}
 
 function MultiPartInput({ question, examKey, value, onChange, checked, selfGrade, onSelfGradePart, partIndex, onPartIndexChange }) {
   const exampleLabel = examKey === 'epe' ? 'Example: ' : 'Beispiel: '
@@ -843,7 +924,7 @@ function MultiPartInput({ question, examKey, value, onChange, checked, selfGrade
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question.id])
 
-  if (parts.length <= PAGINATE_THRESHOLD) {
+  if (!isPaginatedMultiPart(question)) {
     return (
       <div className="multi-part">
         {parts.map((part) => (
@@ -882,6 +963,7 @@ function MultiPartInput({ question, examKey, value, onChange, checked, selfGrade
       </div>
 
       <MultiPartItem
+        key={part.id}
         part={part}
         exampleLabel={exampleLabel}
         value={val[part.id]}

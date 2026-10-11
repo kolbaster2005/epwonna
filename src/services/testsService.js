@@ -151,7 +151,7 @@ function rowToQuestion(row) {
     case 'free_text':
       return base
     case 'multi_part':
-      return { ...base, parts: row.parts || [] }
+      return { ...base, parts: row.parts || [], paginateParts: row.paginate_parts ?? undefined }
     case 'multiple_choice':
     default:
       return { ...base, options: row.options || [], correctOptionIds: row.correct_option_ids || [] }
@@ -197,7 +197,7 @@ function questionToRow(testId, position, q) {
     case 'free_text':
       return base
     case 'multi_part':
-      return { ...base, parts: q.parts }
+      return { ...base, parts: q.parts, paginate_parts: q.paginateParts ?? null }
     case 'multiple_choice':
     default:
       return { ...base, options: q.options, correct_option_ids: q.correctOptionIds }

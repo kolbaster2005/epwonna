@@ -5,7 +5,7 @@ import { getTest } from '../services/testsService.js'
 import { listContentByIds } from '../services/contentService.js'
 import { getAttempt } from '../services/attemptsService.js'
 import QuestionImage from '../components/QuestionImage.jsx'
-import QuestionAnswerInput, { PAGINATE_THRESHOLD } from '../components/QuestionAnswerInput.jsx'
+import QuestionAnswerInput, { isPaginatedMultiPart as checkPaginated } from '../components/QuestionAnswerInput.jsx'
 import FloatingPassageWindow from '../components/FloatingPassageWindow.jsx'
 import PageLoader from '../components/PageLoader.jsx'
 import { getVerdictWithSelfGrade, hasAnswer, defaultValue } from '../utils/grading.js'
@@ -138,7 +138,7 @@ export default function AttemptReview() {
     setIndex(Math.min(Math.max(i, 0), questions.length - 1))
   }
 
-  const isPaginatedMultiPart = question.type === 'multi_part' && question.parts.length > PAGINATE_THRESHOLD
+  const isPaginatedMultiPart = checkPaginated(question)
   const isLast = index === questions.length - 1
   const isFirst = index === 0 && (!isPaginatedMultiPart || partIndex === 0)
 

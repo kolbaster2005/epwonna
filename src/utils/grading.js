@@ -1,3 +1,5 @@
+import { gradeExpressionAnswer } from './mathExpression.js'
+
 // ---------------------------------------------------------------------
 // Per-question-type grading.
 //
@@ -256,6 +258,9 @@ export function hasAnswerForPart(part, value) {
   // the student — treat it as always satisfied so it can't block the
   // "Ответить" button. Same isExample flag tf_table rows already use.
   if (part.isExample) return true
+  // Пункт «самопроверка» (эскиз на бумаге) — вводить в нём нечего,
+  // поэтому он тоже не блокирует «Ответить».
+  if (part.selfCheck) return true
   if (part.type === 'table') {
     if (!value) return false
     return tableCells(part.table).every(({ r, c }) => (value[`r${r}c${c}`] ?? '').toString().trim() !== '')
@@ -283,6 +288,9 @@ export function getVerdictForPart(part, value) {
   if (part.type === 'free_text') return 'ungraded'
   if (part.type === 'short_answer') return gradeShortAnswer(value, part.acceptedAnswers)
   if (part.type === 'single_choice') return value === part.correctOptionId ? 'correct' : 'incorrect'
+  // expression — формула (например, первообразная): сравнивается не как строка,
+  // а по значениям в контрольных точках, см. mathExpression.js
+  if (part.type === 'expression') return gradeExpressionAnswer(value, part) ? 'correct' : 'incorrect'
   // numeric part
   return gradeNumeric(value, part.correctValue, part.tolerance ?? 0.1)
 }

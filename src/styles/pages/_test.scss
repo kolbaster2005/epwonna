@@ -1511,6 +1511,17 @@ input:checked + .option-mark.radio::after {
   color: $color-gray;
 }
 
+// Поле формулы (первообразная и т.п.) — формулы длиннее обычного короткого ответа.
+.short-answer-input.expression-input {
+  max-width: 100%;
+}
+
+.expression-error {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: #b0332c;
+}
+
 // ---- Free text (essay / writing tasks) ------------------------------------
 .free-text-answer {
   margin-top: $space-4;
@@ -1794,6 +1805,28 @@ input:checked + .option-mark.radio::after {
 .multi-part-sample-answer-label {
   font-weight: 700;
   color: $color-blue-dark;
+}
+
+.multi-part-sample-answer p {
+  margin: 0;
+}
+
+.multi-part-sample-answer p + * {
+  margin-top: 10px;
+}
+
+.multi-part-show-answer {
+  margin-top: 10px;
+}
+
+.multi-part-selfcheck-note {
+  margin: 0;
+  padding: 12px 14px;
+  background: $color-blue-light;
+  border-radius: $radius-md;
+  font-size: 13px;
+  line-height: 1.6;
+  color: $color-ink;
 }
 
 .multi-part-verdict {

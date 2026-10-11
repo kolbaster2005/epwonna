@@ -384,6 +384,8 @@ create table if not exists public.questions (
 );
 
 alter table public.questions add column if not exists self_grade_max_points integer;
+-- multi_part: показывать пункты по одному, даже если их ≤ 3.
+alter table public.questions add column if not exists paginate_parts boolean;
 
 -- Safe to re-run on a project whose `questions` table predates
 -- multi_part / parts / short_answer / passage_id / cloze / qa_table / tf_table.

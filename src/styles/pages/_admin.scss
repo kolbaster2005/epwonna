@@ -1424,3 +1424,50 @@
   font-weight: 700;
   color: $color-primary-dark;
 }
+
+// ---- Навигация по вопросам раздела --------------------------------------
+// Зелёные пояснения внутри карточки вопроса только мешают — прячем их
+// (предупреждение «задание используется в других пробниках» остаётся).
+.admin-question-card .admin-note:not(.admin-shared-task-warning) {
+  display: none;
+}
+
+.admin-question-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: $space-4;
+}
+
+.admin-question-chip {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid $color-primary-light;
+  border-radius: $radius-sm;
+  background: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $color-primary;
+  }
+
+  &.active {
+    background: $color-primary;
+    border-color: $color-primary;
+    color: #fff;
+  }
+}
+
+.admin-question-chip-add {
+  border-style: dashed;
+  color: $color-primary;
+}
+
+.admin-saved-notice {
+  align-self: center;
+  font-weight: 600;
+  color: $color-primary;
+}

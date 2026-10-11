@@ -13,7 +13,7 @@ import { upsertTaskAttempt } from '../services/taskAttemptsService.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useDialog } from '../contexts/DialogContext.jsx'
 import QuestionImage from '../components/QuestionImage.jsx'
-import QuestionAnswerInput, { PAGINATE_THRESHOLD } from '../components/QuestionAnswerInput.jsx'
+import QuestionAnswerInput, { isPaginatedMultiPart as checkPaginated } from '../components/QuestionAnswerInput.jsx'
 import FloatingPassageWindow from '../components/FloatingPassageWindow.jsx'
 import AudioPlayer from '../components/AudioPlayer.jsx'
 import TranscriptModal from '../components/TranscriptModal.jsx'
@@ -578,7 +578,9 @@ export default function TestPage({ examKey }) {
       const existing = prev[questionId]
       const partGrades = existing && typeof existing === 'object' ? existing : {}
       const nextPartGrades = { ...partGrades, [partId]: grade }
-      if (user && questionId === question.id) {
+      // Пункт-самопроверку можно оценить ещё до «Ответить» — в базу пишем только
+      // после проверки вопроса (тогда его оценку запишет lockCurrentIfComplete).
+      if (user && questionId === question.id && checkedIds.has(questionId)) {
         const verdict = getVerdictWithSelfGrade(question, value, nextPartGrades)
         upsertTaskAttempt({ userId: user.id, taskId: questionId, examKey, verdict, answer: value }).catch(() => {})
       }
@@ -842,7 +844,7 @@ export default function TestPage({ examKey }) {
     )
   }
 
-  const isPaginatedMultiPart = question.type === 'multi_part' && question.parts.length > PAGINATE_THRESHOLD
+  const isPaginatedMultiPart = checkPaginated(question)
   const isLastPart = isPaginatedMultiPart && partIndex >= question.parts.length - 1
   // Only one action button shown at a time (see the render below) — its
   // label and behavior depend on where the person is:

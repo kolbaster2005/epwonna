@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
 import { exams } from '../../data/examData.js'
 import { getTest, createTest, updateTest, listTaskShareCounts } from '../../services/testsService.js'
@@ -10,6 +10,7 @@ import { listExamParts } from '../../services/examPartsService.js'
 import { listContentForExam } from '../../services/contentService.js'
 import ContentAudioPicker from '../../components/ContentAudioPicker.jsx'
 import { clozeBlankIds } from '../../utils/grading.js'
+import { isExpressionReadable } from '../../utils/mathExpression.js'
 
 function uid(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`
@@ -125,6 +126,7 @@ function blankPart(type) {
     }
   }
   if (type === 'free_text') return base
+  if (type === 'expression') return { ...base, referenceExpression: '', answerDisplay: '', allowConstant: true }
   if (type === 'short_answer') return { ...base, acceptedAnswers: [''] }
   if (type === 'single_choice') {
     return {
@@ -204,9 +206,16 @@ export default function AdminTestEditor({ examKey }) {
   // the editor from dumping every text and every question from every
   // part of the exam onto one screen at once.
   const [activeSection, setActiveSection] = useState(null)
+  // Какой вопрос раздела сейчас открыт для редактирования (остальные
+  // скрыты — вместо длинной «простыни» из всех вопросов подряд).
+  const [activeQuestionId, setActiveQuestionId] = useState(null)
+  const [savedNotice, setSavedNotice] = useState(false)
+  const exitAfterSaveRef = useRef(false) // «Сохранить и выйти» vs просто «Сохранить»
+  useEffect(() => { setSavedNotice(false) }, [form])
 
   useEffect(() => {
     setActiveSection(null)
+    setActiveQuestionId(null)
   }, [testId])
 
   useEffect(() => {
@@ -276,6 +285,15 @@ export default function AdminTestEditor({ examKey }) {
     sectionSource && form.format !== 'oral'
       ? [...sectionSource.map((c) => ({ key: c.value, label: c.label })), { key: UNSECTIONED, label: 'Без раздела' }]
       : null
+
+  // Общие тексты для чтения есть только у языковых экзаменов (немецкий,
+  // английский); аудио — только у немецкого (Hörverstehen). У остальных
+  // предметов эти поля просто не нужны и скрыты.
+  const supportsPassages = examKey === 'epd' || examKey === 'epe'
+  const supportsAudio = examKey === 'epd'
+
+  const sectionQuestions = activeSection === null ? [] : form.questions.filter((q) => sectionKeyOf(q) === activeSection)
+  const currentQuestionId = sectionQuestions.some((q) => q.id === activeQuestionId) ? activeQuestionId : sectionQuestions[0]?.id
 
   function questionsInSection(key) {
     return form.questions.filter((q) => sectionKeyOf(q) === key)
@@ -598,18 +616,21 @@ export default function AdminTestEditor({ examKey }) {
       ...f,
       questions: f.questions.map((q, i) => {
         if (i !== qIndex) return q
-        const { id, text, image, explanation, category, taskType, selfGradeMaxPoints, topicIds, sourceUrl, contentId, instructions } = q
-        return { id, text, image, explanation, category, taskType, selfGradeMaxPoints, topicIds, sourceUrl, contentId, instructions, type, ...defaultsForType(type) }
+        const { id, text, image, explanation, category, taskType, selfGradeMaxPoints, topicIds, sourceUrl, contentId, instructions, paginateParts } = q
+        return { id, text, image, explanation, category, taskType, selfGradeMaxPoints, topicIds, sourceUrl, contentId, instructions, paginateParts, type, ...defaultsForType(type) }
       }),
     }))
   }
 
   function addQuestion(category) {
-    setForm((f) => ({ ...f, questions: [...f.questions, { ...blankQuestion(), category }] }))
+    const newQuestion = { ...blankQuestion(), category }
+    setForm((f) => ({ ...f, questions: [...f.questions, newQuestion] }))
+    setActiveQuestionId(newQuestion.id)
   }
 
   async function removeQuestion(qIndex) {
     if (!(await confirm('Удалить этот вопрос?'))) return
+    setActiveQuestionId(null)
     setForm((f) => ({ ...f, questions: f.questions.filter((_, i) => i !== qIndex) }))
   }
 
@@ -923,6 +944,15 @@ export default function AdminTestEditor({ examKey }) {
     reader.readAsDataURL(file)
   }
 
+  // Картинка с правильным ответом для текстового пункта multi_part —
+  // тот же data:-URI подход, что и в handleImageChange ниже.
+  function handlePartAnswerImageChange(qIndex, partIndex, file) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setPart(qIndex, partIndex, { answerImage: reader.result })
+    reader.readAsDataURL(file)
+  }
+
   function handleImageChange(qIndex, file) {
     if (!file) return
     // Mock-only: reads the file straight into a data: URI so the photo
@@ -933,18 +963,25 @@ export default function AdminTestEditor({ examKey }) {
     reader.readAsDataURL(file)
   }
 
+  // exitAfterSave=true — кнопка «Сохранить и выйти»; иначе остаёмся в
+  // этом же пробнике (в том же разделе и на том же вопросе).
   async function handleSubmit(e) {
     e.preventDefault()
+    const exitAfterSave = exitAfterSaveRef.current
+    exitAfterSaveRef.current = false
     setSaving(true)
     setSaveError('')
+    setSavedNotice(false)
     const payload = {
       ...form,
       durationMinutes: Number(form.durationMinutes) || 0,
       year: Number(form.year) || new Date().getFullYear(),
     }
+    let createdTestId = null
     try {
       if (isNew) {
-        await createTest(examKey, payload)
+        const created = await createTest(examKey, payload)
+        createdTestId = created?.id || payload.id || null
       } else {
         await updateTest(examKey, testId, payload)
       }
@@ -955,7 +992,18 @@ export default function AdminTestEditor({ examKey }) {
       await Promise.all(
         (payload.questions || []).map((q) => setTaskTopics(q.id, q.topicIds || []).catch(() => {}))
       )
-      navigate(`/admin/${examKey}`)
+      if (exitAfterSave || (isNew && !createdTestId)) {
+        navigate(`/admin/${examKey}`)
+        return
+      }
+      if (isNew) {
+        // Новый пробник создан — переходим на его страницу редактирования
+        // и остаёмся в нём.
+        navigate(`/admin/${examKey}/${createdTestId}`, { replace: true })
+        return
+      }
+      setSaving(false)
+      setSavedNotice(true)
     } catch (err) {
       setSaveError(err.message || 'Не удалось сохранить пробник. Проверьте подключение к базе данных.')
       setSaving(false)
@@ -1236,7 +1284,6 @@ export default function AdminTestEditor({ examKey }) {
         {sections && activeSection === null && (
           <div className="admin-sections">
             <h2>Разделы пробника</h2>
-            <p className="admin-note">Выберите раздел, чтобы добавить в него тексты и вопросы.</p>
             <div className="admin-section-grid">
               {sections.map((s) => {
                 const qCount = questionsInSection(s.key).length
@@ -1265,13 +1312,9 @@ export default function AdminTestEditor({ examKey }) {
               <h2>{sections.find((s) => s.key === activeSection)?.label}</h2>
             </div>
 
+            {supportsPassages && (
             <div className="admin-passages">
               <h3>Тексты для чтения</h3>
-              <p className="admin-note">
-                Общий текст (для Leseverstehen и т.п.), не привязанный ни к одному конкретному вопросу — привяжите к
-                нему сколько угодно отдельных вопросов ниже через поле «Текст для чтения» у каждого вопроса. Текст
-                останется на экране, пока человек отвечает на все вопросы, которые на него ссылаются.
-              </p>
 
               {passagesInSection(activeSection).length === 0 && (
                 <div className="tests-empty">Пока нет ни одного текста в этом разделе.</div>
@@ -1315,21 +1358,45 @@ export default function AdminTestEditor({ examKey }) {
                 + Добавить текст
               </button>
             </div>
+            )}
 
             <div className="admin-questions">
               <h3>Вопросы раздела</h3>
 
-              {questionsInSection(activeSection).length === 0 && (
-                <div className="tests-empty">Пока нет вопросов в этом разделе. Добавьте первый ниже.</div>
+              {sectionQuestions.length === 0 && (
+                <div className="tests-empty">Пока нет вопросов в этом разделе. Добавьте первый.</div>
               )}
 
+              <div className="admin-question-nav">
+                {sectionQuestions.map((sq, i) => (
+                  <button
+                    type="button"
+                    key={sq.id}
+                    className={`admin-question-chip${sq.id === currentQuestionId ? ' active' : ''}`}
+                    onClick={() => setActiveQuestionId(sq.id)}
+                    title={sq.text ? sq.text.slice(0, 80) : 'Пустой вопрос'}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="admin-question-chip admin-question-chip-add"
+                  onClick={() => addQuestion(activeSection === UNSECTIONED ? undefined : activeSection)}
+                  aria-label="Добавить вопрос"
+                  title="Добавить вопрос"
+                >
+                  +
+                </button>
+              </div>
+
               {form.questions.map((q, qIndex) => {
-                if (sectionKeyOf(q) !== activeSection) return null
+                if (sectionKeyOf(q) !== activeSection || q.id !== currentQuestionId) return null
                 const sectionPassageOptions = form.passages.filter((p) => sectionKeyOf(p) === activeSection)
                 return (
                   <div className="admin-question-card" key={q.id}>
                     <div className="admin-question-head">
-                      <span className="admin-question-num">Вопрос {qIndex + 1}</span>
+                      <span className="admin-question-num">Вопрос {sectionQuestions.findIndex((sq) => sq.id === q.id) + 1}</span>
                       <button type="button" className="admin-delete-btn" onClick={() => removeQuestion(qIndex)} aria-label="Удалить вопрос">✕</button>
                     </div>
 
@@ -1346,7 +1413,7 @@ export default function AdminTestEditor({ examKey }) {
                       <textarea required rows={4} value={q.text} onChange={(e) => setQuestion(qIndex, { text: e.target.value })} />
                     </label>
 
-                    {sectionPassageOptions.length > 0 && (
+                    {supportsPassages && sectionPassageOptions.length > 0 && (
                       <label className="admin-field">
                         <span>Текст для чтения <em>(необязательно — общий текст останется на экране рядом с вопросом)</em></span>
                         <select
@@ -1361,6 +1428,7 @@ export default function AdminTestEditor({ examKey }) {
                       </label>
                     )}
 
+                    {(supportsAudio || q.contentId) && (
                     <label className="admin-field">
                       <span>
                         Аудио / переиспользуемый текст <em>(из банка — доступно любому вопросу в любом пробнике, не только в этом)</em>
@@ -1373,6 +1441,7 @@ export default function AdminTestEditor({ examKey }) {
                         onCreated={reloadContentList}
                       />
                     </label>
+                    )}
 
               <label className="admin-field">
                 <span>Тип ответа</span>
@@ -2054,6 +2123,14 @@ export default function AdminTestEditor({ examKey }) {
 
               {q.type === 'multi_part' && (
                 <div className="admin-multipart">
+                  <label className="admin-part-example-toggle">
+                    <input
+                      type="checkbox"
+                      checked={!!q.paginateParts}
+                      onChange={(e) => setQuestion(qIndex, { paginateParts: e.target.checked || undefined })}
+                    />
+                    Показывать пункты по одному <em>(первый, потом второй, потом третий; иначе до 3 пунктов идут друг под другом)</em>
+                  </label>
                   <p className="admin-note">
                     Общий текст условия — поле «Текст вопроса» выше. Ниже — независимо проверяемые пункты; итог по
                     вопросу — доля пунктов, отвеченных верно.
@@ -2074,6 +2151,7 @@ export default function AdminTestEditor({ examKey }) {
                           <option value="single_choice">Один из вариантов</option>
                           <option value="table">Таблица</option>
                           <option value="short_answer">Короткий ответ</option>
+                          <option value="expression">Формула</option>
                           <option value="free_text">Текст</option>
                         </select>
                         <label className="admin-part-example-toggle">
@@ -2195,14 +2273,99 @@ export default function AdminTestEditor({ examKey }) {
 
                       {part.type === 'free_text' && (
                         <>
-                          <p className="admin-note">Не проверяется автоматически — человек впишет ответ и сам оценит его после проверки.</p>
+                          <p className="admin-note">
+                            Не проверяется автоматически. Если ниже заполнен правильный ответ (текст и/или картинка), у человека
+                            появится кнопка «Показать правильный ответ», а после неё — «Верно / Неверно» для самооценки.
+                            Если ничего не заполнено, кнопки самооценки появятся сразу после «Ответить».
+                          </p>
+                          <label className="admin-part-example-toggle">
+                            <input
+                              type="checkbox"
+                              checked={!!part.selfCheck}
+                              onChange={(e) => setPart(qIndex, partIndex, { selfCheck: e.target.checked || undefined })}
+                            />
+                            Самопроверка: задание делается на бумаге (эскиз графика и т.п.). Вместо поля ввода — кнопка «Показать правильный ответ», без «Ответить»
+                          </label>
                           <label className="admin-field">
-                            <span>Примерный ответ <em>(необязательно — показывается после «Ответить», чтобы было с чем свериться)</em></span>
+                            <span>Правильный ответ, текст <em>(необязательно — что должно быть на эскизе или образец ответа)</em></span>
                             <textarea
                               rows={3}
                               value={part.sampleAnswer || ''}
                               onChange={(e) => setPart(qIndex, partIndex, { sampleAnswer: e.target.value })}
                               placeholder="Ключевые слова или образец ответа для самопроверки"
+                            />
+                          </label>
+                          <div className="admin-field">
+                            <span>Правильный ответ, картинка <em>(необязательно — например, нарисованный график)</em></span>
+                            {part.answerImage ? (
+                              <div className="admin-image-preview">
+                                <img src={part.answerImage} alt="" />
+                                <button
+                                  type="button"
+                                  className="btn btn-outline"
+                                  onClick={() => setPart(qIndex, partIndex, { answerImage: undefined })}
+                                >
+                                  Убрать картинку
+                                </button>
+                              </div>
+                            ) : (
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handlePartAnswerImageChange(qIndex, partIndex, e.target.files?.[0])}
+                              />
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {part.type === 'expression' && (
+                        <>
+                          <p className="admin-note">
+                            Пользователь вводит формулу (например, первообразную). Проверка идёт по значениям в контрольных точках,
+                            а не по тексту, поэтому «+C», пробелы и разная форма записи не мешают.
+                          </p>
+                          <label className="admin-field">
+                            <span>Эталонная формула <em>(пишите явно: * умножение, ^ степень, exp(…), ln(abs(…)), sqrt(…); переменная — x)</em></span>
+                            <input
+                              required
+                              value={part.referenceExpression || ''}
+                              onChange={(e) => setPart(qIndex, partIndex, { referenceExpression: e.target.value })}
+                              placeholder="-(3*x+3/2)*exp(1-2*x)+3/2*(x^3+7)^(4/3)"
+                            />
+                            {part.referenceExpression && !isExpressionReadable(part.referenceExpression) && (
+                              <em>Не удаётся разобрать формулу — проверьте скобки и знаки.</em>
+                            )}
+                          </label>
+                          <label className="admin-field">
+                            <span>Как показать правильный ответ <em>(обычным текстом — увидит тот, кто ответил неверно)</em></span>
+                            <input
+                              value={part.answerDisplay || ''}
+                              onChange={(e) => setPart(qIndex, partIndex, { answerDisplay: e.target.value })}
+                              placeholder="−(3x + 3/2)·e^(1−2x) + 3/2·(x³+7)^(4/3) + C"
+                            />
+                          </label>
+                          <label className="admin-part-example-toggle">
+                            <input
+                              type="checkbox"
+                              checked={!!part.allowConstant}
+                              onChange={(e) => setPart(qIndex, partIndex, { allowConstant: e.target.checked })}
+                            />
+                            Неопределённый интеграл: ответ верен с точностью до константы C
+                          </label>
+                          <label className="admin-field">
+                            <span>Контрольные точки <em>(необязательно, через запятую, десятичная точка; только там, где эталон определён; для ln|…| — по обе стороны от разрыва)</em></span>
+                            <input
+                              key={part.id}
+                              defaultValue={(part.samplePoints || []).join(', ')}
+                              onBlur={(e) => {
+                                const points = e.target.value
+                                  .split(',')
+                                  .map((s) => parseFloat(s.trim()))
+                                  .filter((n) => Number.isFinite(n))
+                                setPart(qIndex, partIndex, { samplePoints: points.length > 0 ? points : undefined })
+                              }}
+                              placeholder="-1.5, -0.7, 0.4, 1.1, 2"
                             />
                           </label>
                         </>
@@ -2332,6 +2495,9 @@ export default function AdminTestEditor({ examKey }) {
                     <button type="button" className="admin-add-link" onClick={() => addPart(qIndex, 'table')}>
                       + Пункт-таблица
                     </button>
+                    <button type="button" className="admin-add-link" onClick={() => addPart(qIndex, 'expression')}>
+                      + Пункт-формула
+                    </button>
                     <button type="button" className="admin-add-link" onClick={() => addPart(qIndex, 'free_text')}>
                       + Текстовый пункт
                     </button>
@@ -2342,13 +2508,6 @@ export default function AdminTestEditor({ examKey }) {
           )
               })}
 
-              <button
-                type="button"
-                className="btn btn-outline admin-add-question-btn"
-                onClick={() => addQuestion(activeSection === UNSECTIONED ? undefined : activeSection)}
-              >
-                + Добавить вопрос
-              </button>
             </div>
           </>
         )}
@@ -2357,9 +2516,18 @@ export default function AdminTestEditor({ examKey }) {
 
         <div className="admin-form-actions">
           <button className="btn btn-primary" type="submit" disabled={saving}>
-            {saving ? 'Сохранение…' : 'Сохранить пробник'}
+            {saving ? 'Сохранение…' : 'Сохранить'}
           </button>
-          <Link className="btn btn-outline" to={`/admin/${examKey}`}>Отмена</Link>
+          <button
+            className="btn btn-outline"
+            type="submit"
+            disabled={saving}
+            onClick={() => { exitAfterSaveRef.current = true }}
+          >
+            Сохранить и выйти
+          </button>
+          <Link className="btn btn-outline" to={`/admin/${examKey}`}>Закрыть</Link>
+          {savedNotice && <span className="admin-saved-notice">✓ Сохранено</span>}
         </div>
       </form>
     </div>
